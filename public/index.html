@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CargaBalance | Auditoria Fiscal, Comissões (75%) & Manifestos MDF-e</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M1 3h15v13H1z"/>
+            <path d="M16 8h4l3 3v5h-7V8z"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>CARGABALANCE</h1>
+          <span>Auditoria SEFAZ CT-e / MDF-e &bull; Saldo de Motoristas (75% Comissão)</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Quick Button: Load Attached DACTE/DAMDFE -->
+        <button id="btn-seed-attached" class="btn btn-warning btn-sm" title="Carregar o DACTE (CT-e 3199) e DAMDFE (MDF-e 1267) anexados">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          Importar DACTE Anexo (Rio Largo -> Juazeiro)
+        </button>
+
+        <button id="btn-seed" class="btn btn-secondary btn-sm" title="Gerar dados de demonstração com múltiplos documentos SEFAZ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Gerar Amostras
+        </button>
+
+        <!-- Quick Action: Complete from XML -->
+        <button id="btn-complete-xml" class="btn btn-primary btn-sm" onclick="openCompleteXmlModal()" title="Completar e preencher informações automaticamente lendo o arquivo ou texto XML">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Completar via XML
+        </button>
+
+        <button id="btn-export-excel" class="btn btn-success btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Exportar para Excel (.xlsx)
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs Bar -->
+    <nav class="nav-tabs-bar">
+      <button class="tab-btn active" data-tab="tab-overview">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="9"/>
+          <rect x="14" y="3" width="7" height="5"/>
+          <rect x="14" y="12" width="7" height="9"/>
+          <rect x="3" y="16" width="7" height="5"/>
+        </svg>
+        Painel Geral & Saldo
+      </button>
+
+      <button class="tab-btn" data-tab="tab-ctes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Conhecimentos (CT-e & Comissões 75%)
+      </button>
+
+      <button class="tab-btn" data-tab="tab-manifestos">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="3" width="15" height="13"/>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/>
+          <circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+        Manifestos MDF-e (Interestaduais / Fora de AL)
+      </button>
+
+      <button class="tab-btn" data-tab="tab-drivers">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Gestão de Motoristas & Edição
+      </button>
+    </nav>
+
+    <!-- TAB 1: PAINEL GERAL & SALDO -->
+    <main id="tab-overview" class="tab-content active">
+      <!-- Upload Dropzone -->
+      <section class="upload-card">
+        <div id="dropzone" class="dropzone-area">
+          <div class="dropzone-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="dropzone-text">
+            <h3>Ingestão de Arquivos XML em Lote (CT-e e MDF-e)</h3>
+            <p>Arraste e solte seus arquivos XML da SEFAZ aqui ou clique para selecionar</p>
+          </div>
+          <input type="file" id="file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('file-input').click()">
+            Selecionar Arquivos XML
+          </button>
+        </div>
+      </section>
+
+      <!-- KPI Metrics Grid -->
+      <section class="kpi-grid">
+        <!-- 1. Total Faturamento / Frete -->
+        <div class="kpi-card kpi-cte">
+          <div class="kpi-header">
+            <span class="kpi-label">Faturamento Total (Fretes)</span>
+            <div class="kpi-icon-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+          </div>
+          <div id="kpi-total-frete" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-footer">
+            <span id="kpi-breakdown-cte" class="badge-trend">CT-e: R$ 0,00</span>
+            <span id="kpi-breakdown-mdfe" style="color: var(--accent-mdfe); font-weight: 600;">Carga MDF-e: R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- 2. Comissões dos Motoristas (75%) -->
+        <div class="kpi-card" style="--accent-primary: #10b981;">
+          <div class="kpi-header">
+            <span class="kpi-label">Comissão Motoristas (75%)</span>
+            <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+          </div>
+          <div id="kpi-total-comissao" class="kpi-value" style="color: #34d399;">R$ 0,00</div>
+          <div class="kpi-footer">
+            <span>Saldo acumulado a pagar aos condutores (75% do frete)</span>
+          </div>
+        </div>
+
+        <!-- 3. ICMS e Tributos -->
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-header">
+            <span class="kpi-label">Total ICMS Destacado</span>
+            <div class="kpi-icon-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </div>
+          </div>
+          <div id="kpi-total-icms" class="kpi-value" style="color: #fbbf24;">R$ 0,00</div>
+          <div class="kpi-footer">
+            <span>Imposto sobre prestação de transporte</span>
+          </div>
+        </div>
+
+        <!-- 4. Viagens & Interestaduais -->
+        <div class="kpi-card kpi-mdfe">
+          <div class="kpi-header">
+            <span class="kpi-label">Viagens & Documentos</span>
+            <div class="kpi-icon-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+          </div>
+          <div id="kpi-doc-count" class="kpi-value">0</div>
+          <div class="kpi-footer">
+            <span id="kpi-count-interstate" class="badge-interstate">0 Interestaduais (Fora de AL)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filter Bar Component -->
+      <section class="filter-card">
+        <form id="filter-form" class="filter-form">
+          <div class="form-group">
+            <label for="filter-start-date">Data Inicial</label>
+            <input type="date" id="filter-start-date" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="filter-end-date">Data Final</label>
+            <input type="date" id="filter-end-date" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="filter-driver">Motorista</label>
+            <select id="filter-driver" class="form-control">
+              <option value="all">Todos os Motoristas</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-doc-type">Tipo de Documento</label>
+            <select id="filter-doc-type" class="form-control">
+              <option value="all">Todos (CT-e e MDF-e)</option>
+              <option value="cte">Apenas CT-e</option>
+              <option value="mdfe">Apenas MDF-e</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-destination">Destino (UF / Cidade)</label>
+            <input type="text" id="filter-destination" class="form-control" placeholder="Ex: CE, Juazeiro, PE...">
+          </div>
+
+          <div class="filter-buttons">
+            <button type="submit" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              Filtrar
+            </button>
+            <button type="button" id="btn-clear-filters" class="btn btn-secondary">
+              Limpar
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Results Table -->
+      <section class="table-card">
+        <div class="table-header-bar">
+          <div class="table-title">
+            <h2>Todos os Documentos & Fretes</h2>
+            <span id="results-count" class="results-badge">0 registros</span>
+          </div>
+          <div style="max-width: 320px; width: 100%;">
+            <input type="search" id="table-search" class="form-control" placeholder="Buscar por chave, nº ou motorista...">
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Número</th>
+                <th>Série</th>
+                <th>Data Emissão</th>
+                <th>Motorista</th>
+                <th>CPF</th>
+                <th>Origem -> Destino</th>
+                <th>Interstadual?</th>
+                <th style="text-align: right;">Frete / Carga (R$)</th>
+                <th style="text-align: right;">ICMS (R$)</th>
+                <th style="text-align: right; color: #34d399;">Comissão (75%)</th>
+                <th style="text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="documents-table-body">
+              <tr>
+                <td colspan="12" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                  Carregando dados...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 2: CONHECIMENTOS (CT-E & COMISSÕES 75%) -->
+    <main id="tab-ctes" class="tab-content">
+      <section class="table-card">
+        <div class="table-header-bar">
+          <div class="table-title">
+            <h2>Conhecimentos de Transporte Eletrônico (CT-e) & Saldo de Comissão (75%)</h2>
+            <span id="cte-results-count" class="results-badge">0 CT-es</span>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Série</th>
+                <th>Data Emissão</th>
+                <th>Motorista</th>
+                <th>CPF</th>
+                <th>Origem</th>
+                <th>Destino</th>
+                <th style="text-align: right;">Valor Frete (R$)</th>
+                <th style="text-align: right;">ICMS (12%)</th>
+                <th style="text-align: right; color: #34d399;">Comissão 75% (R$)</th>
+                <th style="text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ctes-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 3: MANIFESTOS MDF-E (INTERESTADUAIS / FORA DE AL) -->
+    <main id="tab-manifestos" class="tab-content">
+      <div class="info-banner" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+        <div style="background: var(--accent-mdfe); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="3" width="15" height="13"/>
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #c4b5fd;">Manifestos Eletrônicos de Cargas (MDF-e) - Operações Fora do Estado de Alagoas</h4>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">
+            Exibição obrigatória das viagens interestaduais com detalhamento de placas (tração/reboque), UFs de percurso (ex: PE), valor total de carga averbada e conhecimentos vinculados.
+          </p>
+        </div>
+      </div>
+
+      <section class="table-card">
+        <div class="table-header-bar">
+          <div class="table-title">
+            <h2>Manifestos de Carga (MDF-e)</h2>
+            <span id="manifestos-count" class="results-badge">0 manifestos</span>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº MDF-e</th>
+                <th>Série</th>
+                <th>Data Emissão</th>
+                <th>Motorista</th>
+                <th>Placas (Tração / Reboque)</th>
+                <th>Rota (Origem -> Destino)</th>
+                <th>UFs Percurso</th>
+                <th>Qtd CT-e</th>
+                <th style="text-align: right;">Peso Bruto (KG)</th>
+                <th style="text-align: right;">Valor Carga (R$)</th>
+                <th style="text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="manifestos-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 4: GESTÃO DE MOTORISTAS (MEMÓRIA & EDIÇÃO) -->
+    <main id="tab-drivers" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 800;">Cadastro & Memória de Motoristas</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Gerencie condutores, configure o percentual de comissão de frete (padrão 75%), dados de contato e chaves PIX.
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="openDriverModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Novo Motorista
+        </button>
+      </div>
+
+      <section class="table-card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome Completo</th>
+                <th>CPF</th>
+                <th>CNH</th>
+                <th style="text-align: center;">% Comissão</th>
+                <th>Telefone</th>
+                <th>Chave PIX</th>
+                <th style="text-align: center;">Qtd Viagens</th>
+                <th style="text-align: right;">Total Frete (R$)</th>
+                <th style="text-align: right; color: #34d399;">Saldo Comissão (R$)</th>
+                <th style="text-align: center;">Status</th>
+                <th style="text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="drivers-management-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Modal: Editar / Criar Motorista -->
+  <div id="modal-driver" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 id="modal-driver-title">Cadastrar Novo Motorista</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-driver')">✕</button>
+      </div>
+      <form id="form-driver">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+          <input type="hidden" id="driver-edit-id">
+
+          <div style="background: rgba(99, 102, 241, 0.1); border: 1px dashed var(--accent-primary); border-radius: var(--radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+              Deseja preencher dados do motorista a partir de um XML?
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openCompleteXmlModal('driver')" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+              ⚡ Preencher via XML
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="driver-nome">Nome Completo do Motorista *</label>
+            <input type="text" id="driver-nome" class="form-control" required placeholder="Ex: JOSE ANTONIO LINS DE A">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="driver-cpf">CPF (000.000.000-00) *</label>
+              <input type="text" id="driver-cpf" class="form-control" required placeholder="045.070.404-18">
+            </div>
+            <div class="form-group">
+              <label for="driver-cnh">CNH (Opcional)</label>
+              <input type="text" id="driver-cnh" class="form-control" placeholder="12345678900">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="driver-comissao">Comissão de Frete (%) *</label>
+              <input type="number" id="driver-comissao" class="form-control" value="75.0" step="0.5" min="0" max="100" required>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Padrão da transportadora: 75%</small>
+            </div>
+            <div class="form-group">
+              <label for="driver-telefone">Telefone / WhatsApp</label>
+              <input type="text" id="driver-telefone" class="form-control" placeholder="(82) 99108-4205">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="driver-pix">Chave PIX para Pagamento</label>
+            <input type="text" id="driver-pix" class="form-control" placeholder="CPF, e-mail ou chave aleatória">
+          </div>
+
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+            <input type="checkbox" id="driver-ativo" checked style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+            <label for="driver-ativo" style="font-size: 0.85rem; text-transform: none; cursor: pointer;">Motorista Ativo para novas operações</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-driver')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Motorista</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Completar Informações através do XML -->
+  <div id="modal-complete-xml" class="modal-backdrop">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-complete-xml-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary);">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Completar Informações através do XML SEFAZ
+        </h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-complete-xml')">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <!-- Instruction Banner -->
+        <div style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--accent-primary); padding: 0.85rem 1.2rem; border-radius: var(--radius-sm);">
+          <div style="font-size: 0.875rem; font-weight: 600; color: #ffffff;">Extração Automática de Dados SEFAZ (CT-e & MDF-e)</div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            Cole o XML completo ou selecione o arquivo. O sistema extrai automaticamente o motorista, origem, destino, valor do frete, ICMS, calcula a comissão de 75% e gera o manifesto interestadual se a viagem for fora de Alagoas.
+          </p>
+        </div>
+
+        <!-- Input Selection Tabs (Paste vs Upload) -->
+        <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="tab-xml-paste" class="btn btn-primary btn-sm" onclick="switchXmlInputMode('paste')">
+            📝 Colar XML (Texto)
+          </button>
+          <button type="button" id="tab-xml-file" class="btn btn-secondary btn-sm" onclick="switchXmlInputMode('file')">
+            📁 Carregar Arquivo XML
+          </button>
+          <div style="margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-warning btn-sm" onclick="loadSampleXmlForCompletion('cte3199')" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" title="Carregar XML do CT-e 3199 (Rio Largo/AL -> Juazeiro/CE)">
+              Exemplo CT-e 3199
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadSampleXmlForCompletion('mdfe1267')" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" title="Carregar XML do MDF-e 1267 (Manifesto)">
+              Exemplo MDF-e 1267
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Mode 1: Paste XML -->
+        <div id="xml-input-paste-container">
+          <label for="complete-xml-text" style="display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.35rem;">
+            Código XML da SEFAZ (CT-e ou MDF-e)
+          </label>
+          <textarea id="complete-xml-text" class="form-control" rows="7" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%; resize: vertical;" placeholder="Cole aqui o conteúdo XML completo (ex: <cteProc>...</cteProc> ou <mdfeProc>...</mdfeProc>)..."></textarea>
+        </div>
+
+        <!-- Input Mode 2: File Upload -->
+        <div id="xml-input-file-container" style="display: none;">
+          <div style="border: 2px dashed var(--border-glass-hover); border-radius: var(--radius-md); padding: 1.75rem; text-align: center; background: rgba(0,0,0,0.2);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary); margin-bottom: 0.5rem;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.5rem;">Selecione o arquivo .xml do seu computador</p>
+            <input type="file" id="complete-xml-file-input" accept=".xml,text/xml,application/xml" style="display: none;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('complete-xml-file-input').click()">
+              Buscar Arquivo XML
+            </button>
+            <div id="complete-xml-filename" style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--accent-cte); font-weight: 600;"></div>
+          </div>
+        </div>
+
+        <!-- Action Button: Parse Preview -->
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <button type="button" id="btn-parse-xml" class="btn btn-primary" onclick="analyzeXmlContent()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Analisar e Extrair Informações do XML
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="clearXmlForm()">
+            Limpar
+          </button>
+        </div>
+
+        <!-- Preview Results Container -->
+        <div id="complete-xml-preview-container" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-glass-hover); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span id="preview-doc-badge" class="badge-doc badge-cte" style="font-size: 0.85rem;">CT-e</span>
+              <strong id="preview-doc-title" style="font-size: 1rem; color: #ffffff;">Conhecimento nº 3199 - Série 1</strong>
+            </div>
+            <span id="preview-interstate-badge" class="badge-doc badge-mdfe" style="display: none;">Viagem Interestadual (Fora de AL)</span>
+          </div>
+
+          <!-- Grid of Extracted Fields -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+            <!-- Motorista -->
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; display: block;">Motorista Identificado</span>
+              <strong id="preview-motorista-nome" style="color: #ffffff; font-size: 0.9rem; display: block; margin-top: 2px;">-</strong>
+              <span id="preview-motorista-cpf" style="font-size: 0.8rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">CPF: -</span>
+            </div>
+
+            <!-- Rota -->
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; display: block;">Origem & Destino</span>
+              <strong id="preview-origem-destino" style="color: #ffffff; font-size: 0.9rem; display: block; margin-top: 2px;">-</strong>
+              <span id="preview-percurso" style="font-size: 0.8rem; color: var(--text-secondary);">Percurso: -</span>
+            </div>
+
+            <!-- Frete & ICMS -->
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cte);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; display: block;">Frete & Impostos</span>
+              <strong id="preview-valor-frete" style="color: var(--accent-cte); font-size: 1rem; display: block; margin-top: 2px;">R$ 0,00</strong>
+              <span id="preview-valor-icms" style="font-size: 0.8rem; color: var(--text-secondary);">ICMS: R$ 0,00</span>
+            </div>
+
+            <!-- Comissão 75% -->
+            <div style="background: rgba(16, 185, 129, 0.12); padding: 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid #34d399;">
+              <span style="font-size: 0.7rem; color: #34d399; text-transform: uppercase; font-weight: 700; display: block;">Comissão Motorista (75%)</span>
+              <strong id="preview-valor-comissao" style="color: #34d399; font-size: 1.15rem; display: block; margin-top: 2px;">R$ 0,00</strong>
+              <span style="font-size: 0.75rem; color: var(--text-secondary);">Base: 75% sobre frete</span>
+            </div>
+          </div>
+
+          <!-- Chave de Acesso -->
+          <div style="background: rgba(0,0,0,0.2); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.75rem; margin-bottom: 1.25rem;">
+            <span style="color: var(--text-secondary); margin-right: 0.5rem;">Chave SEFAZ:</span>
+            <code id="preview-chave-acesso" style="color: #cbd5e1; font-family: 'JetBrains Mono', monospace; word-break: break-all;">-</code>
+          </div>
+
+          <!-- Manifesto Info (se interestadual ou MDF-e) -->
+          <div id="preview-manifesto-box" style="display: none; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #c084fc; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="1" y="3" width="15" height="13"/>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/>
+                <circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+              Manifesto Eletrônico MDF-e Vinculado (Fora de Alagoas)
+            </div>
+            <div id="preview-manifesto-details" style="font-size: 0.8rem; color: var(--text-secondary);"></div>
+          </div>
+
+          <!-- Buttons inside Preview -->
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" id="btn-use-in-driver" class="btn btn-secondary btn-sm" onclick="populateDriverFromXmlPreview()" style="display: none;">
+              👤 Usar Dados no Formulário do Motorista
+            </button>
+            <button type="button" id="btn-save-completed-xml" class="btn btn-success" onclick="saveCompletedXml()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Gravar Informações na Plataforma
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-complete-xml')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: DACTE / DAMDFE SEFAZ Viewer -->
+  <div id="modal-dacte" class="modal-backdrop">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-dacte-title">Visualização do Documento Fiscal Auxiliar</h3>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Imprimir / Salvar PDF
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-dacte')">Fechar</button>
+        </div>
+      </div>
+      <div id="modal-dacte-content" class="modal-body">
+        <!-- Rendered DACTE/DAMDFE Content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Batch Upload Results -->
+  <div id="modal-upload-results" class="modal-backdrop">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Resultado do Processamento XML</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-upload-results')">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div id="upload-summary-badges" style="display: flex; gap: 1rem; margin-bottom: 1.25rem;"></div>
+        <div id="upload-results-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closeModal('modal-upload-results')">Concluído</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Area -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/dacte-viewer.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

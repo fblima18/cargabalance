@@ -1,0 +1,20 @@
+{
+  "name": "cte-mdfe-audit-platform",
+  "version": "1.0.0",
+  "description": "High-performance CT-e and MDF-e Audit & Driver Balance Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node tests/parser.test.js"
+  },
+  "keywords": ["cte", "mdfe", "sefaz", "logistics", "audit", "driver-balance"],
+  "author": "Antigravity Systems",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "fast-xml-parser": "^4.4.1",
+    "exceljs": "^4.4.0",
+    "uuid": "^9.0.1"
+  }
+}
