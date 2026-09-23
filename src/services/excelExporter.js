@@ -5,8 +5,8 @@ const ExcelJS = require('exceljs');
  */
 async function generateExcelReport(documents, kpis, filterParams = {}) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'CargaBalance Audit Platform';
-  workbook.lastModifiedBy = 'CargaBalance System';
+  workbook.creator = 'CARGA BALANCE - Auditoria de frete';
+  workbook.lastModifiedBy = 'CARGA BALANCE - Auditoria de frete';
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -17,7 +17,7 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   // 1. Title Banner
   worksheet.mergeCells('A1:L1');
   const titleCell = worksheet.getCell('A1');
-  titleCell.value = 'PLATAFORMA CARGABALANCE - AUDITORIA CT-e / MDF-e & SALDO DE MOTORISTAS (75% COMISSÃO)';
+  titleCell.value = 'CARGA BALANCE - AUDITORIA DE FRETE (CT-e / MDF-e & COMISSÕES 75%)';
   titleCell.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.fill = {

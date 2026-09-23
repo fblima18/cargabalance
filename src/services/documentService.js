@@ -525,7 +525,7 @@ function createManualTrip(data) {
         <CNPJ>20664328000110</CNPJ>
         <IE>240000000</IE>
         <xNome>AUTO VIACAO TRANSPORTE LTDA</xNome>
-        <xFant>CARGABALANCE</xFant>
+        <xFant>CARGA BALANCE</xFant>
       </emit>
       <rem><CNPJ>00000000000191</CNPJ><xNome>EMBARCADOR MATRIZ</xNome></rem>
       <dest><CNPJ>99999999000199</CNPJ><xNome>CLIENTE DESTINATARIO</xNome></dest>

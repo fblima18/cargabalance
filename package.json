@@ -1,7 +1,7 @@
 {
   "name": "cte-mdfe-audit-platform",
   "version": "1.0.0",
-  "description": "High-performance CT-e and MDF-e Audit & Driver Balance Platform",
+  "description": "CARGA BALANCE - Auditoria de frete",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

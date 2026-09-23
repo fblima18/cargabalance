@@ -471,7 +471,7 @@ app.get('*', (req, res) => {
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`========================================================`);
-  console.log(`🚀 CARGABALANCE // CT-e & MDF-e Audit Hub Ativo`);
+  console.log(`🚀 CARGA BALANCE - Auditoria de frete`);
   console.log(`📍 Acesso Local:    http://localhost:${PORT}`);
   console.log(`📍 Acesso na Rede:  http://0.0.0.0:${PORT}`);
   console.log(`========================================================`);

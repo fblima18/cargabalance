@@ -1,7 +1,7 @@
 @echo off
-title CargaBalance // CT-e & MDF-e Platform
+title CARGA BALANCE - Auditoria de frete
 echo ========================================================
-echo   CARGABALANCE - PLATAFORMA DE AUDITORIA CT-e / MDF-e
+echo   CARGA BALANCE - AUDITORIA DE FRETE
 echo ========================================================
 echo.
 echo Iniciando servidor local...

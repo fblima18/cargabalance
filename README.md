@@ -1,4 +1,5 @@
-# 🚚 CargaBalance // Plataforma de Auditoria de CT-e & MDF-e e Balanço de Motoristas
+# 🚚 CARGA BALANCE - Auditoria de frete
+
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
