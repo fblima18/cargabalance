@@ -17,6 +17,10 @@ let currentFilters = {
 
 let allDriversCache = [];
 let allDocumentsCache = [];
+let selectedDriverIds = new Set();
+let chartRevenueInstance = null;
+let chartCategoryInstance = null;
+let chartTripsInstance = null;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,6 +52,8 @@ function initTabs() {
       // Refresh specific tab data if needed
       if (targetId === 'tab-drivers') {
         loadDriversManagement();
+      } else if (targetId === 'tab-analytics') {
+        loadDriversAnalytics();
       } else if (targetId === 'tab-manifestos') {
         loadManifestos();
       } else if (targetId === 'tab-ctes') {
@@ -395,11 +401,13 @@ async function loadManifestos() {
 }
 
 /**
- * Load TAB 4: Driver Management (CRUD & Memory)
+ * Load TAB: Driver Management (CRUD, Search & Batch Actions)
  */
 async function loadDriversManagement() {
   const tableBody = document.getElementById('drivers-management-table-body');
-  tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem;">Carregando lista de condutores...</td></tr>`;
+  if (tableBody) {
+    tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem;">Carregando lista de condutores...</td></tr>`;
+  }
 
   try {
     const res = await fetch('/api/drivers');
@@ -407,57 +415,205 @@ async function loadDriversManagement() {
     const drivers = data.drivers || [];
     allDriversCache = drivers;
 
-    if (drivers.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum motorista cadastrado no sistema.</td></tr>`;
-      return;
-    }
-
-    const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-
-    tableBody.innerHTML = drivers.map((drv) => {
-      const statusBadge = drv.ativo 
-        ? `<span class="badge-active">Ativo</span>` 
-        : `<span class="badge-inactive">Inativo</span>`;
-
-      return `
-        <tr>
-          <td style="font-weight: 700;">${drv.nome}</td>
-          <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${drv.cpf}</td>
-          <td>${drv.cnh || '<span style="color: var(--text-muted);">-</span>'}</td>
-          <td style="text-align: center;">
-            <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
-              ${drv.percentual_comissao || 75}%
-            </span>
-          </td>
-          <td>${drv.telefone || '<span style="color: var(--text-muted);">-</span>'}</td>
-          <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${drv.chave_pix || '<span style="color: var(--text-muted);">-</span>'}</td>
-          <td style="text-align: center; font-weight: 700;">${drv.total_ctes || 0}</td>
-          <td style="text-align: right; font-family: 'JetBrains Mono', monospace;">${formatBRL(drv.total_frete)}</td>
-          <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
-            ${formatBRL(drv.total_comissao)}
-          </td>
-          <td style="text-align: center;">${statusBadge}</td>
-          <td style="text-align: center;">
-            <div class="action-buttons" style="justify-content: center;">
-              <button class="icon-btn" title="Editar Motorista" onclick="openDriverModal('${drv.id}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </button>
-              <button class="icon-btn btn-outline-danger" title="Excluir ou Desativar" onclick="confirmDeleteDriver('${drv.id}', '${drv.nome}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+    renderDriversManagementTable();
   } catch (err) {
-    tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro: ${err.message}</td></tr>`;
+    if (tableBody) {
+      tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro ao carregar condutores: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+/**
+ * Render Drivers Management Table with multi-field search and filters
+ */
+function renderDriversManagementTable() {
+  const tableBody = document.getElementById('drivers-management-table-body');
+  if (!tableBody) return;
+
+  const searchQuery = (document.getElementById('driver-search-input')?.value || '').trim().toLowerCase();
+  const vinculoFilter = document.getElementById('driver-filter-vinculo')?.value || 'all';
+  const statusFilter = document.getElementById('driver-filter-status')?.value || 'all';
+
+  let filtered = allDriversCache || [];
+
+  // Multi-field search (Nome, CPF, Placa Cavalo, Placa Carreta)
+  if (searchQuery) {
+    filtered = filtered.filter(drv => {
+      const nome = (drv.nome || '').toLowerCase();
+      const cpf = (drv.cpf || '').toLowerCase();
+      const cavalo = (drv.placa_cavalo || '').toLowerCase();
+      const carreta = (drv.placa_carreta || '').toLowerCase();
+      return nome.includes(searchQuery) || 
+             cpf.includes(searchQuery) || 
+             cavalo.includes(searchQuery) || 
+             carreta.includes(searchQuery);
+    });
+  }
+
+  // Filter by Vínculo (Frota Própria, Agregado, Terceirizado)
+  if (vinculoFilter !== 'all') {
+    filtered = filtered.filter(drv => (drv.tipo_vinculo || 'frota_propria') === vinculoFilter);
+  }
+
+  // Filter by Status (Ativo / Inativo)
+  if (statusFilter === 'active') {
+    filtered = filtered.filter(drv => Boolean(drv.ativo));
+  } else if (statusFilter === 'inactive') {
+    filtered = filtered.filter(drv => !drv.ativo);
+  }
+
+  if (filtered.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum condutor encontrado com os filtros selecionados.</td></tr>`;
+    updateDriversBatchBar();
+    return;
+  }
+
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+  tableBody.innerHTML = filtered.map((drv) => {
+    const isSelected = selectedDriverIds.has(drv.id);
+    const statusBadge = drv.ativo 
+      ? `<span class="badge-active">Ativo</span>` 
+      : `<span class="badge-inactive">Inativo</span>`;
+
+    const vinculoBadges = {
+      'frota_propria': '<span class="badge-frota">Frota Própria</span>',
+      'agregado': '<span class="badge-agregado">Agregado</span>',
+      'terceirizado': '<span class="badge-terceirizado">Terceirizado</span>'
+    };
+    const badgeVinculo = vinculoBadges[drv.tipo_vinculo] || `<span class="badge-frota">${drv.tipo_vinculo || 'Frota Própria'}</span>`;
+
+    const plates = [];
+    if (drv.placa_cavalo) plates.push(`<span class="badge-plate">Cav: ${drv.placa_cavalo}</span>`);
+    if (drv.placa_carreta) plates.push(`<span class="badge-plate">Car: ${drv.placa_carreta}</span>`);
+    const platesHtml = plates.length > 0 ? plates.join(' ') : '<span style="color: var(--text-muted);">-</span>';
+
+    return `
+      <tr class="${isSelected ? 'selected-row' : ''}">
+        <td style="text-align: center;">
+          <input type="checkbox" class="driver-row-checkbox table-checkbox" data-id="${drv.id}" ${isSelected ? 'checked' : ''} onchange="toggleDriverSelection('${drv.id}', this.checked)">
+        </td>
+        <td style="font-weight: 700;">${drv.nome}</td>
+        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${drv.cpf}</td>
+        <td>${badgeVinculo}</td>
+        <td>${platesHtml}</td>
+        <td>${drv.cnh || '<span style="color: var(--text-muted);">-</span>'}</td>
+        <td style="text-align: center;">
+          <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+            ${drv.percentual_comissao || 75}%
+          </span>
+        </td>
+        <td>${drv.telefone || '<span style="color: var(--text-muted);">-</span>'}</td>
+        <td style="text-align: center; font-weight: 700;">${drv.total_ctes || 0}</td>
+        <td style="text-align: right; font-family: 'JetBrains Mono', monospace;">${formatBRL(drv.total_frete)}</td>
+        <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+          ${formatBRL(drv.total_comissao)}
+        </td>
+        <td style="text-align: center;">${statusBadge}</td>
+        <td style="text-align: center;">
+          <div class="action-buttons" style="justify-content: center;">
+            <button class="icon-btn" title="Editar Motorista" onclick="openDriverModal('${drv.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="icon-btn btn-outline-danger" title="Excluir ou Desativar" onclick="confirmDeleteDriver('${drv.id}', '${drv.nome.replace(/'/g, "\\'")}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  updateDriversBatchBar();
+}
+
+/**
+ * Driver Checkbox Selection Logic
+ */
+function toggleDriverSelection(driverId, checked) {
+  if (checked) {
+    selectedDriverIds.add(driverId);
+  } else {
+    selectedDriverIds.delete(driverId);
+  }
+  updateDriversBatchBar();
+}
+
+function toggleSelectAllDrivers(checked) {
+  const checkboxes = document.querySelectorAll('.driver-row-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = checked;
+    const id = cb.getAttribute('data-id');
+    if (id) {
+      if (checked) selectedDriverIds.add(id);
+      else selectedDriverIds.delete(id);
+    }
+  });
+  updateDriversBatchBar();
+}
+
+function clearDriverSelections() {
+  selectedDriverIds.clear();
+  const selectAll = document.getElementById('drivers-select-all');
+  if (selectAll) selectAll.checked = false;
+  document.querySelectorAll('.driver-row-checkbox').forEach(cb => cb.checked = false);
+  updateDriversBatchBar();
+}
+
+function updateDriversBatchBar() {
+  const bar = document.getElementById('drivers-batch-bar');
+  const countBadge = document.getElementById('drivers-selected-count');
+  const count = selectedDriverIds.size;
+  if (countBadge) countBadge.textContent = count;
+  if (bar) {
+    bar.style.display = count > 0 ? 'flex' : 'none';
+  }
+
+  // Update master select-all checkbox state
+  const selectAll = document.getElementById('drivers-select-all');
+  const visibleCheckboxes = document.querySelectorAll('.driver-row-checkbox');
+  if (selectAll && visibleCheckboxes.length > 0) {
+    const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allChecked;
+  }
+}
+
+/**
+ * Batch Delete / Deactivate Selected Drivers
+ */
+async function batchDeleteSelectedDrivers() {
+  const ids = Array.from(selectedDriverIds);
+  if (ids.length === 0) {
+    showToast('Nenhum motorista selecionado para exclusão.', 'warning');
+    return;
+  }
+
+  if (!confirm(`Confirma a exclusão/desativação em lote de ${ids.length} motorista(s) selecionado(s)?\nMotoristas que possuam viagens já computadas serão desativados por segurança contábil.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/drivers/batch-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(data.message || `${ids.length} motoristas processados com sucesso!`, 'success');
+    clearDriverSelections();
+    await loadDrivers();
+    await loadDriversManagement();
+    fetchAndRenderDocuments();
+  } catch (err) {
+    showToast(`Erro ao excluir motoristas em lote: ${err.message}`, 'error');
   }
 }
 
@@ -476,6 +632,9 @@ function openDriverModal(driverId = null) {
       document.getElementById('driver-nome').value = drv.nome;
       document.getElementById('driver-cpf').value = drv.cpf;
       document.getElementById('driver-cnh').value = drv.cnh || '';
+      document.getElementById('driver-vinculo').value = drv.tipo_vinculo || 'frota_propria';
+      document.getElementById('driver-placa-cavalo').value = drv.placa_cavalo || '';
+      document.getElementById('driver-placa-carreta').value = drv.placa_carreta || '';
       document.getElementById('driver-comissao').value = drv.percentual_comissao || 75.0;
       document.getElementById('driver-telefone').value = drv.telefone || '';
       document.getElementById('driver-pix').value = drv.chave_pix || '';
@@ -484,6 +643,9 @@ function openDriverModal(driverId = null) {
   } else {
     document.getElementById('modal-driver-title').textContent = 'Cadastrar Novo Motorista';
     document.getElementById('driver-edit-id').value = '';
+    document.getElementById('driver-vinculo').value = 'frota_propria';
+    document.getElementById('driver-placa-cavalo').value = '';
+    document.getElementById('driver-placa-carreta').value = '';
     document.getElementById('driver-comissao').value = '75.0';
     document.getElementById('driver-ativo').checked = true;
   }
@@ -635,12 +797,15 @@ function setupEventListeners() {
     e.preventDefault();
     const id = document.getElementById('driver-edit-id').value;
     const body = {
-      nome: document.getElementById('driver-nome').value,
-      cpf: document.getElementById('driver-cpf').value,
-      cnh: document.getElementById('driver-cnh').value,
+      nome: document.getElementById('driver-nome').value.trim(),
+      cpf: document.getElementById('driver-cpf').value.trim(),
+      cnh: document.getElementById('driver-cnh').value.trim(),
+      tipo_vinculo: document.getElementById('driver-vinculo').value || 'frota_propria',
+      placa_cavalo: document.getElementById('driver-placa-cavalo').value.trim().toUpperCase(),
+      placa_carreta: document.getElementById('driver-placa-carreta').value.trim().toUpperCase(),
       percentual_comissao: parseFloat(document.getElementById('driver-comissao').value) || 75.0,
-      telefone: document.getElementById('driver-telefone').value,
-      chave_pix: document.getElementById('driver-pix').value,
+      telefone: document.getElementById('driver-telefone').value.trim(),
+      chave_pix: document.getElementById('driver-pix').value.trim(),
       ativo: document.getElementById('driver-ativo').checked ? 1 : 0
     };
 
@@ -661,10 +826,46 @@ function setupEventListeners() {
       await loadDrivers();
       loadDriversManagement();
       fetchAndRenderDocuments();
+      if (document.getElementById('tab-analytics')?.classList.contains('active')) {
+        loadDriversAnalytics();
+      }
     } catch (err) {
       showToast(`Erro ao salvar motorista: ${err.message}`, 'error');
     }
   });
+
+  // Driver Search Input & Filters
+  const driverSearchInput = document.getElementById('driver-search-input');
+  if (driverSearchInput) {
+    let driverSearchTimer;
+    driverSearchInput.addEventListener('input', () => {
+      clearTimeout(driverSearchTimer);
+      driverSearchTimer = setTimeout(() => {
+        renderDriversManagementTable();
+      }, 250);
+    });
+  }
+
+  const driverFilterVinculo = document.getElementById('driver-filter-vinculo');
+  if (driverFilterVinculo) {
+    driverFilterVinculo.addEventListener('change', () => {
+      renderDriversManagementTable();
+    });
+  }
+
+  const driverFilterStatus = document.getElementById('driver-filter-status');
+  if (driverFilterStatus) {
+    driverFilterStatus.addEventListener('change', () => {
+      renderDriversManagementTable();
+    });
+  }
+
+  const driverSelectAll = document.getElementById('drivers-select-all');
+  if (driverSelectAll) {
+    driverSelectAll.addEventListener('change', (e) => {
+      toggleSelectAllDrivers(e.target.checked);
+    });
+  }
 
   // Complete via XML file input listener
   const completeFileInput = document.getElementById('complete-xml-file-input');
@@ -1422,6 +1623,321 @@ async function confirmDeleteTrip(type, id, numero) {
   }
 }
 
+/**
+ * Load TAB: Drivers Analytics & Charts
+ */
+async function loadDriversAnalytics() {
+  const rankingTableBody = document.getElementById('analytics-ranking-table-body');
+  if (rankingTableBody) {
+    rankingTableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem;">Carregando indicadores e gráficos...</td></tr>`;
+  }
+
+  try {
+    const res = await fetch('/api/analytics/drivers');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const summary = data.summary || {};
+    const drivers = data.drivers || [];
+    const categoryStats = data.categoryStats || {};
+    const topRevenue = data.topRevenue || [];
+    const topTrips = data.topTrips || [];
+
+    const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+    // 1. KPI: Campeão em Faturamento
+    const topRevNameEl = document.getElementById('analytics-top-revenue-name');
+    const topRevValEl = document.getElementById('analytics-top-revenue-val');
+    if (topRevNameEl) {
+      topRevNameEl.textContent = topRevenue.length > 0 ? topRevenue[0].nome : 'Nenhum frete';
+    }
+    if (topRevValEl) {
+      topRevValEl.textContent = topRevenue.length > 0 ? formatBRL(topRevenue[0].total_frete) : 'R$ 0,00';
+    }
+
+    // 2. KPI: Maior Volume de Viagens
+    const topTripsNameEl = document.getElementById('analytics-top-trips-name');
+    const topTripsValEl = document.getElementById('analytics-top-trips-val');
+    if (topTripsNameEl) {
+      topTripsNameEl.textContent = topTrips.length > 0 ? topTrips[0].nome : 'Nenhuma viagem';
+    }
+    if (topTripsValEl) {
+      topTripsValEl.textContent = topTrips.length > 0 ? `${topTrips[0].total_viagens} viagens` : '0 viagens';
+    }
+
+    // 3. KPI: Total Pago em Comissões (75%)
+    const totalCommEl = document.getElementById('analytics-total-commission');
+    const totalFreightEl = document.getElementById('analytics-total-freight');
+    if (totalCommEl) {
+      totalCommEl.textContent = formatBRL(summary.total_comissao);
+    }
+    if (totalFreightEl) {
+      totalFreightEl.textContent = `Frete Total: ${formatBRL(summary.total_frete)}`;
+    }
+
+    // 4. KPI: Distribuição da Frota
+    const totalDriversEl = document.getElementById('analytics-total-drivers');
+    const breakdownVinculoEl = document.getElementById('analytics-breakdown-vinculo');
+    if (totalDriversEl) {
+      totalDriversEl.textContent = `${summary.total_drivers || 0} Condutores`;
+    }
+    if (breakdownVinculoEl) {
+      const fpCount = categoryStats.frota_propria?.count || 0;
+      const agCount = categoryStats.agregado?.count || 0;
+      const tcCount = categoryStats.terceirizado?.count || 0;
+      breakdownVinculoEl.textContent = `Próprios: ${fpCount} | Agregados: ${agCount} | Terc: ${tcCount}`;
+    }
+
+    // Ranking Table
+    const countBadge = document.getElementById('analytics-ranking-count');
+    if (countBadge) countBadge.textContent = `${drivers.length} Motoristas`;
+
+    if (rankingTableBody) {
+      if (drivers.length === 0) {
+        rankingTableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem; color: var(--text-muted);">Nenhum dado de frete encontrado para análise.</td></tr>`;
+      } else {
+        rankingTableBody.innerHTML = drivers.map((drv, index) => {
+          let posClass = 'ranking-pos-default';
+          if (index === 0) posClass = 'ranking-pos-1';
+          else if (index === 1) posClass = 'ranking-pos-2';
+          else if (index === 2) posClass = 'ranking-pos-3';
+
+          const vinculoBadges = {
+            'frota_propria': '<span class="badge-frota">Frota Própria</span>',
+            'agregado': '<span class="badge-agregado">Agregado</span>',
+            'terceirizado': '<span class="badge-terceirizado">Terceirizado</span>'
+          };
+          const badgeVinculo = vinculoBadges[drv.tipo_vinculo] || `<span class="badge-frota">${drv.tipo_vinculo || 'Frota Própria'}</span>`;
+
+          const plates = [];
+          if (drv.placa_cavalo) plates.push(`<span class="badge-plate">Cav: ${drv.placa_cavalo}</span>`);
+          if (drv.placa_carreta) plates.push(`<span class="badge-plate">Car: ${drv.placa_carreta}</span>`);
+          const platesHtml = plates.length > 0 ? plates.join(' ') : '<span style="color: var(--text-muted);">-</span>';
+
+          return `
+            <tr>
+              <td style="text-align: center;">
+                <span class="ranking-position-badge ${posClass}">${index + 1}º</span>
+              </td>
+              <td style="font-weight: 700;">${drv.nome}</td>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${drv.cpf}</td>
+              <td>${badgeVinculo}</td>
+              <td>${platesHtml}</td>
+              <td style="text-align: center;">${drv.total_ctes || 0}</td>
+              <td style="text-align: center;">${drv.total_mdfes || 0}</td>
+              <td style="text-align: center; font-weight: 700;">${drv.total_viagens || 0}</td>
+              <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">${formatBRL(drv.total_frete)}</td>
+              <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">${formatBRL(drv.total_comissao)}</td>
+              <td style="text-align: right; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">${formatBRL(drv.ticket_medio)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Render Charts
+    renderAnalyticsCharts(topRevenue, categoryStats, topTrips);
+
+  } catch (err) {
+    console.error('Erro ao carregar análise de motoristas:', err);
+    if (rankingTableBody) {
+      rankingTableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro ao carregar análise: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+/**
+ * Render Interactive Charts using Chart.js
+ */
+function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js ainda não disponível na janela global.');
+    return;
+  }
+
+  // 1. Chart Revenue & Commission
+  const ctxRevenue = document.getElementById('chart-revenue-drivers');
+  if (ctxRevenue) {
+    if (chartRevenueInstance) {
+      chartRevenueInstance.destroy();
+    }
+
+    const topList = topRevenue.length > 0 ? topRevenue.slice(0, 8) : [];
+    const labels = topList.map(d => d.nome.length > 18 ? d.nome.substring(0, 16) + '...' : d.nome);
+    const dataFrete = topList.map(d => d.total_frete);
+    const dataComissao = topList.map(d => d.total_comissao);
+
+    chartRevenueInstance = new Chart(ctxRevenue, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Faturamento Total (R$)',
+            data: dataFrete,
+            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+            borderColor: '#6366f1',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: 'Comissão Motorista 75% (R$)',
+            data: dataComissao,
+            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+            borderColor: '#10b981',
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 12 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', font: { size: 11 } },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          y: {
+            ticks: {
+              color: '#94a3b8',
+              callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val)
+            },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Chart Category Breakdown
+  const ctxCategory = document.getElementById('chart-category-drivers');
+  if (ctxCategory) {
+    if (chartCategoryInstance) {
+      chartCategoryInstance.destroy();
+    }
+
+    const fp = categoryStats.frota_propria || { count: 0, frete: 0, comissao: 0 };
+    const ag = categoryStats.agregado || { count: 0, frete: 0, comissao: 0 };
+    const tc = categoryStats.terceirizado || { count: 0, frete: 0, comissao: 0 };
+
+    chartCategoryInstance = new Chart(ctxCategory, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          `Frota Própria (${fp.count})`,
+          `Agregados (${ag.count})`,
+          `Terceirizados (${tc.count})`
+        ],
+        datasets: [{
+          data: [fp.frete, ag.frete, tc.frete],
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.85)',
+            'rgba(245, 158, 11, 0.85)',
+            'rgba(236, 72, 153, 0.85)'
+          ],
+          borderColor: [
+            '#3b82f6',
+            '#f59e0b',
+            '#ec4899'
+          ],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 }, padding: 14 }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.raw || 0;
+                return ` Frete Gerado: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)}`;
+              }
+            }
+          }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+
+  // 3. Chart Trips Count
+  const ctxTrips = document.getElementById('chart-trips-drivers');
+  if (ctxTrips) {
+    if (chartTripsInstance) {
+      chartTripsInstance.destroy();
+    }
+
+    const topList = topTrips.length > 0 ? topTrips.slice(0, 8) : [];
+    const labels = topList.map(d => d.nome.length > 18 ? d.nome.substring(0, 16) + '...' : d.nome);
+    const dataCtes = topList.map(d => d.total_ctes || 0);
+    const dataMdfes = topList.map(d => d.total_mdfes || 0);
+
+    chartTripsInstance = new Chart(ctxTrips, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Viagens CT-e',
+            data: dataCtes,
+            backgroundColor: 'rgba(139, 92, 246, 0.85)',
+            borderColor: '#8b5cf6',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: 'Manifestos MDF-e',
+            data: dataMdfes,
+            backgroundColor: 'rgba(6, 182, 212, 0.85)',
+            borderColor: '#06b6d4',
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 12 } }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: '#94a3b8', font: { size: 11 } },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          y: {
+            stacked: true,
+            ticks: { color: '#94a3b8', stepSize: 1 },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          }
+        }
+      }
+    });
+  }
+}
+
 // Global functions for inline HTML event handlers
 window.openDocPreview = openDocPreview;
 window.openDocDetails = openDocDetails;
@@ -1442,4 +1958,10 @@ window.updateManualCommissionPreview = updateManualCommissionPreview;
 window.saveManualTrip = saveManualTrip;
 window.confirmSendToFinance = confirmSendToFinance;
 window.confirmDeleteTrip = confirmDeleteTrip;
+window.toggleDriverSelection = toggleDriverSelection;
+window.toggleSelectAllDrivers = toggleSelectAllDrivers;
+window.clearDriverSelections = clearDriverSelections;
+window.batchDeleteSelectedDrivers = batchDeleteSelectedDrivers;
+window.loadDriversAnalytics = loadDriversAnalytics;
+window.renderDriversManagementTable = renderDriversManagementTable;
 

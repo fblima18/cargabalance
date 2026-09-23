@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="/css/styles.css">
+  <!-- Chart.js for Interactive Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -121,6 +123,15 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         Gestão de Motoristas & Edição
+      </button>
+
+      <button class="tab-btn" data-tab="tab-analytics">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Gráficos & Desempenho
       </button>
     </nav>
 
@@ -403,20 +414,60 @@
 
     <!-- TAB 4: GESTÃO DE MOTORISTAS (MEMÓRIA & EDIÇÃO) -->
     <main id="tab-drivers" class="tab-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
         <div>
           <h2 style="font-size: 1.25rem; font-weight: 800;">Cadastro & Memória de Motoristas</h2>
           <p style="font-size: 0.85rem; color: var(--text-secondary);">
-            Gerencie condutores, configure o percentual de comissão de frete (padrão 75%), dados de contato e chaves PIX.
+            Gerencie condutores, vincule à frota (Própria, Agregada ou Terceirizada), placas e percentual de comissão de frete (75%).
           </p>
         </div>
-        <button type="button" class="btn btn-primary" onclick="openDriverModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-primary" onclick="openDriverModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Novo Motorista
+          </button>
+        </div>
+      </div>
+
+      <!-- Driver Multi-Field Search & Filter Bar -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;" class="driver-filter-grid">
+        <div class="search-control-group">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted); margin-left: 0.75rem;">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          Novo Motorista
-        </button>
+          <input type="text" id="driver-search-input" class="search-input-inner" placeholder="Buscar por Nome, Veículo (Placa Cavalo/Carreta) ou CPF...">
+        </div>
+
+        <select id="driver-filter-vinculo" class="form-control">
+          <option value="all">Todos os Vínculos</option>
+          <option value="frota_propria">Frota Própria</option>
+          <option value="agregado">Agregados</option>
+          <option value="terceirizado">Terceirizados</option>
+        </select>
+
+        <select id="driver-filter-status" class="form-control">
+          <option value="all">Todos os Status</option>
+          <option value="active">Somente Ativos</option>
+          <option value="inactive">Somente Inativos</option>
+        </select>
+      </div>
+
+      <!-- Batch Actions Bar (shown when 1+ selected) -->
+      <div id="drivers-batch-bar" class="batch-actions-bar" style="display: none;">
+        <div class="batch-info">
+          <span class="batch-count-badge" id="drivers-selected-count">0</span>
+          <span>motorista(s) selecionado(s)</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearDriverSelections()">Desmarcar Todos</button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="batchDeleteSelectedDrivers()">
+            🗑️ Excluir Selecionados em Lote
+          </button>
+        </div>
       </div>
 
       <section class="table-card">
@@ -424,20 +475,177 @@
           <table class="data-table">
             <thead>
               <tr>
+                <th style="width: 40px; text-align: center;">
+                  <input type="checkbox" id="drivers-select-all" class="table-checkbox" title="Selecionar Todos">
+                </th>
                 <th>Nome Completo</th>
                 <th>CPF</th>
+                <th>Vínculo</th>
+                <th>Veículos (Placas)</th>
                 <th>CNH</th>
                 <th style="text-align: center;">% Comissão</th>
                 <th>Telefone</th>
-                <th>Chave PIX</th>
                 <th style="text-align: center;">Qtd Viagens</th>
                 <th style="text-align: right;">Total Frete (R$)</th>
-                <th style="text-align: right; color: #34d399;">Saldo Comissão (R$)</th>
+                <th style="text-align: right; color: #34d399;">Comissão (75%)</th>
                 <th style="text-align: center;">Status</th>
                 <th style="text-align: center;">Ações</th>
               </tr>
             </thead>
             <tbody id="drivers-management-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 5: GRÁFICOS & DESEMPENHO (ANALYTICS) -->
+    <main id="tab-analytics" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 800;">Painel de Gráficos & Desempenho por Motorista</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Apontamento visual de valores gerados, quantidade de fretes executados e distribuição por vínculo da frota.
+          </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="loadDriversAnalytics()">
+          🔄 Atualizar Gráficos
+        </button>
+      </div>
+
+      <!-- Top Analytics KPI Highlights -->
+      <section class="kpi-grid" style="margin-bottom: 1.5rem;">
+        <div class="kpi-card" style="--accent-primary: #f59e0b;">
+          <div class="kpi-header">
+            <span class="kpi-label">Campeão em Faturamento</span>
+            <div class="kpi-icon-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+              🏆
+            </div>
+          </div>
+          <div id="analytics-top-revenue-name" class="kpi-value" style="font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Carregando...</div>
+          <div class="kpi-footer">
+            <span id="analytics-top-revenue-val" class="badge-trend" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" style="--accent-primary: #6366f1;">
+          <div class="kpi-header">
+            <span class="kpi-label">Maior Volume de Viagens</span>
+            <div class="kpi-icon-badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+              🚚
+            </div>
+          </div>
+          <div id="analytics-top-trips-name" class="kpi-value" style="font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Carregando...</div>
+          <div class="kpi-footer">
+            <span id="analytics-top-trips-val" class="badge-trend">0 viagens</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" style="--accent-primary: #10b981;">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Pago em Comissões (75%)</span>
+            <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+              💰
+            </div>
+          </div>
+          <div id="analytics-total-commission" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-footer">
+            <span id="analytics-total-freight" style="color: var(--text-secondary); font-size: 0.775rem;">Frete Total: R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" style="--accent-primary: #a855f7;">
+          <div class="kpi-header">
+            <span class="kpi-label">Distribuição da Frota</span>
+            <div class="kpi-icon-badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+              👥
+            </div>
+          </div>
+          <div id="analytics-total-drivers" class="kpi-value">0 Condutores</div>
+          <div class="kpi-footer">
+            <span id="analytics-breakdown-vinculo" style="color: var(--text-secondary); font-size: 0.775rem;">Próprios / Agregados / Terc</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Grid -->
+      <section class="analytics-grid">
+        <!-- Chart 1: Faturamento e Comissões por Motorista -->
+        <div class="chart-card col-8">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">
+                <span>📊</span>
+                <span>Faturamento Total e Comissões Destinadas aos Motoristas (75%)</span>
+              </div>
+              <div class="chart-subtitle">Top 10 condutores por valor de frete gerado</div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-revenue-drivers"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Distribuição por Tipo de Vínculo -->
+        <div class="chart-card col-4">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">
+                <span>🍩</span>
+                <span>Distribuição por Vínculo</span>
+              </div>
+              <div class="chart-subtitle">Frota Própria vs Agregados vs Terceirizados</div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-category-drivers"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Quantidade de Fretes / Viagens Realizadas -->
+        <div class="chart-card col-12">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">
+                <span>📈</span>
+                <span>Quantidade de Fretes Realizados por cada Motorista</span>
+              </div>
+              <div class="chart-subtitle">Volume total de documentos (CT-e e MDF-e emitidos)</div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-trips-drivers"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ranking Table -->
+      <section class="table-card" style="margin-top: 1.5rem;">
+        <div class="table-header-bar">
+          <div class="table-title">
+            <h2>🏆 Tabela de Ranqueamento de Desempenho</h2>
+            <span id="analytics-ranking-count" class="results-badge">0 Motoristas</span>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center;">Pos.</th>
+                <th>Motorista</th>
+                <th>CPF</th>
+                <th>Vínculo</th>
+                <th>Veículos (Placas)</th>
+                <th style="text-align: center;">Viagens CT-e</th>
+                <th style="text-align: center;">Viagens MDF-e</th>
+                <th style="text-align: center;">Total Viagens</th>
+                <th style="text-align: right;">Total Frete (R$)</th>
+                <th style="text-align: right; color: #34d399;">Comissão (75%)</th>
+                <th style="text-align: right;">Ticket Médio (R$)</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-ranking-table-body">
               <!-- Dynamically populated -->
             </tbody>
           </table>
@@ -480,6 +688,26 @@
             <div class="form-group">
               <label for="driver-cnh">CNH (Opcional)</label>
               <input type="text" id="driver-cnh" class="form-control" placeholder="12345678900">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="driver-vinculo">Pertencimento / Vínculo com a Empresa *</label>
+            <select id="driver-vinculo" class="form-control" required>
+              <option value="frota_propria">Frota Própria</option>
+              <option value="agregado">Agregado</option>
+              <option value="terceirizado">Terceirizado</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="driver-placa-cavalo">Placa Cavalo (Tracionador)</label>
+              <input type="text" id="driver-placa-cavalo" class="form-control" placeholder="Ex: ABC1D23" maxlength="10" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label for="driver-placa-carreta">Placa Carreta (Reboque)</label>
+              <input type="text" id="driver-placa-carreta" class="form-control" placeholder="Ex: XYZ9W87" maxlength="10" style="text-transform: uppercase;">
             </div>
           </div>
 

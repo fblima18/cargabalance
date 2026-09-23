@@ -16,7 +16,9 @@ const {
   getDriverById, 
   createDriver, 
   updateDriver, 
-  deleteDriver 
+  deleteDriver,
+  batchDeleteDrivers,
+  getDriversAnalytics
 } = require('./services/driverService');
 const { generateExcelReport } = require('./services/excelExporter');
 const { seedSampleData } = require('./services/sampleGenerator');
@@ -159,6 +161,26 @@ app.delete('/api/drivers/:id', (req, res) => {
   } catch (err) {
     console.error('[API DELETE /drivers/:id error]', err);
     res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/drivers/batch-delete', (req, res) => {
+  try {
+    const result = batchDeleteDrivers(req.body.ids);
+    res.json(result);
+  } catch (err) {
+    console.error('[API POST /drivers/batch-delete error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/analytics/drivers', (req, res) => {
+  try {
+    const analytics = getDriversAnalytics();
+    res.json({ success: true, ...analytics });
+  } catch (err) {
+    console.error('[API GET /analytics/drivers error]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

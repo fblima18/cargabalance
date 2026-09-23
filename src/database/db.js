@@ -21,6 +21,7 @@ function initDatabase() {
   applyColumnMigration('motoristas', 'percentual_comissao', 'REAL DEFAULT 75.0');
   applyColumnMigration('motoristas', 'placa_cavalo', 'TEXT');
   applyColumnMigration('motoristas', 'placa_carreta', 'TEXT');
+  applyColumnMigration('motoristas', 'tipo_vinculo', "TEXT DEFAULT 'frota_propria'");
   applyColumnMigration('motoristas', 'telefone', 'TEXT');
   applyColumnMigration('motoristas', 'chave_pix', 'TEXT');
 

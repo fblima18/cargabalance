@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS motoristas (
     percentual_comissao REAL DEFAULT 75.0,
     placa_cavalo TEXT,
     placa_carreta TEXT,
+    tipo_vinculo TEXT DEFAULT 'frota_propria',
     telefone TEXT,
     chave_pix TEXT,
     ativo INTEGER DEFAULT 1,
