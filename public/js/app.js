@@ -1796,9 +1796,15 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 12 } }
+            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } }
           },
           tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
             }
@@ -1806,15 +1812,16 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
         },
         scales: {
           x: {
-            ticks: { color: '#94a3b8', font: { size: 11 } },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            ticks: { color: '#475569', font: { size: 11, weight: '500' } },
+            grid: { color: '#f1f5f9' }
           },
           y: {
             ticks: {
-              color: '#94a3b8',
+              color: '#475569',
+              font: { weight: '500' },
               callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val)
             },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            grid: { color: '#f1f5f9' }
           }
         }
       }
@@ -1848,9 +1855,9 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
             'rgba(236, 72, 153, 0.85)'
           ],
           borderColor: [
-            '#3b82f6',
-            '#f59e0b',
-            '#ec4899'
+            '#ffffff',
+            '#ffffff',
+            '#ffffff'
           ],
           borderWidth: 2
         }]
@@ -1861,9 +1868,15 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 }, padding: 14 }
+            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }, padding: 14 }
           },
           tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
               label: (ctx) => {
                 const val = ctx.raw || 0;
@@ -1897,16 +1910,16 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
           {
             label: 'Viagens CT-e',
             data: dataCtes,
-            backgroundColor: 'rgba(139, 92, 246, 0.85)',
-            borderColor: '#8b5cf6',
+            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+            borderColor: '#6366f1',
             borderWidth: 1,
             borderRadius: 6
           },
           {
             label: 'Manifestos MDF-e',
             data: dataMdfes,
-            backgroundColor: 'rgba(6, 182, 212, 0.85)',
-            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(2, 132, 199, 0.85)',
+            borderColor: '#0284c7',
             borderWidth: 1,
             borderRadius: 6
           }
@@ -1918,19 +1931,27 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 12 } }
+            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } }
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10
           }
         },
         scales: {
           x: {
             stacked: true,
-            ticks: { color: '#94a3b8', font: { size: 11 } },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            ticks: { color: '#475569', font: { size: 11, weight: '500' } },
+            grid: { color: '#f1f5f9' }
           },
           y: {
             stacked: true,
-            ticks: { color: '#94a3b8', stepSize: 1 },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            ticks: { color: '#475569', stepSize: 1, font: { weight: '500' } },
+            grid: { color: '#f1f5f9' }
           }
         }
       }

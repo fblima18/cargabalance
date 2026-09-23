@@ -15,11 +15,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="app-container">
+  <div class="app-layout">
     
-    <!-- Top Header -->
-    <header class="top-header">
-      <div class="brand-section">
+    <!-- Barra Lateral Vertical (Opções e Navegação) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
         <div class="brand-icon">
           <svg viewBox="0 0 24 24">
             <path d="M1 3h15v13H1z"/>
@@ -34,106 +34,137 @@
         </div>
       </div>
 
-      <div class="header-actions">
+      <!-- Navegação Principal (Abas) -->
+      <div class="sidebar-group-label">NAVEGAÇÃO</div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-nav-btn tab-btn active" data-tab="tab-overview" id="nav-btn-overview">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9"/>
+            <rect x="14" y="3" width="7" height="5"/>
+            <rect x="14" y="12" width="7" height="9"/>
+            <rect x="3" y="16" width="7" height="5"/>
+          </svg>
+          <span>Painel Geral & Saldo</span>
+        </button>
+
+        <button class="sidebar-nav-btn tab-btn" data-tab="tab-ctes" id="nav-btn-ctes">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <span>Conhecimentos (CT-e 75%)</span>
+        </button>
+
+        <button class="sidebar-nav-btn tab-btn" data-tab="tab-manifestos" id="nav-btn-manifestos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="3" width="15" height="13"/>
+            <polygon points="16 8 20 8 23 11 23 16 16 16 8"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+          <span>Manifestos (MDF-e)</span>
+        </button>
+
+        <button class="sidebar-nav-btn tab-btn" data-tab="tab-drivers" id="nav-btn-drivers">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Gestão de Motoristas</span>
+        </button>
+
+        <button class="sidebar-nav-btn tab-btn" data-tab="tab-analytics" id="nav-btn-analytics">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <span>Gráficos & Desempenho</span>
+        </button>
+      </nav>
+
+      <!-- Ações Rápidas -->
+      <div class="sidebar-group-label">AÇÕES RÁPIDAS</div>
+      <div class="sidebar-actions">
         <!-- 1. Inserir Viagem Manual -->
-        <button id="btn-add-manual-trip" class="header-icon-btn primary" onclick="openManualTripModal()" title="Inserir Viagem Manual (CT-e ou MDF-e)" aria-label="Inserir Viagem Manual">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <button id="btn-add-manual-trip" class="sidebar-action-btn primary" onclick="openManualTripModal()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/>
             <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
+          <span>Inserir Viagem</span>
         </button>
 
-        <!-- 2. Importar DACTE Anexo (Rio Largo -> Juazeiro) -->
-        <button id="btn-seed-attached" class="header-icon-btn warning" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)" aria-label="Importar DACTE Anexo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <!-- 2. Cadastrar Motorista -->
+        <button id="btn-sidebar-add-driver" class="sidebar-action-btn secondary" onclick="openDriverModal()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <line x1="20" y1="8" x2="20" y2="14"/>
+            <line x1="23" y1="11" x2="17" y2="11"/>
+          </svg>
+          <span>Novo Motorista</span>
+        </button>
+
+        <!-- 3. Importar DACTE Anexo (Rio Largo -> Juazeiro) -->
+        <button id="btn-seed-attached" class="sidebar-action-btn warning" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="12" y1="18" x2="12" y2="12"/>
             <line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
+          <span>DACTE Rio Largo</span>
         </button>
 
-        <!-- 3. Gerar Amostras SEFAZ -->
-        <button id="btn-seed" class="header-icon-btn purple" title="Gerar Amostras de Documentos SEFAZ" aria-label="Gerar Amostras">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <!-- 4. Gerar Amostras SEFAZ -->
+        <button id="btn-seed" class="sidebar-action-btn purple" title="Gerar Amostras de Documentos SEFAZ">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
             <line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
+          <span>Gerar Amostras</span>
         </button>
 
-        <!-- 4. Completar via XML -->
-        <button id="btn-complete-xml" class="header-icon-btn cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ" aria-label="Completar via XML">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <!-- 5. Completar via XML -->
+        <button id="btn-complete-xml" class="sidebar-action-btn cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="16 18 22 12 16 6"/>
             <polyline points="8 6 2 12 8 18"/>
           </svg>
+          <span>Completar via XML</span>
         </button>
 
-        <!-- 5. Exportar para Excel (.xlsx) -->
-        <button id="btn-export-excel" class="header-icon-btn success" title="Exportar para Excel (.xlsx)" aria-label="Exportar para Excel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <!-- 6. Exportar para Excel (.xlsx) -->
+        <button id="btn-export-excel" class="sidebar-action-btn success" title="Exportar para Excel (.xlsx)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/>
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10 9 9 9 8 9"/>
           </svg>
+          <span>Exportar Excel</span>
         </button>
       </div>
-    </header>
 
-    <!-- Navigation Tabs Bar -->
-    <nav class="nav-tabs-bar">
-      <button class="tab-btn active" data-tab="tab-overview">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="9"/>
-          <rect x="14" y="3" width="7" height="5"/>
-          <rect x="14" y="12" width="7" height="9"/>
-          <rect x="3" y="16" width="7" height="5"/>
-        </svg>
-        Painel Geral & Saldo
-      </button>
+      <!-- Rodapé da Barra Lateral -->
+      <div class="sidebar-footer">
+        <div class="sidebar-status-box">
+          <span class="status-indicator-dot"></span>
+          <span class="status-text">SEFAZ &bull; PM2 Ativo</span>
+        </div>
+        <div class="sidebar-version-text">v2.4 &bull; Tela Cheia</div>
+      </div>
+    </aside>
 
-      <button class="tab-btn" data-tab="tab-ctes">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-        </svg>
-        Conhecimentos (CT-e & Comissões 75%)
-      </button>
-
-      <button class="tab-btn" data-tab="tab-manifestos">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="1" y="3" width="15" height="13"/>
-          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-          <circle cx="5.5" cy="18.5" r="2.5"/>
-          <circle cx="18.5" cy="18.5" r="2.5"/>
-        </svg>
-        Manifestos MDF-e (Interestaduais / Fora de AL)
-      </button>
-
-      <button class="tab-btn" data-tab="tab-drivers">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        Gestão de Motoristas & Edição
-      </button>
-
-      <button class="tab-btn" data-tab="tab-analytics">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        Gráficos & Desempenho
-      </button>
-    </nav>
+    <!-- Área de Conteúdo Principal (100% Tela Útil) -->
+    <div class="main-viewport">
 
     <!-- TAB 1: PAINEL GERAL & SALDO -->
     <main id="tab-overview" class="tab-content active">
@@ -653,7 +684,8 @@
       </section>
     </main>
 
-  </div>
+    </div><!-- /.main-viewport -->
+  </div><!-- /.app-layout -->
 
   <!-- Modal: Editar / Criar Motorista -->
   <div id="modal-driver" class="modal-backdrop">
