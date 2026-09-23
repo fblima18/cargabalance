@@ -26,11 +26,42 @@ let chartTripsInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
   initDateDefaults();
   initTabs();
+  initSidebarToggle();
   loadDrivers();
   fetchAndRenderDocuments();
   setupEventListeners();
   setupDragAndDrop();
 });
+
+/**
+ * Initialize Sidebar Collapse / Expand Toggle
+ */
+function initSidebarToggle() {
+  const toggleBtn = document.getElementById('btn-toggle-sidebar');
+  const sidebar = document.querySelector('.app-sidebar');
+  if (!toggleBtn || !sidebar) return;
+
+  // Restore user preference
+  const isCollapsed = localStorage.getItem('cargabalance_sidebar_collapsed') === 'true';
+  if (isCollapsed) {
+    sidebar.classList.add('collapsed');
+    toggleBtn.setAttribute('title', 'Expandir barra lateral');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    const nowCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('cargabalance_sidebar_collapsed', nowCollapsed);
+    toggleBtn.setAttribute('title', nowCollapsed ? 'Expandir barra lateral' : 'Minimizar barra lateral (Modo expandido)');
+
+    // Trigger Chart resize if charts are rendered
+    setTimeout(() => {
+      if (chartRevenueInstance) chartRevenueInstance.resize();
+      if (chartCategoryInstance) chartCategoryInstance.resize();
+      if (chartTripsInstance) chartTripsInstance.resize();
+    }, 250);
+  });
+}
 
 /**
  * Initialize Tab Navigation
