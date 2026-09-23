@@ -1,4 +1,37 @@
-const { queryAll, queryOne } = require('../database/db');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { queryAll, queryOne, execute } = require('../database/db');
+
+/**
+ * Generates a valid-format 44-digit SEFAZ access key for manual documents
+ */
+function generateAccessKey(uf = '27', model = '57', serie = 1, numero = 1) {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const aamm = `${yy}${mm}`;
+  const cnpj = '20664328000110'; // Transportadora padrão
+  const mod = String(model).padStart(2, '0');
+  const ser = String(serie).padStart(3, '0');
+  const num = String(numero).padStart(9, '0');
+  const tpEmis = '1';
+  const cNF = String(Math.floor(10000000 + Math.random() * 90000000));
+  
+  const keyBase = `${uf}${aamm}${cnpj}${mod}${ser}${num}${tpEmis}${cNF}`;
+  
+  // Calculate check digit (módulo 11)
+  let weight = 2;
+  let sum = 0;
+  for (let i = keyBase.length - 1; i >= 0; i--) {
+    sum += parseInt(keyBase[i], 10) * weight;
+    weight = weight === 9 ? 2 : weight + 1;
+  }
+  const mod11 = sum % 11;
+  const cd = (mod11 === 0 || mod11 === 1) ? 0 : 11 - mod11;
+
+  return `${keyBase}${cd}`;
+}
 
 /**
  * Retrieves filtered list of documents (CT-e and MDF-e) with balance and 75% commission metrics
@@ -11,13 +44,14 @@ function getFilteredDocuments(filters = {}) {
     docType = 'all', // 'all' | 'cte' | 'mdfe'
     destination,
     search,
+    searchType = 'all', // 'all' | 'driver' | 'cte' | 'mdfe' | 'route'
     interstateOnly // 'true' | '1' | boolean
   } = filters;
 
   const results = [];
 
   // 1. Fetch CT-e records if docType is 'all' or 'cte'
-  if (docType === 'all' || docType === 'cte') {
+  if ((docType === 'all' || docType === 'cte') && searchType !== 'mdfe') {
     let cteSql = `
       SELECT 
         c.id,
@@ -70,9 +104,31 @@ function getFilteredDocuments(filters = {}) {
       cteParams.push(term, term);
     }
     if (search) {
-      cteSql += ` AND (c.chave_acesso LIKE ? OR CAST(c.numero AS TEXT) LIKE ? OR m.nome LIKE ? OR m.cpf LIKE ?)`;
       const term = `%${search}%`;
-      cteParams.push(term, term, term, term);
+      if (searchType === 'driver') {
+        cteSql += ` AND (m.nome LIKE ? OR m.cpf LIKE ?)`;
+        cteParams.push(term, term);
+      } else if (searchType === 'cte') {
+        cteSql += ` AND (c.chave_acesso LIKE ? OR CAST(c.numero AS TEXT) LIKE ?)`;
+        cteParams.push(term, term);
+      } else if (searchType === 'route') {
+        cteSql += ` AND (c.cidade_origem LIKE ? OR c.uf_origem LIKE ? OR c.cidade_destino LIKE ? OR c.uf_destino LIKE ? OR (c.cidade_origem || ' ' || c.cidade_destino) LIKE ? OR (c.cidade_origem || '/' || c.uf_origem || ' - ' || c.cidade_destino || '/' || c.uf_destino) LIKE ?)`;
+        cteParams.push(term, term, term, term, term, term);
+      } else {
+        // 'all': matches across Driver, CT-e, or Route
+        cteSql += ` AND (
+          c.chave_acesso LIKE ? 
+          OR CAST(c.numero AS TEXT) LIKE ? 
+          OR m.nome LIKE ? 
+          OR m.cpf LIKE ?
+          OR c.cidade_origem LIKE ? 
+          OR c.uf_origem LIKE ? 
+          OR c.cidade_destino LIKE ? 
+          OR c.uf_destino LIKE ? 
+          OR (c.cidade_origem || ' ' || c.cidade_destino) LIKE ?
+        )`;
+        cteParams.push(term, term, term, term, term, term, term, term, term);
+      }
     }
     if (interstateOnly === 'true' || interstateOnly === true || interstateOnly === '1') {
       cteSql += ` AND (c.interestadual = 1 OR c.uf_origem != c.uf_destino OR (c.uf_origem = 'AL' AND c.uf_destino != 'AL'))`;
@@ -84,7 +140,7 @@ function getFilteredDocuments(filters = {}) {
   }
 
   // 2. Fetch MDF-e records if docType is 'all' or 'mdfe'
-  if (docType === 'all' || docType === 'mdfe') {
+  if ((docType === 'all' || docType === 'mdfe') && searchType !== 'cte') {
     let mdfeSql = `
       SELECT 
         mdf.id,
@@ -140,9 +196,29 @@ function getFilteredDocuments(filters = {}) {
       mdfeParams.push(`%${destination}%`);
     }
     if (search) {
-      mdfeSql += ` AND (mdf.chave_acesso LIKE ? OR CAST(mdf.numero AS TEXT) LIKE ? OR m.nome LIKE ? OR m.cpf LIKE ?)`;
       const term = `%${search}%`;
-      mdfeParams.push(term, term, term, term);
+      if (searchType === 'driver') {
+        mdfeSql += ` AND (m.nome LIKE ? OR m.cpf LIKE ?)`;
+        mdfeParams.push(term, term);
+      } else if (searchType === 'mdfe') {
+        mdfeSql += ` AND (mdf.chave_acesso LIKE ? OR CAST(mdf.numero AS TEXT) LIKE ?)`;
+        mdfeParams.push(term, term);
+      } else if (searchType === 'route') {
+        mdfeSql += ` AND (mdf.uf_origem LIKE ? OR mdf.uf_destino LIKE ? OR mdf.ufs_percurso LIKE ? OR (mdf.uf_origem || ' ' || mdf.uf_destino) LIKE ? OR (mdf.uf_origem || ' -> ' || mdf.uf_destino) LIKE ?)`;
+        mdfeParams.push(term, term, term, term, term);
+      } else {
+        // 'all'
+        mdfeSql += ` AND (
+          mdf.chave_acesso LIKE ? 
+          OR CAST(mdf.numero AS TEXT) LIKE ? 
+          OR m.nome LIKE ? 
+          OR m.cpf LIKE ?
+          OR mdf.uf_origem LIKE ?
+          OR mdf.uf_destino LIKE ?
+          OR mdf.ufs_percurso LIKE ?
+        )`;
+        mdfeParams.push(term, term, term, term, term, term, term);
+      }
     }
 
     mdfeSql += ` ORDER BY mdf.data_emissao DESC`;
@@ -209,7 +285,7 @@ function getFilteredDocuments(filters = {}) {
  * Retrieve interstate MDF-e Manifestos (trips outside AL or interstate)
  */
 function getInterstateManifestos(filters = {}) {
-  const { startDate, endDate, driverId, search } = filters;
+  const { startDate, endDate, driverId, search, searchType = 'all' } = filters;
   let sql = `
     SELECT 
       mdf.id,
@@ -251,9 +327,17 @@ function getInterstateManifestos(filters = {}) {
     params.push(driverId);
   }
   if (search) {
-    sql += ` AND (mdf.chave_acesso LIKE ? OR CAST(mdf.numero AS TEXT) LIKE ? OR m.nome LIKE ? OR m.cpf LIKE ?)`;
     const term = `%${search}%`;
-    params.push(term, term, term, term);
+    if (searchType === 'driver') {
+      sql += ` AND (m.nome LIKE ? OR m.cpf LIKE ?)`;
+      params.push(term, term);
+    } else if (searchType === 'route') {
+      sql += ` AND (mdf.uf_origem LIKE ? OR mdf.uf_destino LIKE ? OR mdf.ufs_percurso LIKE ? OR (mdf.uf_origem || ' ' || mdf.uf_destino) LIKE ?)`;
+      params.push(term, term, term, term);
+    } else {
+      sql += ` AND (mdf.chave_acesso LIKE ? OR CAST(mdf.numero AS TEXT) LIKE ? OR m.nome LIKE ? OR m.cpf LIKE ? OR mdf.uf_origem LIKE ? OR mdf.uf_destino LIKE ? OR mdf.ufs_percurso LIKE ?)`;
+      params.push(term, term, term, term, term, term, term);
+    }
   }
 
   sql += ` ORDER BY mdf.data_emissao DESC`;
@@ -316,8 +400,362 @@ function getDocumentByKey(accessKey) {
   return null;
 }
 
+/**
+ * Create a Manual Trip (CT-e or MDF-e)
+ */
+function createManualTrip(data) {
+  const {
+    tipo = 'CT-e',
+    numero,
+    serie,
+    data_emissao,
+    motorista_id,
+    cidade_origem = 'Rio Largo',
+    uf_origem = 'AL',
+    cidade_destino = 'Juazeiro do Norte',
+    uf_destino = 'CE',
+    valor_frete = 0,
+    aliquota_icms = 12.0,
+    valor_icms: customValorIcms,
+    valor_total_carga = 0,
+    placa_tracao = 'LQW0A19',
+    placa_reboque = 'MUV0J59',
+    peso_bruto = 0,
+    ufs_percurso = 'PE'
+  } = data;
+
+  if (!motorista_id) {
+    throw new Error('Selecione ou informe um condutor/motorista válido.');
+  }
+
+  const driver = queryOne('SELECT * FROM motoristas WHERE id = ?', [motorista_id]);
+  if (!driver) {
+    throw new Error('Motorista não encontrado no banco de dados.');
+  }
+
+  const docNumero = parseInt(numero, 10);
+  if (!docNumero || isNaN(docNumero)) {
+    throw new Error('Número de documento inválido.');
+  }
+
+  const docSerie = parseInt(serie, 10) || (tipo === 'CT-e' ? 1 : 3);
+  const docDate = data_emissao ? new Date(data_emissao).toISOString() : new Date().toISOString();
+  const id = crypto.randomUUID();
+
+  // Model 57 for CT-e, 58 for MDF-e
+  const model = tipo === 'CT-e' ? '57' : '58';
+  const chaveAcesso = generateAccessKey(uf_origem === 'AL' ? '27' : '26', model, docSerie, docNumero);
+
+  // Prepare upload directory for synthetic XML file
+  const xmlDir = path.resolve(__dirname, '../../uploads/xml');
+  if (!fs.existsSync(xmlDir)) {
+    fs.mkdirSync(xmlDir, { recursive: true });
+  }
+  const xmlFilePath = path.join(xmlDir, `${chaveAcesso}.xml`);
+
+  if (tipo === 'CT-e') {
+    const frete = parseFloat(valor_frete) || 0;
+    if (frete <= 0) {
+      throw new Error('O valor do frete deve ser maior que zero.');
+    }
+
+    const aliq = parseFloat(aliquota_icms) || 12.0;
+    const valorIcms = customValorIcms !== undefined && customValorIcms !== null && customValorIcms !== '' 
+      ? parseFloat(customValorIcms) 
+      : Math.round(frete * (aliq / 100) * 100) / 100;
+
+    // 75% commission or driver's custom percentage
+    const commissionPercent = parseFloat(driver.percentual_comissao) || 75.0;
+    const valorComissao = Math.round(frete * (commissionPercent / 100) * 100) / 100;
+    const isInterstate = (uf_origem !== uf_destino) ? 1 : 0;
+
+    const dadosExtras = {
+      emitente: {
+        razao_social: 'AUTO VIACAO TRANSPORTE LTDA',
+        cnpj: '20.664.328/0001-10',
+        municipio: cidade_origem,
+        uf: uf_origem
+      },
+      remetente: {
+        razao_social: 'INDUSTRIA E COMERCIO MATRIZ',
+        municipio: cidade_origem,
+        uf: uf_origem
+      },
+      destinatario: {
+        razao_social: 'DISTRIBUIDORA REGIONAL DE CARGAS',
+        municipio: cidade_destino,
+        uf: uf_destino
+      },
+      veiculo: {
+        placa_tracao,
+        placa_reboque
+      },
+      origem_cadastro: 'MANUAL'
+    };
+
+    // Create minimal valid XML so DACTE viewer and download work
+    const xmlMock = `<?xml version="1.0" encoding="UTF-8"?>
+<cteProc xmlns="http://www.portalfiscal.inf.br/cte" versao="4.00">
+  <CTe>
+    <infCte Id="CTe${chaveAcesso}" versao="4.00">
+      <ide>
+        <cUF>27</cUF>
+        <cCT>00000000</cCT>
+        <CFOP>6352</CFOP>
+        <natOp>PRESTACAO DE SERVICO DE TRANSPORTE</natOp>
+        <mod>57</mod>
+        <serie>${docSerie}</serie>
+        <nCT>${docNumero}</nCT>
+        <dhEmi>${docDate}</dhEmi>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>${chaveAcesso.slice(-1)}</cDV>
+        <tpAmb>1</tpAmb>
+        <tpCTe>0</tpCTe>
+        <procEmi>0</procEmi>
+        <verProc>1.0</verProc>
+        <cMunIni>2707701</cMunIni>
+        <xMunIni>${cidade_origem}</xMunIni>
+        <UFIni>${uf_origem}</UFIni>
+        <cMunFim>2307304</cMunFim>
+        <xMunFim>${cidade_destino}</xMunFim>
+        <UFFim>${uf_destino}</UFFim>
+      </ide>
+      <emit>
+        <CNPJ>20664328000110</CNPJ>
+        <IE>240000000</IE>
+        <xNome>AUTO VIACAO TRANSPORTE LTDA</xNome>
+        <xFant>CARGABALANCE</xFant>
+      </emit>
+      <rem><CNPJ>00000000000191</CNPJ><xNome>EMBARCADOR MATRIZ</xNome></rem>
+      <dest><CNPJ>99999999000199</CNPJ><xNome>CLIENTE DESTINATARIO</xNome></dest>
+      <vPrest>
+        <vTPrest>${frete.toFixed(2)}</vTPrest>
+        <vRec>${frete.toFixed(2)}</vRec>
+        <Comp><xNome>FRETE PESO</xNome><vComp>${frete.toFixed(2)}</vComp></Comp>
+      </vPrest>
+      <imp>
+        <ICMS>
+          <ICMS00>
+            <CST>00</CST>
+            <vBC>${frete.toFixed(2)}</vBC>
+            <pICMS>${aliq.toFixed(2)}</pICMS>
+            <vICMS>${valorIcms.toFixed(2)}</vICMS>
+          </ICMS00>
+        </ICMS>
+      </imp>
+    </infCte>
+  </CTe>
+</cteProc>`;
+
+    fs.writeFileSync(xmlFilePath, xmlMock, 'utf-8');
+
+    execute(`
+      INSERT INTO conhecimentos_cte (
+        id, motorista_id, chave_acesso, numero, serie, data_emissao,
+        cidade_origem, uf_origem, cidade_destino, uf_destino,
+        valor_frete, valor_icms, valor_impostos_total, valor_comissao_motorista,
+        interestadual, caminho_xml, dados_extras
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      id,
+      motorista_id,
+      chaveAcesso,
+      docNumero,
+      docSerie,
+      docDate,
+      cidade_origem,
+      uf_origem,
+      cidade_destino,
+      uf_destino,
+      frete,
+      valorIcms,
+      valorIcms,
+      valorComissao,
+      isInterstate,
+      xmlFilePath,
+      JSON.stringify(dadosExtras)
+    ]);
+
+    return {
+      success: true,
+      tipo: 'CT-e',
+      id,
+      chave_acesso: chaveAcesso,
+      numero: docNumero,
+      motorista_nome: driver.nome,
+      motorista_cpf: driver.cpf,
+      valor_frete: frete,
+      valor_icms: valorIcms,
+      valor_comissao: valorComissao,
+      percentual_comissao: commissionPercent,
+      origem: `${cidade_origem}/${uf_origem}`,
+      destino: `${cidade_destino}/${uf_destino}`,
+      message: `CT-e nº ${docNumero} inserido manualmente com sucesso!`
+    };
+  } else {
+    // MDF-e
+    const valorCarga = parseFloat(valor_total_carga) || 0;
+    const peso = parseFloat(peso_bruto) || 0;
+
+    const dadosExtras = {
+      emitente: {
+        razao_social: 'AUTO VIACAO TRANSPORTE LTDA',
+        cnpj: '20.664.328/0001-10',
+        municipio: cidade_origem || 'Rio Largo',
+        uf: uf_origem
+      },
+      veiculo: {
+        placa_tracao,
+        placa_reboque,
+        rntrc: '00000000'
+      },
+      origem_cadastro: 'MANUAL'
+    };
+
+    // Create minimal valid MDF-e XML
+    const xmlMock = `<?xml version="1.0" encoding="UTF-8"?>
+<mdfeProc xmlns="http://www.portalfiscal.inf.br/mdfe" versao="3.00">
+  <MDFe>
+    <infMDFe Id="MDFe${chaveAcesso}" versao="3.00">
+      <ide>
+        <cUF>27</cUF>
+        <tpAmb>1</tpAmb>
+        <tpEmit>1</tpEmit>
+        <mod>58</mod>
+        <serie>${docSerie}</serie>
+        <nMDF>${docNumero}</nMDF>
+        <dhEmi>${docDate}</dhEmi>
+        <UFIni>${uf_origem}</UFIni>
+        <UFFim>${uf_destino}</UFFim>
+      </ide>
+      <emit>
+        <CNPJ>20664328000110</CNPJ>
+        <xNome>AUTO VIACAO TRANSPORTE LTDA</xNome>
+      </emit>
+      <infModal versaoModal="3.00">
+        <rodo>
+          <veicTracao>
+            <placa>${placa_tracao}</placa>
+            <condutor>
+              <xNome>${driver.nome}</xNome>
+              <CPF>${driver.cpf.replace(/\D/g, '')}</CPF>
+            </condutor>
+          </veicTracao>
+          <veicReboque>
+            <placa>${placa_reboque}</placa>
+          </veicReboque>
+        </rodo>
+      </infModal>
+      <tot>
+        <qCTe>1</qCTe>
+        <vCarga>${valorCarga.toFixed(2)}</vCarga>
+        <cUnid>01</cUnid>
+        <qCarga>${peso.toFixed(2)}</qCarga>
+      </tot>
+    </infMDFe>
+  </MDFe>
+</mdfeProc>`;
+
+    fs.writeFileSync(xmlFilePath, xmlMock, 'utf-8');
+
+    execute(`
+      INSERT INTO manifestos_mdfe (
+        id, chave_acesso, numero, serie, data_emissao,
+        uf_origem, uf_destino, ufs_percurso, placa_tracao, placa_reboque,
+        peso_bruto, motorista_id, valor_total_carga, caminho_xml, dados_extras
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      id,
+      chaveAcesso,
+      docNumero,
+      docSerie,
+      docDate,
+      uf_origem,
+      uf_destino,
+      ufs_percurso,
+      placa_tracao,
+      placa_reboque,
+      peso,
+      motorista_id,
+      valorCarga,
+      xmlFilePath,
+      JSON.stringify(dadosExtras)
+    ]);
+
+    return {
+      success: true,
+      tipo: 'MDF-e',
+      id,
+      chave_acesso: chaveAcesso,
+      numero: docNumero,
+      motorista_nome: driver.nome,
+      motorista_cpf: driver.cpf,
+      valor_total_carga: valorCarga,
+      origem: uf_origem,
+      destino: uf_destino,
+      message: `Manifesto MDF-e nº ${docNumero} inserido manualmente com sucesso!`
+    };
+  }
+}
+
+/**
+ * Delete a document (CT-e or MDF-e) by type and id or access key
+ */
+function deleteDocument(type, idOrKey) {
+  const normType = String(type).trim().toLowerCase();
+  
+  if (normType === 'ct-e' || normType === 'cte') {
+    const existing = queryOne('SELECT * FROM conhecimentos_cte WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+    if (!existing) {
+      throw new Error(`CT-e não encontrado para exclusão.`);
+    }
+
+    execute('DELETE FROM conhecimentos_cte WHERE id = ?', [existing.id]);
+    return {
+      success: true,
+      tipo: 'CT-e',
+      numero: existing.numero,
+      message: `CT-e nº ${existing.numero} excluído com sucesso.`
+    };
+  } else if (normType === 'mdf-e' || normType === 'mdfe') {
+    const existing = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+    if (!existing) {
+      throw new Error(`MDF-e não encontrado para exclusão.`);
+    }
+
+    // Unlink any CT-e pointing to this manifesto first
+    execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [existing.id]);
+    execute('DELETE FROM manifestos_mdfe WHERE id = ?', [existing.id]);
+    
+    return {
+      success: true,
+      tipo: 'MDF-e',
+      numero: existing.numero,
+      message: `MDF-e nº ${existing.numero} excluído com sucesso.`
+    };
+  } else {
+    // Try both
+    const cte = queryOne('SELECT * FROM conhecimentos_cte WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+    if (cte) {
+      execute('DELETE FROM conhecimentos_cte WHERE id = ?', [cte.id]);
+      return { success: true, tipo: 'CT-e', numero: cte.numero, message: `CT-e nº ${cte.numero} excluído.` };
+    }
+    const mdfe = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+    if (mdfe) {
+      execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [mdfe.id]);
+      execute('DELETE FROM manifestos_mdfe WHERE id = ?', [mdfe.id]);
+      return { success: true, tipo: 'MDF-e', numero: mdfe.numero, message: `MDF-e nº ${mdfe.numero} excluído.` };
+    }
+    throw new Error('Documento não encontrado para exclusão.');
+  }
+}
+
 module.exports = {
   getFilteredDocuments,
   getInterstateManifestos,
-  getDocumentByKey
+  getDocumentByKey,
+  createManualTrip,
+  deleteDocument
 };
+

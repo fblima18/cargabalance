@@ -33,44 +33,50 @@
       </div>
 
       <div class="header-actions">
-        <!-- Quick Button: Load Attached DACTE/DAMDFE -->
-        <button id="btn-seed-attached" class="btn btn-warning btn-sm" title="Carregar o DACTE (CT-e 3199) e DAMDFE (MDF-e 1267) anexados">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- 1. Inserir Viagem Manual -->
+        <button id="btn-add-manual-trip" class="header-icon-btn primary" onclick="openManualTripModal()" title="Inserir Viagem Manual (CT-e ou MDF-e)" aria-label="Inserir Viagem Manual">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        <!-- 2. Importar DACTE Anexo (Rio Largo -> Juazeiro) -->
+        <button id="btn-seed-attached" class="header-icon-btn warning" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)" aria-label="Importar DACTE Anexo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="12" y1="18" x2="12" y2="12"/>
             <line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
-          Importar DACTE Anexo (Rio Largo -> Juazeiro)
         </button>
 
-        <button id="btn-seed" class="btn btn-secondary btn-sm" title="Gerar dados de demonstração com múltiplos documentos SEFAZ">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- 3. Gerar Amostras SEFAZ -->
+        <button id="btn-seed" class="header-icon-btn purple" title="Gerar Amostras de Documentos SEFAZ" aria-label="Gerar Amostras">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
             <line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
-          Gerar Amostras
         </button>
 
-        <!-- Quick Action: Complete from XML -->
-        <button id="btn-complete-xml" class="btn btn-primary btn-sm" onclick="openCompleteXmlModal()" title="Completar e preencher informações automaticamente lendo o arquivo ou texto XML">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- 4. Completar via XML -->
+        <button id="btn-complete-xml" class="header-icon-btn cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ" aria-label="Completar via XML">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <polyline points="16 18 22 12 16 6"/>
             <polyline points="8 6 2 12 8 18"/>
           </svg>
-          Completar via XML
         </button>
 
-        <button id="btn-export-excel" class="btn btn-success btn-sm">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- 5. Exportar para Excel (.xlsx) -->
+        <button id="btn-export-excel" class="header-icon-btn success" title="Exportar para Excel (.xlsx)" aria-label="Exportar para Excel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/>
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10 9 9 9 8 9"/>
           </svg>
-          Exportar para Excel (.xlsx)
         </button>
       </div>
     </header>
@@ -78,7 +84,7 @@
     <!-- Navigation Tabs Bar -->
     <nav class="nav-tabs-bar">
       <button class="tab-btn active" data-tab="tab-overview">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="9"/>
           <rect x="14" y="3" width="7" height="5"/>
           <rect x="14" y="12" width="7" height="9"/>
@@ -88,7 +94,7 @@
       </button>
 
       <button class="tab-btn" data-tab="tab-ctes">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
           <line x1="16" y1="13" x2="8" y2="13"/>
@@ -98,7 +104,7 @@
       </button>
 
       <button class="tab-btn" data-tab="tab-manifestos">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="1" y="3" width="15" height="13"/>
           <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
           <circle cx="5.5" cy="18.5" r="2.5"/>
@@ -108,7 +114,7 @@
       </button>
 
       <button class="tab-btn" data-tab="tab-drivers">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
@@ -268,8 +274,15 @@
             <h2>Todos os Documentos & Fretes</h2>
             <span id="results-count" class="results-badge">0 registros</span>
           </div>
-          <div style="max-width: 320px; width: 100%;">
-            <input type="search" id="table-search" class="form-control" placeholder="Buscar por chave, nº ou motorista...">
+          <div class="search-control-group">
+            <select id="search-category" class="search-type-select" title="Filtrar por Motorista, CT-e, MDF-e ou Rota">
+              <option value="all">🔍 Todos</option>
+              <option value="driver">👤 Motorista</option>
+              <option value="cte">📄 CT-e</option>
+              <option value="mdfe">🚛 MDF-e</option>
+              <option value="route">🛣️ Rota</option>
+            </select>
+            <input type="search" id="table-search" class="search-input-inner" placeholder="Pesquisar motorista, CT-e, MDF-e ou rota...">
           </div>
         </div>
 
@@ -699,6 +712,190 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" onclick="closeModal('modal-upload-results')">Concluído</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Inserir Viagem Manual (CT-e / MDF-e) -->
+  <div id="modal-manual-trip" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary);">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Inserir Viagem Manualmente
+        </h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-manual-trip')">✕</button>
+      </div>
+      <form id="form-manual-trip">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+          <!-- Trip Type Selector -->
+          <div style="display: flex; gap: 0.75rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: var(--radius-md);">
+            <button type="button" id="manual-type-cte" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;" onclick="setManualTripType('CT-e')">
+              📄 Conhecimento (CT-e)
+            </button>
+            <button type="button" id="manual-type-mdfe" class="btn btn-secondary btn-sm" style="flex: 1; justify-content: center;" onclick="setManualTripType('MDF-e')">
+              🚛 Manifesto (MDF-e)
+            </button>
+          </div>
+          <input type="hidden" id="manual-trip-tipo" value="CT-e">
+
+          <!-- Document Number & Series & Date -->
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="manual-trip-numero">Nº Documento *</label>
+              <input type="number" id="manual-trip-numero" class="form-control" required placeholder="Ex: 3205">
+            </div>
+            <div class="form-group">
+              <label for="manual-trip-serie">Série</label>
+              <input type="number" id="manual-trip-serie" class="form-control" value="1" required>
+            </div>
+            <div class="form-group">
+              <label for="manual-trip-data">Data Emissão *</label>
+              <input type="date" id="manual-trip-data" class="form-control" required>
+            </div>
+          </div>
+
+          <!-- Driver Selection -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <label for="manual-trip-driver" style="margin: 0;">Motorista Condutor *</label>
+              <a href="javascript:void(0)" onclick="openDriverModal()" style="font-size: 0.75rem; color: var(--accent-primary); text-decoration: none;">+ Novo Motorista</a>
+            </div>
+            <select id="manual-trip-driver" class="form-control" required>
+              <option value="">Selecione um motorista cadastrado...</option>
+            </select>
+          </div>
+
+          <!-- Route Origin & Destination -->
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="manual-trip-cidade-origem">Cidade de Origem *</label>
+              <input type="text" id="manual-trip-cidade-origem" class="form-control" value="Rio Largo" required placeholder="Ex: Rio Largo">
+            </div>
+            <div class="form-group">
+              <label for="manual-trip-uf-origem">UF Origem *</label>
+              <input type="text" id="manual-trip-uf-origem" class="form-control" value="AL" maxlength="2" required placeholder="AL" style="text-transform: uppercase;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="manual-trip-cidade-destino">Cidade de Destino *</label>
+              <input type="text" id="manual-trip-cidade-destino" class="form-control" value="Juazeiro do Norte" required placeholder="Ex: Juazeiro do Norte">
+            </div>
+            <div class="form-group">
+              <label for="manual-trip-uf-destino">UF Destino *</label>
+              <input type="text" id="manual-trip-uf-destino" class="form-control" value="CE" maxlength="2" required placeholder="CE" style="text-transform: uppercase;">
+            </div>
+          </div>
+
+          <!-- Specific Fields: CT-e -->
+          <div id="manual-cte-fields" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-frete">Valor do Frete (R$) *</label>
+                <input type="number" id="manual-trip-frete" class="form-control" step="0.01" min="0.01" required placeholder="Ex: 8925.00" oninput="updateManualCommissionPreview()">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-aliquota">Alíquota ICMS (%)</label>
+                <input type="number" id="manual-trip-aliquota" class="form-control" value="12.0" step="0.5" oninput="updateManualCommissionPreview()">
+              </div>
+            </div>
+
+            <!-- Dynamic 75% Commission Highlight Box -->
+            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #34d399; display: block;">Comissão do Motorista (75% do Frete)</span>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Destinado ao condutor conforme regra da transportadora</span>
+              </div>
+              <div id="manual-comissao-preview" style="font-size: 1.4rem; font-weight: 800; color: #34d399; font-family: 'JetBrains Mono', monospace;">
+                R$ 0,00
+              </div>
+            </div>
+          </div>
+
+          <!-- Specific Fields: MDF-e -->
+          <div id="manual-mdfe-fields" style="display: none; flex-direction: column; gap: 0.75rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-carga">Valor Total da Carga (R$) *</label>
+                <input type="number" id="manual-trip-carga" class="form-control" step="0.01" placeholder="Ex: 91553.24">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-peso">Peso Bruto (KG)</label>
+                <input type="number" id="manual-trip-peso" class="form-control" step="0.1" value="10384.0">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-placa-tracao">Placa Cavalo (Tração)</label>
+                <input type="text" id="manual-trip-placa-tracao" class="form-control" value="LQW0A19" placeholder="LQW0A19" style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-placa-reboque">Placa Carreta (Reboque)</label>
+                <input type="text" id="manual-trip-placa-reboque" class="form-control" value="MUV0J59" placeholder="MUV0J59" style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-percurso">UFs Percurso</label>
+                <input type="text" id="manual-trip-percurso" class="form-control" value="PE" placeholder="PE, PB" style="text-transform: uppercase;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-manual-trip')">Cancelar</button>
+          <button type="submit" id="btn-save-manual-trip" class="btn btn-primary">
+            Salvar Viagem
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Lembrete Financeiro Oficial (75% Comissão) -->
+  <div id="modal-finance-reminder" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 style="color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Lembrete do Setor Financeiro
+        </h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-finance-reminder')">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="finance-alert-box">
+          <div class="finance-alert-title">
+            ⚠️ ENCAMINHE ESTE VALOR AO FINANCEIRO
+          </div>
+          <div id="finance-reminder-value" class="finance-alert-highlight">
+            R$ 0,00
+          </div>
+          <div id="finance-reminder-driver" class="finance-alert-driver">
+            Motorista: -
+          </div>
+          <div id="finance-reminder-doc" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+            Documento: -
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.25); padding: 0.85rem 1rem; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-primary); font-size: 0.825rem; color: var(--text-secondary);">
+          O cálculo da comissão de <strong>75% do frete</strong> foi concluído com êxito. Confirme o encaminhamento deste repasse para liberação do pagamento junto ao setor financeiro.
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-finance-reminder')">Fechar</button>
+        <button type="button" class="btn btn-success" onclick="confirmSendToFinance()">
+          Confirmar Envio ao Setor Financeiro
+        </button>
       </div>
     </div>
   </div>

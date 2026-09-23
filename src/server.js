@@ -4,7 +4,13 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const { parseAndStoreXML, extractXMLPreview } = require('./services/xmlParser');
-const { getFilteredDocuments, getInterstateManifestos, getDocumentByKey } = require('./services/documentService');
+const { 
+  getFilteredDocuments, 
+  getInterstateManifestos, 
+  getDocumentByKey,
+  createManualTrip,
+  deleteDocument
+} = require('./services/documentService');
 const { 
   getAllDriversWithBalance, 
   getDriverById, 
@@ -51,6 +57,7 @@ app.get('/api/documents', (req, res) => {
       docType: req.query.docType || 'all',
       destination: req.query.destination || '',
       search: req.query.search || '',
+      searchType: req.query.searchType || 'all',
       interstateOnly: req.query.interstateOnly || false
     };
 
@@ -75,7 +82,8 @@ app.get('/api/manifestos', (req, res) => {
       startDate: req.query.startDate || '',
       endDate: req.query.endDate || '',
       driverId: req.query.driverId || 'all',
-      search: req.query.search || ''
+      search: req.query.search || '',
+      searchType: req.query.searchType || 'all'
     };
 
     const manifestos = getInterstateManifestos(filters);
@@ -150,6 +158,32 @@ app.delete('/api/drivers/:id', (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[API DELETE /drivers/:id error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 3.1 Insert Manual Trip (CT-e or MDF-e)
+ */
+app.post('/api/documents/manual', (req, res) => {
+  try {
+    const result = createManualTrip(req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    console.error('[API POST /documents/manual error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 3.2 Delete Trip / Fiscal Document
+ */
+app.delete('/api/documents/:type/:id', (req, res) => {
+  try {
+    const result = deleteDocument(req.params.type, req.params.id);
+    res.json(result);
+  } catch (err) {
+    console.error('[API DELETE /documents/:type/:id error]', err);
     res.status(400).json({ success: false, error: err.message });
   }
 });
@@ -343,6 +377,7 @@ app.get('/api/export/excel', async (req, res) => {
       docType: req.query.docType || 'all',
       destination: req.query.destination || '',
       search: req.query.search || '',
+      searchType: req.query.searchType || 'all',
       interstateOnly: req.query.interstateOnly || false
     };
 

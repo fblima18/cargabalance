@@ -11,6 +11,7 @@ let currentFilters = {
   docType: 'all',
   destination: '',
   search: '',
+  searchType: 'all',
   interstateOnly: false
 };
 
@@ -221,23 +222,29 @@ function renderTable(items) {
         <td style="text-align: center;">
           <div class="action-buttons" style="justify-content: center;">
             <button class="icon-btn" title="Visualizar DACTE / DAMDFE" onclick="openDocPreview('${cleanKey}')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
             <button class="icon-btn" title="Baixar XML Original" onclick="downloadOriginalXML('${cleanKey}')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </button>
             <button class="icon-btn" title="Ver Metadados" onclick="openDocDetails('${cleanKey}')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+            </button>
+            <button class="icon-btn danger" title="Excluir Viagem" onclick="confirmDeleteTrip('${doc.tipo}', '${doc.id}', '${doc.numero}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>
             </button>
           </div>
@@ -290,16 +297,22 @@ async function loadCTEs() {
           <td style="text-align: center;">
             <div class="action-buttons" style="justify-content: center;">
               <button class="icon-btn" title="Visualizar DACTE" onclick="openDocPreview('${cleanKey}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               </button>
               <button class="icon-btn" title="Baixar XML Original" onclick="downloadOriginalXML('${cleanKey}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              <button class="icon-btn danger" title="Excluir CT-e" onclick="confirmDeleteTrip('CT-e', '${c.id}', '${c.numero}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
               </button>
             </div>
@@ -353,16 +366,22 @@ async function loadManifestos() {
           <td style="text-align: center;">
             <div class="action-buttons" style="justify-content: center;">
               <button class="icon-btn" title="Visualizar DAMDFE" onclick="openDocPreview('${cleanKey}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               </button>
               <button class="icon-btn" title="Baixar XML Original" onclick="downloadOriginalXML('${cleanKey}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </button>
+              <button class="icon-btn danger" title="Excluir MDF-e" onclick="confirmDeleteTrip('MDF-e', '${m.id}', '${m.numero}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
               </button>
             </div>
@@ -488,6 +507,15 @@ function setupEventListeners() {
     fetchAndRenderDocuments();
   });
 
+  // Search category selector
+  const searchCat = document.getElementById('search-category');
+  if (searchCat) {
+    searchCat.addEventListener('change', (e) => {
+      currentFilters.searchType = e.target.value;
+      fetchAndRenderDocuments();
+    });
+  }
+
   // Clear filters
   document.getElementById('btn-clear-filters').addEventListener('click', () => {
     initDateDefaults();
@@ -495,22 +523,39 @@ function setupEventListeners() {
     document.getElementById('filter-doc-type').value = 'all';
     document.getElementById('filter-destination').value = '';
     document.getElementById('table-search').value = '';
+    const catEl = document.getElementById('search-category');
+    if (catEl) catEl.value = 'all';
     currentFilters.driverId = 'all';
     currentFilters.docType = 'all';
     currentFilters.destination = '';
     currentFilters.search = '';
+    currentFilters.searchType = 'all';
     fetchAndRenderDocuments();
   });
 
-  // Search input debouncing
+  // Search input debouncing with multi-field searchType
   let searchTimer;
   document.getElementById('table-search').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       currentFilters.search = e.target.value.trim();
+      const catEl = document.getElementById('search-category');
+      if (catEl) currentFilters.searchType = catEl.value;
       fetchAndRenderDocuments();
     }, 300);
   });
+
+  // Manual Trip Form Submit
+  const manualForm = document.getElementById('form-manual-trip');
+  if (manualForm) {
+    manualForm.addEventListener('submit', saveManualTrip);
+  }
+
+  // Manual Trip Driver Select Change
+  const manualDriverSelect = document.getElementById('manual-trip-driver');
+  if (manualDriverSelect) {
+    manualDriverSelect.addEventListener('change', updateManualCommissionPreview);
+  }
 
   // Quick Seed Attached DACTE/DAMDFE button
   document.getElementById('btn-seed-attached').addEventListener('click', async () => {
@@ -1142,6 +1187,191 @@ function populateDriverFromXmlPreview() {
   showToast('Dados do motorista preenchidos a partir do XML!', 'success');
 }
 
+// ==========================================================================
+// Manual Trip Operations (Insert & Delete) & 75% Commission Workflow
+// ==========================================================================
+
+/**
+ * Open Modal to Insert Manual Trip
+ */
+function openManualTripModal() {
+  const form = document.getElementById('form-manual-trip');
+  form.reset();
+
+  // Populate drivers combobox
+  const driverSelect = document.getElementById('manual-trip-driver');
+  driverSelect.innerHTML = '<option value="">Selecione um motorista cadastrado...</option>';
+  allDriversCache.forEach((drv) => {
+    const opt = document.createElement('option');
+    opt.value = drv.id;
+    opt.textContent = `${drv.nome} (${drv.cpf}) - Comis. ${drv.percentual_comissao || 75}%`;
+    driverSelect.appendChild(opt);
+  });
+
+  // Suggest today's date
+  document.getElementById('manual-trip-data').value = new Date().toISOString().slice(0, 10);
+
+  // Suggest default document number
+  const nextNum = Math.floor(3200 + Math.random() * 50);
+  document.getElementById('manual-trip-numero').value = nextNum;
+
+  setManualTripType('CT-e');
+  updateManualCommissionPreview();
+  openModal('modal-manual-trip');
+}
+
+/**
+ * Switch manual trip type between CT-e and MDF-e
+ */
+function setManualTripType(tipo) {
+  document.getElementById('manual-trip-tipo').value = tipo;
+  const btnCte = document.getElementById('manual-type-cte');
+  const btnMdfe = document.getElementById('manual-type-mdfe');
+  const cteFields = document.getElementById('manual-cte-fields');
+  const mdfeFields = document.getElementById('manual-mdfe-fields');
+  const serieInput = document.getElementById('manual-trip-serie');
+  const freteInput = document.getElementById('manual-trip-frete');
+
+  if (tipo === 'CT-e') {
+    btnCte.className = 'btn btn-primary btn-sm';
+    btnMdfe.className = 'btn btn-secondary btn-sm';
+    cteFields.style.display = 'flex';
+    mdfeFields.style.display = 'none';
+    serieInput.value = '1';
+    freteInput.required = true;
+  } else {
+    btnCte.className = 'btn btn-secondary btn-sm';
+    btnMdfe.className = 'btn btn-primary btn-sm';
+    cteFields.style.display = 'none';
+    mdfeFields.style.display = 'flex';
+    serieInput.value = '3';
+    freteInput.required = false;
+  }
+}
+
+/**
+ * Update real-time 75% commission preview in manual trip modal
+ */
+function updateManualCommissionPreview() {
+  const frete = parseFloat(document.getElementById('manual-trip-frete').value) || 0;
+  const driverId = document.getElementById('manual-trip-driver').value;
+  let percent = 75.0;
+
+  if (driverId) {
+    const drv = allDriversCache.find(d => d.id === driverId);
+    if (drv && drv.percentual_comissao) {
+      percent = parseFloat(drv.percentual_comissao);
+    }
+  }
+
+  const comissao = frete * (percent / 100);
+  const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(comissao);
+  document.getElementById('manual-comissao-preview').textContent = formatted;
+}
+
+/**
+ * Save manual trip to platform backend
+ */
+async function saveManualTrip(e) {
+  e.preventDefault();
+  const saveBtn = document.getElementById('btn-save-manual-trip');
+  const originalText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Salvando Viagem...';
+
+  const tipo = document.getElementById('manual-trip-tipo').value;
+  const body = {
+    tipo,
+    numero: document.getElementById('manual-trip-numero').value,
+    serie: document.getElementById('manual-trip-serie').value,
+    data_emissao: document.getElementById('manual-trip-data').value,
+    motorista_id: document.getElementById('manual-trip-driver').value,
+    cidade_origem: document.getElementById('manual-trip-cidade-origem').value,
+    uf_origem: document.getElementById('manual-trip-uf-origem').value.toUpperCase(),
+    cidade_destino: document.getElementById('manual-trip-cidade-destino').value,
+    uf_destino: document.getElementById('manual-trip-uf-destino').value.toUpperCase(),
+    valor_frete: document.getElementById('manual-trip-frete').value,
+    aliquota_icms: document.getElementById('manual-trip-aliquota').value,
+    valor_total_carga: document.getElementById('manual-trip-carga').value,
+    peso_bruto: document.getElementById('manual-trip-peso').value,
+    placa_tracao: document.getElementById('manual-trip-placa-tracao').value,
+    placa_reboque: document.getElementById('manual-trip-placa-reboque').value,
+    ufs_percurso: document.getElementById('manual-trip-percurso').value
+  };
+
+  try {
+    const res = await fetch('/api/documents/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao salvar viagem manual.');
+    }
+
+    closeModal('modal-manual-trip');
+    await loadDrivers();
+    await fetchAndRenderDocuments();
+    if (typeof loadCTEs === 'function') await loadCTEs();
+    if (typeof loadManifestos === 'function') await loadManifestos();
+    if (typeof loadDriversManagement === 'function') await loadDriversManagement();
+
+    if (tipo === 'CT-e' && data.valor_comissao) {
+      // Trigger Official Financial Reminder Modal (Rule #4 & #5)
+      const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+      document.getElementById('finance-reminder-value').textContent = formatBRL(data.valor_comissao);
+      document.getElementById('finance-reminder-driver').textContent = `Motorista: ${data.motorista_nome} (${data.motorista_cpf})`;
+      document.getElementById('finance-reminder-doc').textContent = `CT-e nº ${data.numero} - Frete: ${formatBRL(data.valor_frete)} (Comissão de 75%)`;
+      openModal('modal-finance-reminder');
+    } else {
+      showToast(data.message || 'Viagem inserida com sucesso!', 'success');
+    }
+  } catch (err) {
+    console.error('Error saving manual trip:', err);
+    showToast(`Erro ao salvar viagem: ${err.message}`, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+  }
+}
+
+/**
+ * Confirm Send to Finance
+ */
+function confirmSendToFinance() {
+  closeModal('modal-finance-reminder');
+  showToast('Comissão de 75% encaminhada ao setor financeiro com sucesso!', 'success');
+}
+
+/**
+ * Delete a Trip (CT-e or MDF-e)
+ */
+async function confirmDeleteTrip(type, id, numero) {
+  if (!confirm(`Deseja realmente excluir esta viagem (${type} nº ${numero})? Esta ação não pode ser desfeita.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/documents/${type}/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao excluir viagem.');
+    }
+
+    showToast(data.message || 'Viagem excluída com sucesso!', 'info');
+    await loadDrivers();
+    await fetchAndRenderDocuments();
+    if (typeof loadCTEs === 'function') await loadCTEs();
+    if (typeof loadManifestos === 'function') await loadManifestos();
+    if (typeof loadDriversManagement === 'function') await loadDriversManagement();
+  } catch (err) {
+    console.error('Error deleting trip:', err);
+    showToast(`Erro ao excluir: ${err.message}`, 'error');
+  }
+}
+
 // Global functions for inline HTML event handlers
 window.openDocPreview = openDocPreview;
 window.openDocDetails = openDocDetails;
@@ -1156,3 +1386,10 @@ window.clearXmlForm = clearXmlForm;
 window.analyzeXmlContent = analyzeXmlContent;
 window.saveCompletedXml = saveCompletedXml;
 window.populateDriverFromXmlPreview = populateDriverFromXmlPreview;
+window.openManualTripModal = openManualTripModal;
+window.setManualTripType = setManualTripType;
+window.updateManualCommissionPreview = updateManualCommissionPreview;
+window.saveManualTrip = saveManualTrip;
+window.confirmSendToFinance = confirmSendToFinance;
+window.confirmDeleteTrip = confirmDeleteTrip;
+
