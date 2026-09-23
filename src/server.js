@@ -323,15 +323,19 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
     let successCount = 0;
     let duplicateCount = 0;
     let errorCount = 0;
+    const dates = [];
 
     for (const file of files) {
       const filename = file.originalname;
-      const xmlString = file.buffer.toString('utf-8');
+      const xmlString = file.buffer.toString('utf-8').replace(/^\uFEFF/, '').trim();
 
       try {
         const result = parseAndStoreXML(xmlString, filename);
         if (result.status === 'success') {
           successCount++;
+          if (result.data_emissao) {
+            dates.push(result.data_emissao);
+          }
         } else if (result.status === 'duplicate') {
           duplicateCount++;
         }
@@ -355,7 +359,8 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
         totalReceived: files.length,
         successCount,
         duplicateCount,
-        errorCount
+        errorCount,
+        dates
       },
       results
     });

@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS motoristas (
     cpf TEXT UNIQUE NOT NULL,
     cnh TEXT,
     percentual_comissao REAL DEFAULT 75.0,
+    placa_cavalo TEXT,
+    placa_carreta TEXT,
     telefone TEXT,
     chave_pix TEXT,
     ativo INTEGER DEFAULT 1,

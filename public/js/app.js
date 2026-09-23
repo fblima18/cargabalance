@@ -713,29 +713,42 @@ function setupDragAndDrop() {
   ['dragenter', 'dragover'].forEach((eventName) => {
     dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropzone.classList.add('dragover');
     });
   });
 
-  ['dragleave', 'drop'].forEach((eventName) => {
+  ['dragleave'].forEach((eventName) => {
     dropzone.addEventListener(eventName, (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropzone.classList.remove('dragover');
     });
   });
 
   dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.remove('dragover');
     const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0) {
+    const files = dt ? dt.files : null;
+    if (files && files.length > 0) {
       handleBatchUpload(files);
     }
   });
 
+  dropzone.addEventListener('click', (e) => {
+    // If click is not directly on the input, trigger it
+    if (e.target !== fileInput && !e.target.closest('button')) {
+      fileInput.click();
+    }
+  });
+
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
+    if (e.target.files && e.target.files.length > 0) {
       handleBatchUpload(e.target.files);
     }
+    fileInput.value = ''; // Allow selecting the same file again
   });
 }
 
@@ -743,6 +756,8 @@ function setupDragAndDrop() {
  * Upload multiple files to server
  */
 async function handleBatchUpload(files) {
+  if (!files || files.length === 0) return;
+
   const formData = new FormData();
   for (let i = 0; i < files.length; i++) {
     formData.append('files', files[i]);
@@ -761,9 +776,44 @@ async function handleBatchUpload(files) {
       throw new Error(data.error || 'Erro no upload.');
     }
 
+    // Auto-adjust date filter if uploaded documents have dates outside current range
+    if (data.summary && Array.isArray(data.summary.dates) && data.summary.dates.length > 0) {
+      const dates = data.summary.dates.map(d => String(d).slice(0, 10)).filter(Boolean).sort();
+      if (dates.length > 0) {
+        const minUploadedDate = dates[0];
+        const maxUploadedDate = dates[dates.length - 1];
+
+        let filterChanged = false;
+        if (currentFilters.startDate && minUploadedDate < currentFilters.startDate) {
+          currentFilters.startDate = minUploadedDate;
+          const startInput = document.getElementById('filter-start-date');
+          if (startInput) startInput.value = minUploadedDate;
+          filterChanged = true;
+        }
+        if (currentFilters.endDate && maxUploadedDate > currentFilters.endDate) {
+          currentFilters.endDate = maxUploadedDate;
+          const endInput = document.getElementById('filter-end-date');
+          if (endInput) endInput.value = maxUploadedDate;
+          filterChanged = true;
+        }
+
+        if (filterChanged) {
+          showToast('Filtro de data expandido automaticamente para exibir as novas viagens.', 'info');
+        }
+      }
+    }
+
     displayUploadResults(data);
     await loadDrivers();
     await fetchAndRenderDocuments();
+    if (typeof loadCTEs === 'function') await loadCTEs();
+    if (typeof loadManifestos === 'function') await loadManifestos();
+    if (typeof loadDriversManagement === 'function') await loadDriversManagement();
+
+    const successCount = data.summary?.successCount || 0;
+    if (successCount > 0) {
+      showToast(`${successCount} arquivo(s) XML inserido(s)/atualizado(s) com sucesso!`, 'success');
+    }
   } catch (err) {
     console.error('Upload error:', err);
     showToast(`Falha no upload: ${err.message}`, 'error');

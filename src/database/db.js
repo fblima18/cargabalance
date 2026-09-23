@@ -19,6 +19,8 @@ db.exec('PRAGMA journal_mode = WAL;');
 function initDatabase() {
   // Safe migrations for newly added columns if tables already exist
   applyColumnMigration('motoristas', 'percentual_comissao', 'REAL DEFAULT 75.0');
+  applyColumnMigration('motoristas', 'placa_cavalo', 'TEXT');
+  applyColumnMigration('motoristas', 'placa_carreta', 'TEXT');
   applyColumnMigration('motoristas', 'telefone', 'TEXT');
   applyColumnMigration('motoristas', 'chave_pix', 'TEXT');
 
