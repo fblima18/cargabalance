@@ -518,7 +518,7 @@ function renderDriversManagementTable() {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
-            <button class="icon-btn btn-outline-danger" title="Excluir ou Desativar" onclick="confirmDeleteDriver('${drv.id}', '${drv.nome.replace(/'/g, "\\'")}')">
+            <button class="icon-btn btn-outline-danger" title="Excluir Motorista" onclick="confirmDeleteDriver('${drv.id}')">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -594,7 +594,7 @@ async function batchDeleteSelectedDrivers() {
     return;
   }
 
-  if (!confirm(`Confirma a exclusão/desativação em lote de ${ids.length} motorista(s) selecionado(s)?\nMotoristas que possuam viagens já computadas serão desativados por segurança contábil.`)) {
+  if (!confirm(`Confirma a exclusão de ${ids.length} motorista(s) selecionado(s)? Esta ação removerá os motoristas do sistema.`)) {
     return;
   }
 
@@ -607,11 +607,12 @@ async function batchDeleteSelectedDrivers() {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
-    showToast(data.message || `${ids.length} motoristas processados com sucesso!`, 'success');
+    showToast(data.message || `${ids.length} motoristas excluídos com sucesso!`, 'success');
     clearDriverSelections();
     await loadDrivers();
     await loadDriversManagement();
-    fetchAndRenderDocuments();
+    await fetchAndRenderDocuments();
+    if (typeof loadDriversAnalytics === 'function') loadDriversAnalytics();
   } catch (err) {
     showToast(`Erro ao excluir motoristas em lote: ${err.message}`, 'error');
   }
@@ -723,7 +724,8 @@ function setupEventListeners() {
   document.getElementById('btn-seed-attached').addEventListener('click', async () => {
     const btn = document.getElementById('btn-seed-attached');
     btn.disabled = true;
-    btn.textContent = 'Importando DACTE...';
+    btn.style.opacity = '0.5';
+    showToast('Importando DACTE anexo...', 'info');
 
     try {
       const res = await fetch('/api/seed-attached-dacte', { method: 'POST' });
@@ -732,9 +734,10 @@ function setupEventListeners() {
         showToast(`DACTE nº 3199 e DAMDFE nº 1267 importados com sucesso! Motorista: JOSE ANTONIO LINS DE A (75% comissão = R$ 6.693,75).`, 'success');
         await loadDrivers();
         await fetchAndRenderDocuments();
-        loadManifestos();
-        loadCTEs();
-        loadDriversManagement();
+        if (typeof loadManifestos === 'function') loadManifestos();
+        if (typeof loadCTEs === 'function') loadCTEs();
+        if (typeof loadDriversManagement === 'function') loadDriversManagement();
+        if (typeof loadDriversAnalytics === 'function') loadDriversAnalytics();
       } else {
         showToast(`Erro: ${data.error}`, 'error');
       }
@@ -742,15 +745,7 @@ function setupEventListeners() {
       showToast(`Erro ao importar: ${err.message}`, 'error');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="18" x2="12" y2="12"/>
-          <line x1="9" y1="15" x2="15" y2="15"/>
-        </svg>
-        Importar DACTE Anexo (Rio Largo -> Juazeiro)
-      `;
+      btn.style.opacity = '1';
     }
   });
 
@@ -758,7 +753,8 @@ function setupEventListeners() {
   document.getElementById('btn-seed').addEventListener('click', async () => {
     const btn = document.getElementById('btn-seed');
     btn.disabled = true;
-    btn.textContent = 'Gerando amostras...';
+    btn.style.opacity = '0.5';
+    showToast('Gerando dados de amostra SEFAZ...', 'info');
 
     try {
       const res = await fetch('/api/seed', { method: 'POST' });
@@ -767,6 +763,10 @@ function setupEventListeners() {
         showToast(data.message, 'success');
         await loadDrivers();
         await fetchAndRenderDocuments();
+        if (typeof loadManifestos === 'function') loadManifestos();
+        if (typeof loadCTEs === 'function') loadCTEs();
+        if (typeof loadDriversManagement === 'function') loadDriversManagement();
+        if (typeof loadDriversAnalytics === 'function') loadDriversAnalytics();
       } else {
         showToast(`Erro: ${data.error}`, 'error');
       }
@@ -774,14 +774,7 @@ function setupEventListeners() {
       showToast(`Erro ao gerar amostras: ${err.message}`, 'error');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-          <line x1="12" y1="22.08" x2="12" y2="12"/>
-        </svg>
-        Gerar Amostras
-      `;
+      btn.style.opacity = '1';
     }
   });
 
@@ -881,10 +874,13 @@ function setupEventListeners() {
 }
 
 /**
- * Confirm Driver Deletion / Deactivation
+ * Confirm Driver Deletion
  */
-async function confirmDeleteDriver(id, nome) {
-  if (!confirm(`Deseja realmente excluir ou desativar o condutor "${nome}"?`)) {
+async function confirmDeleteDriver(id, customNome = null) {
+  const drv = allDriversCache.find(d => d.id === id);
+  const nome = customNome || (drv ? drv.nome : 'Motorista');
+
+  if (!confirm(`Deseja realmente excluir o condutor "${nome}"? Esta ação removerá o motorista do sistema.`)) {
     return;
   }
 
@@ -893,12 +889,14 @@ async function confirmDeleteDriver(id, nome) {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
-    showToast(data.message || 'Operação realizada com sucesso.', 'info');
+    showToast(data.message || `Motorista "${nome}" excluído com sucesso!`, 'success');
+    clearDriverSelections();
     await loadDrivers();
-    loadDriversManagement();
-    fetchAndRenderDocuments();
+    await loadDriversManagement();
+    await fetchAndRenderDocuments();
+    if (typeof loadDriversAnalytics === 'function') loadDriversAnalytics();
   } catch (err) {
-    showToast(`Erro: ${err.message}`, 'error');
+    showToast(`Erro ao excluir motorista: ${err.message}`, 'error');
   }
 }
 
@@ -1605,18 +1603,20 @@ async function confirmDeleteTrip(type, id, numero) {
   }
 
   try {
-    const res = await fetch(`/api/documents/${type}/${id}`, { method: 'DELETE' });
+    const encodedType = encodeURIComponent(type || 'any');
+    const res = await fetch(`/api/documents/${encodedType}/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!data.success) {
       throw new Error(data.error || 'Erro ao excluir viagem.');
     }
 
-    showToast(data.message || 'Viagem excluída com sucesso!', 'info');
+    showToast(data.message || 'Viagem excluída com sucesso!', 'success');
     await loadDrivers();
     await fetchAndRenderDocuments();
     if (typeof loadCTEs === 'function') await loadCTEs();
     if (typeof loadManifestos === 'function') await loadManifestos();
     if (typeof loadDriversManagement === 'function') await loadDriversManagement();
+    if (typeof loadDriversAnalytics === 'function') await loadDriversAnalytics();
   } catch (err) {
     console.error('Error deleting trip:', err);
     showToast(`Erro ao excluir: ${err.message}`, 'error');

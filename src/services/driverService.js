@@ -169,62 +169,43 @@ function deleteDriver(id) {
     throw new Error('Motorista não encontrado.');
   }
 
-  // Check if driver has linked CT-e or MDF-e
-  const cteCount = queryOne('SELECT COUNT(*) AS total FROM conhecimentos_cte WHERE motorista_id = ?', [id])?.total || 0;
-  const mdfeCount = queryOne('SELECT COUNT(*) AS total FROM manifestos_mdfe WHERE motorista_id = ?', [id])?.total || 0;
-
-  if (cteCount > 0 || mdfeCount > 0) {
-    // Cannot hard-delete due to foreign key integrity; soft-delete (deactivate)
-    execute('UPDATE motoristas SET ativo = 0 WHERE id = ?', [id]);
-    return {
-      success: true,
-      softDeleted: true,
-      message: `Motorista desativado com sucesso (possui ${cteCount} CT-es e ${mdfeCount} MDF-es vinculados).`
-    };
-  }
-
+  // Remove linked trips and driver record cleanly
+  execute('DELETE FROM conhecimentos_cte WHERE motorista_id = ?', [id]);
+  execute('DELETE FROM manifestos_mdfe WHERE motorista_id = ?', [id]);
   execute('DELETE FROM motoristas WHERE id = ?', [id]);
+
   return {
     success: true,
-    softDeleted: false,
-    message: 'Motorista excluído com sucesso.'
+    deleted: true,
+    message: `Motorista "${driver.nome}" excluído com sucesso.`
   };
 }
 
 /**
  * Batch delete drivers
- * @param {string[]} ids - Array of driver IDs to delete or deactivate
+ * @param {string[]} ids - Array of driver IDs to delete
  */
 function batchDeleteDrivers(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) {
     throw new Error('Nenhum motorista foi selecionado para exclusão.');
   }
 
-  let hardDeleted = 0;
-  let softDeleted = 0;
-
+  let deletedCount = 0;
   for (const id of ids) {
     const driver = getDriverById(id);
     if (!driver) continue;
 
-    const cteCount = queryOne('SELECT COUNT(*) AS total FROM conhecimentos_cte WHERE motorista_id = ?', [id])?.total || 0;
-    const mdfeCount = queryOne('SELECT COUNT(*) AS total FROM manifestos_mdfe WHERE motorista_id = ?', [id])?.total || 0;
-
-    if (cteCount > 0 || mdfeCount > 0) {
-      execute('UPDATE motoristas SET ativo = 0 WHERE id = ?', [id]);
-      softDeleted++;
-    } else {
-      execute('DELETE FROM motoristas WHERE id = ?', [id]);
-      hardDeleted++;
-    }
+    execute('DELETE FROM conhecimentos_cte WHERE motorista_id = ?', [id]);
+    execute('DELETE FROM manifestos_mdfe WHERE motorista_id = ?', [id]);
+    execute('DELETE FROM motoristas WHERE id = ?', [id]);
+    deletedCount++;
   }
 
   return {
     success: true,
     totalRequested: ids.length,
-    hardDeleted,
-    softDeleted,
-    message: `${hardDeleted + softDeleted} motorista(s) processado(s): ${hardDeleted} excluído(s) em definitivo e ${softDeleted} desativado(s) por possuir viagens vinculadas.`
+    deletedCount,
+    message: `${deletedCount} motorista(s) excluído(s) com sucesso.`
   };
 }
 

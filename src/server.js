@@ -210,6 +210,16 @@ app.delete('/api/documents/:type/:id', (req, res) => {
   }
 });
 
+app.delete('/api/documents/:id', (req, res) => {
+  try {
+    const result = deleteDocument('any', req.params.id);
+    res.json(result);
+  } catch (err) {
+    console.error('[API DELETE /documents/:id error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 /**
  * 4. Document Details by Access Key (for DACTE/DAMDFE viewer)
  */

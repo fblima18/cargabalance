@@ -703,52 +703,50 @@ function createManualTrip(data) {
  * Delete a document (CT-e or MDF-e) by type and id or access key
  */
 function deleteDocument(type, idOrKey) {
-  const normType = String(type).trim().toLowerCase();
+  const normType = String(type || '').trim().toLowerCase();
   
   if (normType === 'ct-e' || normType === 'cte') {
     const existing = queryOne('SELECT * FROM conhecimentos_cte WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
-    if (!existing) {
-      throw new Error(`CT-e não encontrado para exclusão.`);
+    if (existing) {
+      execute('DELETE FROM conhecimentos_cte WHERE id = ?', [existing.id]);
+      return {
+        success: true,
+        tipo: 'CT-e',
+        numero: existing.numero,
+        message: `CT-e nº ${existing.numero} excluído com sucesso.`
+      };
     }
-
-    execute('DELETE FROM conhecimentos_cte WHERE id = ?', [existing.id]);
-    return {
-      success: true,
-      tipo: 'CT-e',
-      numero: existing.numero,
-      message: `CT-e nº ${existing.numero} excluído com sucesso.`
-    };
-  } else if (normType === 'mdf-e' || normType === 'mdfe') {
-    const existing = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
-    if (!existing) {
-      throw new Error(`MDF-e não encontrado para exclusão.`);
-    }
-
-    // Unlink any CT-e pointing to this manifesto first
-    execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [existing.id]);
-    execute('DELETE FROM manifestos_mdfe WHERE id = ?', [existing.id]);
-    
-    return {
-      success: true,
-      tipo: 'MDF-e',
-      numero: existing.numero,
-      message: `MDF-e nº ${existing.numero} excluído com sucesso.`
-    };
-  } else {
-    // Try both
-    const cte = queryOne('SELECT * FROM conhecimentos_cte WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
-    if (cte) {
-      execute('DELETE FROM conhecimentos_cte WHERE id = ?', [cte.id]);
-      return { success: true, tipo: 'CT-e', numero: cte.numero, message: `CT-e nº ${cte.numero} excluído.` };
-    }
-    const mdfe = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
-    if (mdfe) {
-      execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [mdfe.id]);
-      execute('DELETE FROM manifestos_mdfe WHERE id = ?', [mdfe.id]);
-      return { success: true, tipo: 'MDF-e', numero: mdfe.numero, message: `MDF-e nº ${mdfe.numero} excluído.` };
-    }
-    throw new Error('Documento não encontrado para exclusão.');
   }
+
+  if (normType === 'mdf-e' || normType === 'mdfe') {
+    const existing = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+    if (existing) {
+      execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [existing.id]);
+      execute('DELETE FROM manifestos_mdfe WHERE id = ?', [existing.id]);
+      return {
+        success: true,
+        tipo: 'MDF-e',
+        numero: existing.numero,
+        message: `MDF-e nº ${existing.numero} excluído com sucesso.`
+      };
+    }
+  }
+
+  // Fallback: search both tables regardless of type parameter
+  const cte = queryOne('SELECT * FROM conhecimentos_cte WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+  if (cte) {
+    execute('DELETE FROM conhecimentos_cte WHERE id = ?', [cte.id]);
+    return { success: true, tipo: 'CT-e', numero: cte.numero, message: `CT-e nº ${cte.numero} excluído com sucesso.` };
+  }
+
+  const mdfe = queryOne('SELECT * FROM manifestos_mdfe WHERE id = ? OR chave_acesso = ?', [idOrKey, idOrKey]);
+  if (mdfe) {
+    execute('UPDATE conhecimentos_cte SET manifesto_id = NULL WHERE manifesto_id = ?', [mdfe.id]);
+    execute('DELETE FROM manifestos_mdfe WHERE id = ?', [mdfe.id]);
+    return { success: true, tipo: 'MDF-e', numero: mdfe.numero, message: `MDF-e nº ${mdfe.numero} excluído com sucesso.` };
+  }
+
+  throw new Error(`Documento fiscal "${idOrKey}" não encontrado para exclusão.`);
 }
 
 module.exports = {
