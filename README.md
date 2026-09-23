@@ -15,13 +15,25 @@ Plataforma corporativa de alto desempenho para **ingestão em lote de XMLs da SE
   - Extração automatizada de metadados: chave de acesso de 44 dígitos, número, série, data/hora de emissão, emitente, remetente, destinatário, origem, destino, peso e valores fiscais.
   - Associação automática entre MDF-e e seus CT-es vinculados.
 
+- **✍️ Lançamento e Exclusão Manual de Viagens**
+  - Inserção direta de viagens com seleção entre **CT-e** e **MDF-e**, motorista vinculado, placas, rotas e valores.
+  - Cálculo instantâneo da comissão de **75%** no formulário e emissão de chave SEFAZ sintética com arquivo XML mock.
+  - Botão de exclusão (`icon-btn danger`) nas tabelas para cancelamento de lançamentos e recálculo instantâneo de saldos.
+
+- **🔍 Pesquisa Multi-Critério Avançada**
+  - Seletor de escopo de busca: `Todos`, `Motorista`, `CT-e`, `MDF-e` e `Rota` com busca reativa em tempo real.
+
+- **🎨 Interface Minimalista & Alta Produtividade**
+  - Cabeçalho limpo com botões de ícones minimalistas e intuitivos com *tooltips*.
+  - Ícones padronizados e compactos em toda a interface (logotipo, upload, KPIs, tabelas).
+
 - **💰 Destaque do Valor Destinado ao Motorista (75% do Frete)**
   - Cálculo automático da comissão de **75% sobre o valor do frete** em todos os conhecimentos CT-e.
   - Exibição de alto contraste e prioridade visual nos cards de KPI do dashboard, tabela de auditoria e modal DACTE.
   - Demonstração da margem da empresa (25%) e do valor líquido a pagar ao motorista.
 
 - **🔔 Lembrete e Confirmação de Envio ao Setor Financeiro**
-  - Alerta imediato pós-upload: *"ENCAMINHE ESTE VALOR AO FINANCEIRO"*.
+  - Alerta imediato pós-lançamento e pós-upload: *"ENCAMINHE ESTE VALOR AO FINANCEIRO"*.
   - Modal interativo para conferência com discriminação por motorista, CPF, placas e fretes.
   - Registro de protocolo único de acerto auditável gravado em banco de dados (`envios_financeiro`).
 
