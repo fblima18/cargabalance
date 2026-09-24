@@ -117,38 +117,8 @@
           <span>Novo Motorista</span>
         </button>
 
-        <!-- 3. Importar DACTE Anexo (Rio Largo -> Juazeiro) -->
-        <button id="btn-seed-attached" class="sidebar-action-btn warning" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-          <span>DACTE Rio Largo</span>
-        </button>
-
-        <!-- 4. Gerar Amostras SEFAZ -->
-        <button id="btn-seed" class="sidebar-action-btn purple" title="Gerar Amostras de Documentos SEFAZ">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-          <span>Gerar Amostras</span>
-        </button>
-
-        <!-- 5. Completar via XML -->
-        <button id="btn-complete-xml" class="sidebar-action-btn cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 18 22 12 16 6"/>
-            <polyline points="8 6 2 12 8 18"/>
-          </svg>
-          <span>Completar via XML</span>
-        </button>
-
-        <!-- 6. Exportar para Excel (.xlsx) -->
-        <button id="btn-export-excel" class="sidebar-action-btn success" title="Exportar para Excel (.xlsx)">
+        <!-- Relatório Financeiro e Fiscal em PDF -->
+        <button id="btn-export-pdf" class="sidebar-action-btn primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas ao Setor Financeiro (PDF)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
@@ -156,7 +126,19 @@
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10 9 9 9 8 9"/>
           </svg>
-          <span>Exportar Excel</span>
+          <span>Relatório PDF</span>
+        </button>
+
+        <!-- Relatório Financeiro e Fiscal em Excel -->
+        <button id="btn-export-excel" class="sidebar-action-btn success" title="Exportar Planilha Completa de Prestação de Contas (.xlsx)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="3" y1="15" x2="21" y2="15"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
+            <line x1="15" y1="3" x2="15" y2="21"/>
+          </svg>
+          <span>Relatório Excel</span>
         </button>
       </div>
 
@@ -461,30 +443,22 @@
               </svg>
               <span>+ Novo Motorista</span>
             </button>
-            <button type="button" class="btn-action-pill cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <polyline points="16 18 22 12 16 6"></polyline>
-                <polyline points="8 6 2 12 8 18"></polyline>
-              </svg>
-              <span>Completar XML</span>
-            </button>
-            <button type="button" id="overview-btn-seed-attached" class="btn-action-pill amber" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="12" y1="18" x2="12" y2="12"></line>
-                <line x1="9" y1="15" x2="15" y2="15"></line>
-              </svg>
-              <span>DACTE Anexo</span>
-            </button>
-            <button type="button" id="overview-btn-export-excel" class="btn-action-pill success" title="Exportar para Excel (.xlsx)">
+            <button type="button" id="overview-btn-export-pdf" class="btn-action-pill primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas (PDF)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
-              <span>Exportar</span>
+              <span>Relatório PDF</span>
+            </button>
+            <button type="button" id="overview-btn-export-excel" class="btn-action-pill success" title="Exportar Planilha Completa de Prestação de Contas (.xlsx)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+              <span>Relatório Excel</span>
             </button>
           </div>
 
@@ -1160,6 +1134,51 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-complete-xml')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Relatório de Prestação de Contas ao Setor Financeiro (PDF e Impressão) -->
+  <div id="modal-financial-report" class="modal-backdrop">
+    <div class="modal-container modal-xl" style="max-width: 1250px; width: 95vw;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass-light); padding-bottom: 1rem;">
+        <div>
+          <h3 id="modal-financial-report-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Prestação de Contas ao Setor Financeiro
+          </h3>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.825rem; color: var(--text-secondary);">
+            Demonstrativo Consolidado de Fretes, Comissões Motoristas (75%), Margem Líquida e Destaque Fiscal de ICMS
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.6rem; align-items: center;" class="no-print">
+          <button type="button" class="btn btn-primary btn-sm" onclick="printFinancialReport()" title="Imprimir ou Salvar em Arquivo PDF">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Imprimir / Salvar PDF
+          </button>
+          <button type="button" class="btn btn-success btn-sm" onclick="handleExportExcel()" title="Baixar Planilha Completa em Excel (.xlsx)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            Baixar Excel (.xlsx)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-financial-report')">Fechar</button>
+        </div>
+      </div>
+      <div id="financial-report-content" class="modal-body" style="padding: 1.5rem; max-height: calc(85vh - 120px); overflow-y: auto;">
+        <!-- Dynamic Financial Accountability Content generated by app.js -->
       </div>
     </div>
   </div>

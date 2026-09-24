@@ -1960,30 +1960,265 @@ html, body {
   margin-bottom: 0.75rem;
 }
 
+/* ==========================================================================
+   Relatório de Prestação de Contas ao Setor Financeiro (PDF & Impressão)
+   ========================================================================== */
+.fin-report-sheet {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.45;
+}
+
+.fin-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid #0f172a;
+  margin-bottom: 1.25rem;
+}
+
+.fin-brand-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fin-brand-subtitle {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+  margin-top: 0.2rem;
+}
+
+.fin-report-meta-box {
+  text-align: right;
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.fin-report-meta-box strong {
+  color: #0f172a;
+}
+
+.fin-status-stamp {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+/* Executive Cards */
+.fin-kpi-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.fin-kpi-card {
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.fin-kpi-card.blue { border-left: 4px solid #2563eb; }
+.fin-kpi-card.green { border-left: 4px solid #10b981; }
+.fin-kpi-card.amber { border-left: 4px solid #f59e0b; }
+.fin-kpi-card.purple { border-left: 4px solid #8b5cf6; }
+
+.fin-kpi-title {
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.fin-kpi-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.fin-kpi-card.blue .fin-kpi-val { color: #1d4ed8; }
+.fin-kpi-card.green .fin-kpi-val { color: #047857; }
+.fin-kpi-card.amber .fin-kpi-val { color: #b45309; }
+.fin-kpi-card.purple .fin-kpi-val { color: #6d28d9; }
+
+.fin-kpi-desc {
+  font-size: 0.725rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+/* Section Title */
+.fin-sec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.5rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.825rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 1.25rem 0 0.65rem 0;
+}
+
+.fin-sec-header.green {
+  background: #065f46;
+}
+
+.fin-sec-header.blue {
+  background: #1e3a8a;
+}
+
+/* Tables */
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.775rem;
+  margin-bottom: 1rem;
+}
+
+.fin-table th {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  font-size: 0.725rem;
+  text-transform: uppercase;
+}
+
+.fin-table td {
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.fin-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.fin-table tr.total-row td {
+  background: #e2e8f0;
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 2px solid #0f172a;
+  border-bottom: 2px solid #0f172a;
+}
+
+.fin-table td.text-right, .fin-table th.text-right {
+  text-align: right;
+}
+
+.fin-table td.text-center, .fin-table th.text-center {
+  text-align: center;
+}
+
+.fin-badge-cte {
+  color: #0d9488;
+  font-weight: 700;
+}
+
+.fin-badge-mdfe {
+  color: #6366f1;
+  font-weight: 700;
+}
+
+.fin-signatures-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 2.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.fin-sign-col {
+  text-align: center;
+}
+
+.fin-sign-line {
+  border-bottom: 1px solid #0f172a;
+  margin-bottom: 0.4rem;
+  height: 28px;
+}
+
+.fin-sign-role {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #0f172a;
+}
+
+.fin-sign-dept {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
 /* Print Styles */
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
   body * {
     visibility: hidden;
   }
-  .modal-backdrop, .modal-backdrop * {
+  #modal-financial-report, #modal-financial-report *,
+  #modal-dacte, #modal-dacte * {
     visibility: visible;
   }
-  .modal-backdrop {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  #modal-financial-report, #modal-dacte {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
     background: #ffffff !important;
-    padding: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
   }
   .modal-container {
     box-shadow: none !important;
     border: none !important;
     max-width: 100% !important;
     width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
   }
-  .modal-header, .modal-footer, .app-sidebar, .filter-card, .kpi-grid, .upload-card {
+  .modal-header, .modal-footer, .app-sidebar, .filter-card, .kpi-grid, .upload-card, .no-print {
     display: none !important;
+  }
+  .fin-report-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
   }
   .dacte-sheet {
     border: 1px solid #000 !important;
@@ -1993,3 +2228,4 @@ html, body {
     padding: 0 !important;
   }
 }
+

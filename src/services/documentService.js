@@ -86,6 +86,11 @@ function getFilteredDocuments(filters = {}) {
         m.cpf AS motorista_cpf,
         m.cnh AS motorista_cnh,
         COALESCE(m.percentual_comissao, 75.0) AS motorista_percentual_comissao,
+        COALESCE(m.tipo_vinculo, 'frota_propria') AS motorista_tipo_vinculo,
+        m.placa_cavalo AS motorista_placa_cavalo,
+        m.placa_carreta AS motorista_placa_carreta,
+        m.chave_pix AS motorista_chave_pix,
+        m.telefone AS motorista_telefone,
         c.criado_em
       FROM conhecimentos_cte c
       JOIN motoristas m ON c.motorista_id = m.id
@@ -190,6 +195,11 @@ function getFilteredDocuments(filters = {}) {
         m.cpf AS motorista_cpf,
         m.cnh AS motorista_cnh,
         COALESCE(m.percentual_comissao, 75.0) AS motorista_percentual_comissao,
+        COALESCE(m.tipo_vinculo, 'frota_propria') AS motorista_tipo_vinculo,
+        COALESCE(mdf.placa_tracao, m.placa_cavalo) AS motorista_placa_cavalo,
+        COALESCE(mdf.placa_reboque, m.placa_carreta) AS motorista_placa_carreta,
+        m.chave_pix AS motorista_chave_pix,
+        m.telefone AS motorista_telefone,
         mdf.criado_em
       FROM manifestos_mdfe mdf
       JOIN motoristas m ON mdf.motorista_id = m.id
