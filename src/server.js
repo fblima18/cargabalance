@@ -16,6 +16,7 @@ const {
   getDriverById, 
   createDriver, 
   updateDriver, 
+  updateDriverCommission,
   deleteDriver,
   batchDeleteDrivers,
   getDriversAnalytics
@@ -203,6 +204,21 @@ app.put('/api/drivers/:id', (req, res) => {
     });
   } catch (err) {
     console.error('[API PUT /drivers/:id error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/drivers/:id/commission', (req, res) => {
+  try {
+    const { percentual_comissao } = req.body;
+    const updated = updateDriverCommission(req.params.id, percentual_comissao);
+    res.json({
+      success: true,
+      message: `Percentual de repasse de ${updated.nome} alterado para ${updated.percentual_comissao}% com sucesso!`,
+      driver: updated
+    });
+  } catch (err) {
+    console.error('[API PATCH /drivers/:id/commission error]', err);
     res.status(400).json({ success: false, error: err.message });
   }
 });

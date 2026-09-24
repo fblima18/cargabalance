@@ -161,6 +161,32 @@ function updateDriver(id, data) {
 }
 
 /**
+ * Update driver commission percentage and recalculate all linked CT-es
+ */
+function updateDriverCommission(id, percentual) {
+  const driver = getDriverById(id);
+  if (!driver) throw new Error('Motorista não encontrado.');
+  const pct = parseFloat(percentual);
+  if (isNaN(pct) || pct < 0 || pct > 100) {
+    throw new Error('A porcentagem de comissão deve ser um número entre 0% e 100%.');
+  }
+
+  execute(`
+    UPDATE motoristas 
+    SET percentual_comissao = ?
+    WHERE id = ?
+  `, [pct, id]);
+
+  execute(`
+    UPDATE conhecimentos_cte 
+    SET valor_comissao_motorista = ROUND(valor_frete * (? / 100.0), 2)
+    WHERE motorista_id = ?
+  `, [pct, id]);
+
+  return getDriverById(id);
+}
+
+/**
  * Delete or deactivate driver
  */
 function deleteDriver(id) {
@@ -300,6 +326,7 @@ module.exports = {
   getDriverById,
   createDriver,
   updateDriver,
+  updateDriverCommission,
   deleteDriver,
   batchDeleteDrivers,
   getDriversAnalytics

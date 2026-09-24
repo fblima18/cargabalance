@@ -1499,9 +1499,26 @@ function renderDriversManagementTable() {
         <td>${platesHtml}</td>
         <td>${drv.cnh || '<span style="color: var(--text-muted);">-</span>'}</td>
         <td style="text-align: center;">
-          <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 700;">
-            ${drv.percentual_comissao || 75}%
-          </span>
+          <div class="commission-badge-editable-wrapper" title="Clique ou altere o valor para editar a porcentagem de repasse deste condutor (Ex: 70%, 75%, 80%)">
+            <input 
+              type="number" 
+              step="0.5" 
+              min="0" 
+              max="100" 
+              value="${drv.percentual_comissao !== undefined ? drv.percentual_comissao : 75}"
+              class="driver-commission-input"
+              data-driver-id="${drv.id}"
+              data-original-val="${drv.percentual_comissao !== undefined ? drv.percentual_comissao : 75}"
+              onchange="quickUpdateDriverCommission('${drv.id}', this.value, '${escapeHtml(drv.nome)}')"
+            />
+            <span class="commission-unit">%</span>
+            <button type="button" class="btn-quick-edit-commission" onclick="promptEditDriverCommission('${drv.id}', '${escapeHtml(drv.nome)}', ${drv.percentual_comissao !== undefined ? drv.percentual_comissao : 75})" title="Editar % de repasse deste condutor">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          </div>
         </td>
         <td>${drv.telefone || '<span style="color: var(--text-muted);">-</span>'}</td>
         <td style="text-align: center; font-weight: 700;">${drv.total_ctes || 0}</td>
@@ -1532,6 +1549,57 @@ function renderDriversManagementTable() {
 
   updateDriversBatchBar();
 }
+
+/**
+ * Fast Inline Commission Update for Driver
+ */
+async function quickUpdateDriverCommission(driverId, newPercent, driverName = '') {
+  const pct = parseFloat(newPercent);
+  if (isNaN(pct) || pct < 0 || pct > 100) {
+    showToast('Por favor, informe uma porcentagem de repasse válida entre 0% e 100%.', 'warning');
+    renderDriversManagementTable();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/drivers/${driverId}/commission`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ percentual_comissao: pct })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(data.message || `Comissão de ${driverName || 'Condutor'} atualizada para ${pct}%!`, 'success');
+
+    // Atualiza cache local imediatamente
+    if (Array.isArray(allDriversCache)) {
+      const d = allDriversCache.find(x => x.id === driverId);
+      if (d) d.percentual_comissao = pct;
+    }
+
+    await loadDrivers();
+    await loadDriversManagement();
+    await fetchAndRenderDocuments();
+    if (typeof loadDriversAnalytics === 'function') loadDriversAnalytics();
+  } catch (err) {
+    console.error('Error updating driver commission:', err);
+    showToast(`Erro ao atualizar comissão: ${err.message}`, 'error');
+    renderDriversManagementTable();
+  }
+}
+window.quickUpdateDriverCommission = quickUpdateDriverCommission;
+
+/**
+ * Prompt to edit commission percentage
+ */
+function promptEditDriverCommission(driverId, driverName, currentVal) {
+  const input = prompt(`Alterar porcentagem de repasse para ${driverName}:\n(Exemplo: 70, 75, 80, 85, etc.)`, currentVal !== undefined ? currentVal : 75);
+  if (input !== null && input.trim() !== '') {
+    quickUpdateDriverCommission(driverId, input.trim(), driverName);
+  }
+}
+window.promptEditDriverCommission = promptEditDriverCommission;
 
 /**
  * Driver Checkbox Selection Logic
@@ -2117,18 +2185,24 @@ function setupEventListeners() {
 
     // Cálculos Gerais Consolidados
     const totalFrete = ctes.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
-    const totalComissao75 = ctes.reduce((acc, c) => acc + (parseFloat(c.valor_comissao) || (parseFloat(c.valor || 0) * 0.75)), 0);
-    const totalMargem25 = Math.max(0, totalFrete - totalComissao75);
     const totalICMS = ctes.reduce((acc, c) => acc + (parseFloat(c.valor_icms) || 0), 0);
     const totalCarga = mdfes.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
     const interstateCount = docs.filter(d => d.interestadual === 1 || (d.uf_origem && d.uf_destino && d.uf_origem !== d.uf_destino) || (d.uf_destino && d.uf_destino !== 'AL')).length;
 
-    // Agrupamento Individual por Condutor e Frota
+    // Agrupamento Individual por Condutor e Frota com Percentuais Dinâmicos
     const driverMap = {};
     docs.forEach(d => {
       const cpf = (d.motorista_cpf || '').trim();
       const nome = (d.motorista_nome || 'Não Informado').trim();
       const key = cpf || nome || 'Outros';
+
+      const matchedDriver = Array.isArray(allDriversCache) ? allDriversCache.find(drv => 
+        (cpf && drv.cpf && drv.cpf === cpf) || 
+        (nome && drv.nome && drv.nome.toUpperCase() === nome.toUpperCase())
+      ) : null;
+      const driverPercent = matchedDriver && matchedDriver.percentual_comissao !== undefined
+        ? parseFloat(matchedDriver.percentual_comissao)
+        : (parseFloat(d.percentual_comissao) || 75.0);
 
       if (!driverMap[key]) {
         // Placas
@@ -2138,7 +2212,7 @@ function setupEventListeners() {
         const placasStr = placasArr.length > 0 ? placasArr.join(' / ') : '-';
 
         // Vínculo
-        const vinculoRaw = (d.motorista_tipo_vinculo || d.vinculo || 'frota_propria').toLowerCase();
+        const vinculoRaw = (d.motorista_tipo_vinculo || d.vinculo || (matchedDriver ? matchedDriver.tipo_vinculo : 'frota_propria')).toLowerCase();
         let vinculoLabel = 'Frota Própria';
         let vinculoColor = '#2563eb';
         let vinculoBg = '#dbeafe';
@@ -2155,35 +2229,41 @@ function setupEventListeners() {
 
         driverMap[key] = {
           key,
+          id: matchedDriver ? matchedDriver.id : null,
           nome,
-          cpf: cpf || '-',
-          cnh: (d.motorista_cnh || '').trim() || '-',
+          cpf: cpf || (matchedDriver ? matchedDriver.cpf : '-'),
+          cnh: (d.motorista_cnh || (matchedDriver ? matchedDriver.cnh : '') || '').trim() || '-',
           vinculoRaw,
           vinculoLabel,
           vinculoColor,
           vinculoBg,
-          placas: placasStr,
-          pix: (d.motorista_chave_pix || '').trim() || 'A Cadastrar',
-          telefone: (d.motorista_telefone || '').trim() || '-',
+          placas: placasStr !== '-' ? placasStr : ([matchedDriver?.placa_cavalo, matchedDriver?.placa_carreta].filter(Boolean).join(' / ') || '-'),
+          pix: (d.motorista_chave_pix || (matchedDriver ? matchedDriver.chave_pix : '') || '').trim() || 'A Cadastrar',
+          telefone: (d.motorista_telefone || (matchedDriver ? matchedDriver.telefone : '') || '').trim() || '-',
+          percentualComissao: driverPercent,
           qtdViagens: 0,
           totalFrete: 0,
-          totalComissao75: 0,
-          totalMargem25: 0
+          totalComissao: 0,
+          totalMargem: 0
         };
       }
 
       const val = parseFloat(d.valor || 0);
-      const com = parseFloat(d.valor_comissao || (d.tipo === 'CT-e' ? (val * 0.75) : 0));
+      const com = parseFloat(d.valor_comissao !== undefined && d.valor_comissao !== null 
+        ? d.valor_comissao 
+        : (d.tipo === 'CT-e' ? (val * (driverPercent / 100.0)) : 0));
 
       driverMap[key].qtdViagens += 1;
       if ((d.tipo || '').toUpperCase().includes('CT')) {
         driverMap[key].totalFrete += val;
-        driverMap[key].totalComissao75 += com;
-        driverMap[key].totalMargem25 += Math.max(0, val - com);
+        driverMap[key].totalComissao += com;
+        driverMap[key].totalMargem += Math.max(0, val - com);
       }
     });
 
-    const driverList = Object.values(driverMap).sort((a, b) => b.totalComissao75 - a.totalComissao75);
+    const driverList = Object.values(driverMap).sort((a, b) => b.totalComissao - a.totalComissao);
+    const totalComissaoGeral = driverList.reduce((acc, d) => acc + d.totalComissao, 0);
+    const totalMargemGeral = Math.max(0, totalFrete - totalComissaoGeral);
 
     const nowStr = new Date().toLocaleString('pt-BR');
     const periodText = (currentFilters.startDate || currentFilters.endDate)
@@ -2230,13 +2310,13 @@ function setupEventListeners() {
             <div class="fin-kpi-desc">${ctes.length} Conhecimentos CT-e faturados</div>
           </div>
           <div class="fin-kpi-card green">
-            <div class="fin-kpi-title">Comissão Motoristas (75%)</div>
-            <div class="fin-kpi-val" style="color: #047857;">${formatMoney(totalComissao75)}</div>
-            <div class="fin-kpi-desc">Repasse líquido contratual aos condutores</div>
+            <div class="fin-kpi-title">Comissões dos Motoristas (Repasses)</div>
+            <div class="fin-kpi-val" style="color: #047857;">${formatMoney(totalComissaoGeral)}</div>
+            <div class="fin-kpi-desc">Repasse líquido individualizado aos condutores</div>
           </div>
           <div class="fin-kpi-card blue">
-            <div class="fin-kpi-title">Margem Transportadora (25%)</div>
-            <div class="fin-kpi-val" style="color: #1e40af;">${formatMoney(totalMargem25)}</div>
+            <div class="fin-kpi-title">Margem Transportadora</div>
+            <div class="fin-kpi-val" style="color: #1e40af;">${formatMoney(totalMargemGeral)}</div>
             <div class="fin-kpi-desc">Receita líquida retida pela empresa</div>
           </div>
           <div class="fin-kpi-card amber">
@@ -2246,30 +2326,31 @@ function setupEventListeners() {
           </div>
         </div>
 
-        <!-- 2. CÁLCULOS INDIVIDUAIS POR MOTORISTA E FROTA (CONTAS A PAGAR 75%) -->
+        <!-- 2. CÁLCULOS INDIVIDUAIS POR MOTORISTA E FROTA (REPASSE E COMISSÕES PERSONALIZADAS) -->
         <div class="fin-sec-header green" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>2. CÁLCULOS INDIVIDUAIS POR MOTORISTA & FROTA (PROGRAMAÇÃO DE PAGAMENTOS 75%)</span>
+          <span>2. CÁLCULOS INDIVIDUAIS POR MOTORISTA & FROTA (REPASSE E COMISSÕES PERSONALIZADAS)</span>
           <span style="font-size: 0.725rem; font-weight: 500;">${driverList.length} Motorista(s) Auditado(s)</span>
         </div>
 
         <table class="fin-table">
           <thead>
             <tr>
-              <th style="width: 22%;">Motorista / Condutor</th>
-              <th class="text-center" style="width: 13%;">CPF</th>
-              <th class="text-center" style="width: 11%;">Vínculo da Frota</th>
-              <th class="text-center" style="width: 14%;">Placas (Cavalo / Carreta)</th>
+              <th style="width: 20%;">Motorista / Condutor</th>
+              <th class="text-center" style="width: 12%;">CPF</th>
+              <th class="text-center" style="width: 10%;">Vínculo</th>
+              <th class="text-center" style="width: 12%;">Placas (Cavalo / Carreta)</th>
               <th class="text-center" style="width: 13%;">Chave PIX / Contato</th>
-              <th class="text-center" style="width: 7%;">Viagens</th>
-              <th class="text-right" style="width: 10%;">Frete Bruto</th>
-              <th class="text-right" style="color: #047857; width: 10%;">Comissão 75%</th>
+              <th class="text-center" style="width: 6%;">Viagens</th>
+              <th class="text-right" style="width: 9%;">Frete Bruto</th>
+              <th class="text-center" style="width: 9%;">% Repasse</th>
+              <th class="text-right" style="color: #047857; width: 11%;">Comissão Líquida</th>
               <th class="text-center" style="width: 8%;">Status</th>
             </tr>
           </thead>
           <tbody>
             ${driverList.length === 0 ? `
               <tr>
-                <td colspan="9" class="text-center" style="padding: 2rem; color: #64748b;">
+                <td colspan="10" class="text-center" style="padding: 2rem; color: #64748b;">
                   Nenhum motorista com frete localizado no período selecionado.
                 </td>
               </tr>
@@ -2300,8 +2381,29 @@ function setupEventListeners() {
                 <td class="text-right" style="font-weight: 600;">
                   ${formatMoney(d.totalFrete)}
                 </td>
+                <td class="text-center">
+                  ${d.id ? `
+                    <div class="commission-badge-editable-wrapper" style="padding: 1px 4px;" title="Clique ou altere para editar % de repasse deste condutor">
+                      <input 
+                        type="number" 
+                        step="0.5" 
+                        min="0" 
+                        max="100" 
+                        value="${d.percentualComissao}"
+                        class="driver-commission-input"
+                        style="width: 44px; font-size: 0.775rem;"
+                        onchange="quickUpdateDriverCommission('${d.id}', this.value, '${escapeHtml(d.nome)}').then(() => openFinancialReportModal())"
+                      />
+                      <span class="commission-unit" style="font-size: 0.725rem;">%</span>
+                    </div>
+                  ` : `
+                    <span style="display: inline-block; padding: 2px 6px; background: rgba(16, 185, 129, 0.1); color: #047857; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">
+                      ${d.percentualComissao}%
+                    </span>
+                  `}
+                </td>
                 <td class="text-right" style="font-weight: 800; color: #047857; font-size: 0.85rem; background: rgba(16, 185, 129, 0.05);">
-                  ${formatMoney(d.totalComissao75)}
+                  ${formatMoney(d.totalComissao)}
                 </td>
                 <td class="text-center">
                   <span style="display: inline-block; padding: 2px 6px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 4px; font-weight: 700; font-size: 0.675rem;">
@@ -2320,8 +2422,11 @@ function setupEventListeners() {
               <td class="text-right" style="color: #0f172a;">
                 <strong>${formatMoney(driverList.reduce((acc, d) => acc + d.totalFrete, 0))}</strong>
               </td>
+              <td class="text-center" style="color: #047857; font-size: 0.75rem;">
+                <strong>PERSONALIZADO</strong>
+              </td>
               <td class="text-right" style="color: #047857; font-size: 0.9rem;">
-                <strong>${formatMoney(totalComissao75)}</strong>
+                <strong>${formatMoney(totalComissaoGeral)}</strong>
               </td>
               <td class="text-center" style="color: #047857;">
                 <strong>APROVADO</strong>
@@ -2348,7 +2453,7 @@ function setupEventListeners() {
                 <th style="width: 14%;">Cronograma (Datas & Horários)</th>
                 <th class="text-right" style="width: 9%;">Frete (R$)</th>
                 <th class="text-right" style="width: 8%;">ICMS (R$)</th>
-                <th class="text-right" style="color: #047857; width: 9%;">Comissão 75%</th>
+                <th class="text-right" style="color: #047857; width: 9%;">Comissão Líquida</th>
               </tr>
             </thead>
             <tbody>

@@ -1522,6 +1522,78 @@ html, body {
 }
 
 /* ==========================================================================
+   Editable Commission Badge & Controls
+   ========================================================================== */
+.commission-badge-editable-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  transition: all 0.2s ease;
+}
+
+.commission-badge-editable-wrapper:hover,
+.commission-badge-editable-wrapper:focus-within {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #059669;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+}
+
+.driver-commission-input {
+  width: 50px;
+  border: none;
+  background: transparent;
+  color: #047857;
+  font-weight: 800;
+  font-size: 0.825rem;
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  -moz-appearance: textfield;
+}
+
+.driver-commission-input::-webkit-outer-spin-button,
+.driver-commission-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.driver-commission-input:focus {
+  background: #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1.5px #10b981;
+}
+
+.commission-unit {
+  font-weight: 800;
+  font-size: 0.775rem;
+  color: #047857;
+  user-select: none;
+}
+
+.btn-quick-edit-commission {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #059669;
+  padding: 1px 2px;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.65;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.btn-quick-edit-commission:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* ==========================================================================
    DACTE / DAMDFE SEFAZ Preview
    ========================================================================== */
 .dacte-sheet {
