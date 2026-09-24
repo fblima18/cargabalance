@@ -21,7 +21,7 @@ const {
   batchDeleteDrivers,
   getDriversAnalytics
 } = require('./services/driverService');
-const { generateExcelReport } = require('./services/excelExporter');
+const { generateExcelReport, generateNFeBatchExcel } = require('./services/excelExporter');
 const { seedSampleData } = require('./services/sampleGenerator');
 const { seedAttachedDacteAndDamdfe } = require('./services/seedAttachedDacte');
 const { 
@@ -38,6 +38,14 @@ const {
   importScannedDrivers, 
   generateDriverTemplateExcel 
 } = require('./services/driverExcelService');
+const {
+  seedDefaultBranches,
+  getAllBranches,
+  saveBranch,
+  findBranchForDestination,
+  processNFeBatch,
+  generateSampleNFeBatch
+} = require('./services/nfeProcessorService');
 const { queryOne } = require('./database/db');
 
 const app = express();
@@ -591,6 +599,79 @@ app.post('/api/freight-repository/calculate', (req, res) => {
   }
 });
 
+/**
+ * 11. Corporate Branches & Fiscal Routing (Filiais para roteamento PF)
+ */
+app.get('/api/branches', (req, res) => {
+  try {
+    const branches = getAllBranches();
+    res.json({ success: true, count: branches.length, items: branches });
+  } catch (err) {
+    console.error('[API /branches error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/branches', (req, res) => {
+  try {
+    const saved = saveBranch(req.body);
+    res.json({ success: true, item: saved });
+  } catch (err) {
+    console.error('[API /branches error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 12. Batch NF-e Processing & Route/Destination Classification for CT-e Issuance
+ */
+app.post('/api/nfe/upload', upload.array('nfe_files', 100), (req, res) => {
+  try {
+    const files = req.files || [];
+    if (files.length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum arquivo XML de NF-e enviado.' });
+    }
+
+    const result = processNFeBatch(files);
+    res.json(result);
+  } catch (err) {
+    console.error('[API /nfe/upload error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 13. Load Realistic Demonstration Sample Batch of NF-es
+ */
+app.get('/api/nfe/sample-batch', (req, res) => {
+  try {
+    const result = generateSampleNFeBatch();
+    res.json(result);
+  } catch (err) {
+    console.error('[API /nfe/sample-batch error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 14. Export Processed NF-e Batch & Route Groups to Excel (.xlsx)
+ */
+app.post('/api/nfe/export-excel', async (req, res) => {
+  try {
+    const batchData = req.body || {};
+    const excelBuffer = await generateNFeBatchExcel(batchData);
+
+    const filename = `Roteamento_NFe_CTe_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+    res.send(excelBuffer);
+  } catch (err) {
+    console.error('[API /nfe/export-excel error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Serve frontend for any other route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
@@ -599,10 +680,12 @@ app.get('*', (req, res) => {
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
   seedFreightRepositoryIfNeeded();
+  seedDefaultBranches();
   console.log(`========================================================`);
   console.log(`🚀 CARGA BALANCE - Auditoria de frete`);
   console.log(`📍 Acesso Local:    http://localhost:${PORT}`);
   console.log(`📍 Acesso na Rede:  http://0.0.0.0:${PORT}`);
   console.log(`========================================================`);
 });
+
 

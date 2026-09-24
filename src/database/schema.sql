@@ -145,3 +145,23 @@ CREATE TABLE IF NOT EXISTS repositorio_fretes (
 CREATE INDEX IF NOT EXISTS idx_repo_frete_pagador ON repositorio_fretes(pagador_cnpj);
 CREATE INDEX IF NOT EXISTS idx_repo_frete_destino ON repositorio_fretes(uf_destino, cidade_destino);
 
+-- Filiais das Empresas para Roteamento Fiscal de Clientes Pessoa Física (PF)
+CREATE TABLE IF NOT EXISTS filiais_empresa (
+    id TEXT PRIMARY KEY,
+    empresa_grupo TEXT NOT NULL DEFAULT 'CARAJAS',
+    nome_filial TEXT NOT NULL,
+    cnpj TEXT NOT NULL,
+    inscricao_estadual TEXT,
+    cidade TEXT NOT NULL,
+    uf TEXT NOT NULL,
+    logradouro TEXT,
+    bairro TEXT,
+    cep TEXT,
+    telefone TEXT,
+    ativo INTEGER DEFAULT 1,
+    criado_em TEXT DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_filiais_cidade_uf ON filiais_empresa(cidade, uf);
+CREATE INDEX IF NOT EXISTS idx_filiais_cnpj ON filiais_empresa(cnpj);
+

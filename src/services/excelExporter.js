@@ -574,6 +574,254 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   return await workbook.xlsx.writeBuffer();
 }
 
+/**
+ * Generate Excel (.xlsx) workbook for Processed NF-e Batch & CT-e Grouping
+ */
+async function generateNFeBatchExcel(batchData) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'CARGA BALANCE - Roteador de NF-e para CT-e';
+  workbook.lastModifiedBy = 'CARGA BALANCE';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  const grupos = batchData.grupos_cte || [];
+  const kpis = batchData.kpis || {};
+
+  // -------------------------------------------------------------------------
+  // ABA 1: LOTES E GRUPOS DE CT-E POR DESTINO / ROTA
+  // -------------------------------------------------------------------------
+  const wsGrupos = workbook.addWorksheet('Lotes de CT-e por Rota', {
+    views: [{ showGridLines: true }]
+  });
+
+  // Title Banner
+  wsGrupos.mergeCells('A1:J1');
+  const gTitle = wsGrupos.getCell('A1');
+  gTitle.value = 'CARGA BALANCE - AGRUPAMENTO DE NF-e POR DESTINO & ROTEAMENTO DE CT-e';
+  gTitle.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+  gTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  gTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+  wsGrupos.getRow(1).height = 32;
+
+  // Subtitle
+  wsGrupos.mergeCells('A2:J2');
+  const gSub = wsGrupos.getCell('A2');
+  gSub.value = `Total NF-es: ${kpis.totalNfes || 0} | Lotes/Rotas: ${kpis.totalGrupos || 0} | Carga: R$ ${(kpis.totalValor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Peso: ${(kpis.totalPeso || 0).toLocaleString('pt-BR')} kg | PF (Filiais): ${kpis.totalPf || 0} | PJ (Direto): ${kpis.totalPj || 0}`;
+  gSub.font = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF38BDF8' } };
+  gSub.alignment = { horizontal: 'center', vertical: 'middle' };
+  gSub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  wsGrupos.getRow(2).height = 20;
+
+  wsGrupos.addRow([]); // Blank
+
+  const gHead = wsGrupos.addRow([
+    'Destino (Cidade / UF)',
+    'Tipo Rota',
+    'Destinatário Fiscal do CT-e',
+    'CNPJ Destinatário',
+    'Regra Aplicada',
+    'Qtd NF-es',
+    'Peso Bruto (kg)',
+    'Volumes',
+    'Valor Total Carga (R$)',
+    'Resumo da Mercadoria (CT-e)'
+  ]);
+  gHead.height = 25;
+  gHead.eachCell((c) => {
+    c.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+  });
+
+  const startG = gHead.number + 1;
+  grupos.forEach((grp) => {
+    const destF = grp.destinatario_fiscal_consolidado || {};
+    const row = wsGrupos.addRow([
+      grp.rota_label,
+      grp.is_interestadual ? 'Interestadual' : 'Estadual / Local',
+      destF.razao_social || '-',
+      destF.cnpj || '-',
+      grp.regra_aplicada === 'PF_PARA_FILIAL' ? 'PF ➔ Roteado Filial' : 'PJ Direto',
+      grp.total_nfes,
+      grp.somatorio_peso_bruto,
+      grp.somatorio_volumes,
+      grp.somatorio_valor_carga,
+      grp.resumo_mercadoria
+    ]);
+    row.height = 22;
+    row.getCell(1).alignment = { horizontal: 'left' };
+    row.getCell(2).alignment = { horizontal: 'center' };
+    row.getCell(3).alignment = { horizontal: 'left' };
+    row.getCell(4).alignment = { horizontal: 'center' };
+    row.getCell(5).alignment = { horizontal: 'center' };
+    row.getCell(5).font = { bold: true, color: { argb: grp.regra_aplicada === 'PF_PARA_FILIAL' ? 'FFD97706' : 'FF059669' } };
+    row.getCell(6).alignment = { horizontal: 'center' };
+    row.getCell(7).alignment = { horizontal: 'right' };
+    row.getCell(7).numFmt = '#,##0.000 "kg"';
+    row.getCell(8).alignment = { horizontal: 'center' };
+    row.getCell(9).alignment = { horizontal: 'right' };
+    row.getCell(9).numFmt = '"R$" #,##0.00';
+    row.getCell(10).alignment = { horizontal: 'left' };
+  });
+  const endG = wsGrupos.lastRow.number;
+
+  if (grupos.length > 0) {
+    const totG = wsGrupos.addRow([
+      'TOTALIZAÇÃO DOS LOTES',
+      '', '', '', '',
+      { formula: `SUM(F${startG}:F${endG})` },
+      { formula: `SUM(G${startG}:G${endG})` },
+      { formula: `SUM(H${startG}:H${endG})` },
+      { formula: `SUM(I${startG}:I${endG})` },
+      'PRONTO PARA EMISSÃO'
+    ]);
+    totG.height = 24;
+    wsGrupos.mergeCells(`A${totG.number}:E${totG.number}`);
+    totG.eachCell((c) => {
+      c.font = { bold: true, size: 9, color: { argb: 'FF0F172A' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      c.border = { top: { style: 'thin' }, bottom: { style: 'double' } };
+    });
+    totG.getCell(6).alignment = { horizontal: 'center' };
+    totG.getCell(7).numFmt = '#,##0.000 "kg"';
+    totG.getCell(8).alignment = { horizontal: 'center' };
+    totG.getCell(9).numFmt = '"R$" #,##0.00';
+    totG.getCell(10).alignment = { horizontal: 'center' };
+  }
+
+  // Adjust widths
+  wsGrupos.getColumn(1).width = 22;
+  wsGrupos.getColumn(2).width = 16;
+  wsGrupos.getColumn(3).width = 36;
+  wsGrupos.getColumn(4).width = 20;
+  wsGrupos.getColumn(5).width = 20;
+  wsGrupos.getColumn(6).width = 12;
+  wsGrupos.getColumn(7).width = 18;
+  wsGrupos.getColumn(8).width = 12;
+  wsGrupos.getColumn(9).width = 20;
+  wsGrupos.getColumn(10).width = 46;
+
+  // -------------------------------------------------------------------------
+  // ABA 2: TRIAGEM DETALHADA DE TODAS AS NF-e DO LOTE
+  // -------------------------------------------------------------------------
+  const wsNfes = workbook.addWorksheet('Triagem Detalhada de NF-e', {
+    views: [{ showGridLines: true }]
+  });
+
+  wsNfes.mergeCells('A1:L1');
+  const nTitle = wsNfes.getCell('A1');
+  nTitle.value = 'CARGA BALANCE - RELAÇÃO DETALHADA DE NOTAS FISCAIS (NF-e MOD. 55)';
+  nTitle.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+  nTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  nTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  wsNfes.getRow(1).height = 30;
+
+  const nHead = wsNfes.addRow([
+    'Lote / Rota',
+    'NF-e Nº',
+    'Série',
+    'Chave de Acesso (SEFAZ)',
+    'Data Emissão',
+    'Remetente (Emitente)',
+    'Destinatário NF-e',
+    'Tipo (PF/PJ)',
+    'CPF / CNPJ Destinatário',
+    'Destinatário Fiscal CT-e (Filial / PJ)',
+    'Peso Bruto (kg)',
+    'Valor Total NF-e (R$)'
+  ]);
+  nHead.height = 24;
+  nHead.eachCell((c) => {
+    c.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+  });
+
+  const allNfes = [];
+  grupos.forEach(grp => {
+    (grp.nfes || []).forEach(n => {
+      allNfes.push({ ...n, rota_label: grp.rota_label });
+    });
+  });
+
+  const startN = nHead.number + 1;
+  allNfes.forEach((nfe) => {
+    const rInfo = nfe.routing_info || {};
+    const formattedDate = nfe.data_emissao
+      ? new Date(nfe.data_emissao).toLocaleDateString('pt-BR')
+      : '-';
+
+    const row = wsNfes.addRow([
+      nfe.rota_label,
+      nfe.numero,
+      nfe.serie,
+      nfe.chave_acesso,
+      formattedDate,
+      nfe.emitente.nome,
+      nfe.destinatario.nome,
+      nfe.destinatario.tipo_pessoa,
+      nfe.destinatario.documento,
+      rInfo.destinatario_fiscal_nome || '-',
+      nfe.carga.peso_bruto,
+      nfe.valores.valor_total_nfe
+    ]);
+    row.height = 20;
+    row.getCell(1).alignment = { horizontal: 'left' };
+    row.getCell(2).alignment = { horizontal: 'center' };
+    row.getCell(3).alignment = { horizontal: 'center' };
+    row.getCell(4).alignment = { horizontal: 'center' };
+    row.getCell(5).alignment = { horizontal: 'center' };
+    row.getCell(6).alignment = { horizontal: 'left' };
+    row.getCell(7).alignment = { horizontal: 'left' };
+    row.getCell(8).alignment = { horizontal: 'center' };
+    row.getCell(8).font = { bold: true, color: { argb: nfe.destinatario.is_pj ? 'FF059669' : 'FFD97706' } };
+    row.getCell(9).alignment = { horizontal: 'center' };
+    row.getCell(10).alignment = { horizontal: 'left' };
+    row.getCell(11).alignment = { horizontal: 'right' };
+    row.getCell(11).numFmt = '#,##0.000 "kg"';
+    row.getCell(12).alignment = { horizontal: 'right' };
+    row.getCell(12).numFmt = '"R$" #,##0.00';
+  });
+  const endN = wsNfes.lastRow.number;
+
+  if (allNfes.length > 0) {
+    const totN = wsNfes.addRow([
+      'TOTAL DE NOTAS FISCAIS',
+      { formula: `COUNT(B${startN}:B${endN})` },
+      '', '', '', '', '', '', '', 'TOTAIS:',
+      { formula: `SUM(K${startN}:K${endN})` },
+      { formula: `SUM(L${startN}:L${endN})` }
+    ]);
+    totN.height = 24;
+    totN.eachCell((c) => {
+      c.font = { bold: true, size: 9, color: { argb: 'FF0F172A' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      c.border = { top: { style: 'thin' }, bottom: { style: 'double' } };
+    });
+    totN.getCell(2).alignment = { horizontal: 'center' };
+    totN.getCell(10).alignment = { horizontal: 'right' };
+    totN.getCell(11).numFmt = '#,##0.000 "kg"';
+    totN.getCell(12).numFmt = '"R$" #,##0.00';
+  }
+
+  // Adjust widths for Sheet 2
+  wsNfes.getColumn(1).width = 22;
+  wsNfes.getColumn(2).width = 12;
+  wsNfes.getColumn(3).width = 8;
+  wsNfes.getColumn(4).width = 46;
+  wsNfes.getColumn(5).width = 14;
+  wsNfes.getColumn(6).width = 30;
+  wsNfes.getColumn(7).width = 30;
+  wsNfes.getColumn(8).width = 12;
+  wsNfes.getColumn(9).width = 20;
+  wsNfes.getColumn(10).width = 36;
+  wsNfes.getColumn(11).width = 16;
+  wsNfes.getColumn(12).width = 18;
+
+  return await workbook.xlsx.writeBuffer();
+}
+
 module.exports = {
-  generateExcelReport
+  generateExcelReport,
+  generateNFeBatchExcel
 };

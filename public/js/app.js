@@ -47,6 +47,10 @@ let selectedScannedRowIds = new Set();
 let selectedQueryIcons = new Set();
 let selectedKPIIcons = new Set();
 
+// NF-e XML Reader & CT-e Load Router State
+let currentNFeBatchData = null;
+let cachedCompanyBranches = [];
+
 // Global helper to switch active tab
 function switchTab(tabId) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
@@ -65,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   setupDragAndDrop();
   setupExcelScannerDropzone();
+  setupNFeDropzone();
 });
 
 /**
@@ -3351,8 +3356,12 @@ async function saveManualTrip(e) {
     uf_destino: document.getElementById('manual-trip-uf-destino').value.toUpperCase(),
     valor_frete: document.getElementById('manual-trip-frete').value,
     aliquota_icms: document.getElementById('manual-trip-aliquota').value,
-    valor_total_carga: document.getElementById('manual-trip-carga').value,
-    peso_bruto: document.getElementById('manual-trip-peso').value,
+    valor_total_carga: tipo === 'CT-e' && document.getElementById('manual-trip-carga-cte')?.value
+      ? document.getElementById('manual-trip-carga-cte').value
+      : document.getElementById('manual-trip-carga').value,
+    peso_bruto: tipo === 'CT-e' && document.getElementById('manual-trip-peso-cte')?.value
+      ? document.getElementById('manual-trip-peso-cte').value
+      : document.getElementById('manual-trip-peso').value,
     placa_tracao: document.getElementById('manual-trip-placa-tracao').value,
     placa_reboque: document.getElementById('manual-trip-placa-reboque').value,
     ufs_percurso: document.getElementById('manual-trip-percurso') ? document.getElementById('manual-trip-percurso').value : '',
@@ -4955,5 +4964,904 @@ window.clearSelectedQueryIcons = clearSelectedQueryIcons;
 window.applyMultiIconFilter = applyMultiIconFilter;
 window.toggleMultiKPISelection = toggleMultiKPISelection;
 window.renderMultiKPIConsolidation = renderMultiKPIConsolidation;
+
+/* ==========================================================================
+   LEITOR DE NF-E (XML) & ROTEADOR AUTOMÁTICO DE CARGAS PARA CT-E
+   ========================================================================== */
+
+/**
+ * Configurar Área de Dropzone e Input de Arquivos XML de NF-e
+ */
+function setupNFeDropzone() {
+  const dropzone = document.getElementById('nfe-dropzone');
+  const fileInput = document.getElementById('nfe-file-input');
+  if (!dropzone || !fileInput) return;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.borderColor = '#1d4ed8';
+      dropzone.style.backgroundColor = '#dbeafe';
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.borderColor = '#3b82f6';
+      dropzone.style.backgroundColor = '#eff6ff';
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      uploadNFeBatch(dt.files);
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files.length > 0) {
+      uploadNFeBatch(fileInput.files);
+      fileInput.value = ''; // Reset to allow re-upload
+    }
+  });
+}
+
+/**
+ * Enviar Lote de Arquivos XML de NF-e para a API de Processamento
+ */
+async function uploadNFeBatch(fileList) {
+  const files = Array.from(fileList);
+  const xmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.xml'));
+
+  if (xmlFiles.length === 0) {
+    showToast('Nenhum arquivo .xml selecionado.', 'warning');
+    return;
+  }
+
+  const container = document.getElementById('nfe-groups-container');
+  if (container) {
+    container.innerHTML = `
+      <div style="background: #ffffff; border-radius: var(--radius-lg); padding: 3rem; text-align: center; border: 1px solid var(--border-glass);">
+        <div class="loading-spinner" style="width: 44px; height: 44px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; margin: 0 auto 1.25rem auto; animation: spin 1s linear infinite;"></div>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">Processando Lote de ${xmlFiles.length} Arquivo(s) XML de NF-e...</h4>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Fazendo leitura das tags fiscais, agrupamento por destino e roteamento de tomador (PF vs PJ)...</p>
+      </div>
+    `;
+  }
+
+  const formData = new FormData();
+  xmlFiles.forEach(file => {
+    formData.append('nfe_files', file);
+  });
+
+  try {
+    const res = await fetch('/api/nfe/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Falha ao processar arquivos XML de NF-e.');
+    }
+
+    renderNFeBatchView(data.data);
+    showToast(`Lote processado com sucesso! ${data.data.total_nfe_lidas} NF-es agrupadas em ${data.data.total_grupos_cte} lote(s) de CT-e.`, 'success');
+  } catch (err) {
+    console.error('Erro no upload de NF-es:', err);
+    showToast('Erro ao processar lote de NF-e: ' + err.message, 'error');
+    clearNFeProcessor();
+  }
+}
+
+/**
+ * Carregar Lote de Demonstração (Maceió, Arapiraca e Juazeiro do Norte)
+ */
+async function loadNFeSampleBatch() {
+  const container = document.getElementById('nfe-groups-container');
+  if (container) {
+    container.innerHTML = `
+      <div style="background: #ffffff; border-radius: var(--radius-lg); padding: 3rem; text-align: center; border: 1px solid var(--border-glass);">
+        <div class="loading-spinner" style="width: 44px; height: 44px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; margin: 0 auto 1.25rem auto; animation: spin 1s linear infinite;"></div>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">Carregando Lote de Demonstração de NF-es...</h4>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Gerando 6 XMLs de NF-e com destinos múltiplos e destinatários PF / PJ...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/nfe/sample-batch');
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao carregar lote de demonstração.');
+    }
+
+    renderNFeBatchView(data.data);
+    showToast('Lote de demonstração carregado com 6 NF-es separadas por 3 destinos!', 'success');
+  } catch (err) {
+    console.error('Erro ao carregar lote de demonstração:', err);
+    showToast('Erro: ' + err.message, 'error');
+    clearNFeProcessor();
+  }
+}
+
+/**
+ * Limpar Triagem e Resetar Tela
+ */
+function clearNFeProcessor() {
+  currentNFeBatchData = null;
+
+  // Reset KPI cards
+  const elDocs = document.getElementById('nfe-kpi-total-docs');
+  if (elDocs) elDocs.textContent = '0';
+  const elBreakdown = document.getElementById('nfe-kpi-breakdown-clients');
+  if (elBreakdown) elBreakdown.textContent = '0 PF | 0 PJ';
+  const elGroups = document.getElementById('nfe-kpi-total-groups');
+  if (elGroups) elGroups.textContent = '0';
+  const elRoutes = document.getElementById('nfe-kpi-breakdown-routes');
+  if (elRoutes) elRoutes.textContent = 'Destinos separados';
+  const elValor = document.getElementById('nfe-kpi-total-valor');
+  if (elValor) elValor.textContent = 'R$ 0,00';
+  const elPeso = document.getElementById('nfe-kpi-total-peso');
+  if (elPeso) elPeso.textContent = '0,000 kg';
+  const elVolumes = document.getElementById('nfe-kpi-total-volumes');
+  if (elVolumes) elVolumes.textContent = '0 volumes';
+
+  // Disable export button
+  const btnExport = document.getElementById('btn-nfe-export-excel');
+  if (btnExport) btnExport.disabled = true;
+
+  // Empty state container
+  const container = document.getElementById('nfe-groups-container');
+  if (container) {
+    container.innerHTML = `
+      <div class="nfe-empty-state" style="background: #ffffff; border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 3.5rem 2rem; text-align: center; box-shadow: var(--shadow-sm);">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Nenhum lote de NF-e processado no momento</h3>
+        <p style="font-size: 0.85rem; color: #64748b; max-width: 580px; margin: 0 auto 1.5rem auto;">
+          Arraste arquivos XML de NF-e para a área acima ou clique no botão de demonstração para carregar um lote completo com clientes Pessoa Física (PF) e Pessoa Jurídica (PJ) separados por destino.
+        </p>
+        <button type="button" class="btn btn-primary" onclick="loadNFeSampleBatch()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Carregar Lote Demonstração (Misto PF/PJ)</span>
+        </button>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Renderizar Visão Completa de Lotes e Grupos de CT-e
+ */
+function renderNFeBatchView(rawBatchData) {
+  const batchData = (rawBatchData && rawBatchData.data) ? rawBatchData.data : rawBatchData;
+  currentNFeBatchData = batchData;
+
+  const grupos = batchData.grupos_cte || batchData.grupos || [];
+  const kpis = batchData.kpis || {};
+
+  const totalNfes = kpis.totalNfes !== undefined ? kpis.totalNfes : (batchData.total_nfe_lidas || 0);
+  const totalGrupos = kpis.totalGrupos !== undefined ? kpis.totalGrupos : grupos.length;
+  const totalValor = kpis.totalValor !== undefined ? kpis.totalValor : (batchData.valor_total_todas_cargas || 0);
+  const totalPeso = kpis.totalPeso !== undefined ? kpis.totalPeso : (batchData.peso_bruto_total_todas_cargas || 0);
+  const totalVolumes = kpis.totalVolumes !== undefined ? kpis.totalVolumes : (batchData.volumes_totais_todas_cargas || 0);
+  const totalPf = kpis.totalPf !== undefined ? kpis.totalPf : (batchData.total_pf || 0);
+  const totalPj = kpis.totalPj !== undefined ? kpis.totalPj : (batchData.total_pj || 0);
+
+  // 1. Atualizar Painel de KPIs
+  const fmtMoney = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+  const fmtNumber = (v, dec = 0) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+  const elDocs = document.getElementById('nfe-kpi-total-docs');
+  if (elDocs) elDocs.textContent = totalNfes;
+  const elBreakdown = document.getElementById('nfe-kpi-breakdown-clients');
+  if (elBreakdown) elBreakdown.textContent = `${totalPf} PF | ${totalPj} PJ`;
+  const elGroups = document.getElementById('nfe-kpi-total-groups');
+  if (elGroups) elGroups.textContent = totalGrupos;
+  const elRoutes = document.getElementById('nfe-kpi-breakdown-routes');
+  if (elRoutes) elRoutes.textContent = `${totalGrupos} destinos separados`;
+  const elValor = document.getElementById('nfe-kpi-total-valor');
+  if (elValor) elValor.textContent = fmtMoney(totalValor);
+  const elPeso = document.getElementById('nfe-kpi-total-peso');
+  if (elPeso) elPeso.textContent = `${fmtNumber(totalPeso, 3)} kg`;
+  const elVolumes = document.getElementById('nfe-kpi-total-volumes');
+  if (elVolumes) elVolumes.textContent = `${totalVolumes} volumes`;
+
+  // Habilitar botão de exportação Excel
+  const btnExport = document.getElementById('btn-nfe-export-excel');
+  if (btnExport) btnExport.disabled = false;
+
+  // 2. Renderizar Grupos de Destino / CT-e
+  const container = document.getElementById('nfe-groups-container');
+  if (!container) return;
+
+  if (grupos.length === 0) {
+    container.innerHTML = `
+      <div style="background: #ffffff; padding: 2rem; text-align: center; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+        <p style="color: #64748b; margin: 0;">Nenhuma nota válida encontrada no lote.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+
+  grupos.forEach((group, gIdx) => {
+    const cidade = group.destino_cidade || group.cidade || '';
+    const uf = group.destino_uf || group.uf || '';
+    const rotaLabel = group.rota_label || `${cidade} / ${uf}`;
+    const destFiscal = group.destinatario_fiscal_consolidado || {};
+    const valorCarga = group.somatorio_valor_carga !== undefined ? group.somatorio_valor_carga : (group.valor_total_carga || 0);
+    const pesoBruto = group.somatorio_peso_bruto !== undefined ? group.somatorio_peso_bruto : (group.peso_bruto_total || 0);
+    const volumes = group.somatorio_volumes !== undefined ? group.somatorio_volumes : (group.volumes_total || 0);
+    const nfes = group.nfes || [];
+    const chaves = group.chaves_nfe || [];
+
+    const isPF = group.regra_aplicada === 'PF_PARA_FILIAL' || (group.qtd_nfes_pf > 0 && group.qtd_nfes_pj === 0);
+    const isPJ = group.regra_aplicada === 'PJ_DIRETO' || (group.qtd_nfes_pj > 0 && group.qtd_nfes_pf === 0);
+
+    let routingBadgeHtml = '';
+    if (isPF) {
+      routingBadgeHtml = `
+        <span class="badge-pf-routing" title="Todas as NF-es deste lote têm destinatários Pessoa Física. Pela regra de negócio, o CT-e é faturado para a Filial da Empresa na praça.">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Roteamento Fiscal: Cliente PF ➔ Tomador Fiscal: Filial da Praça
+        </span>
+      `;
+    } else if (isPJ) {
+      routingBadgeHtml = `
+        <span class="badge-pj-direct" title="Destinatário Pessoa Jurídica (CNPJ). O CT-e é faturado diretamente ao destinatário PJ da NF-e.">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Roteamento Fiscal: Cliente PJ ➔ Tomador Fiscal Direto (PJ)
+        </span>
+      `;
+    } else {
+      routingBadgeHtml = `
+        <span class="badge-mixed-routing" title="Lote com destinos mistos. Roteamento consolidado para a Filial da praça.">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+          Roteamento Fiscal Misto (PF + PJ) ➔ Faturamento Consolidado Filial
+        </span>
+      `;
+    }
+
+    const nfeRowsHtml = nfes.map((nfe, nIdx) => {
+      const docDest = nfe.destinatario.documento || nfe.destinatario.cpf || nfe.destinatario.cnpj || '';
+      const isDocPF = nfe.destinatario.is_pj === false || nfe.destinatario.tipo_documento === 'CPF' || docDest.length <= 14;
+      const badgeDoc = isDocPF ? '<span class="badge-tag-pf">PF (CPF)</span>' : '<span class="badge-tag-pj">PJ (CNPJ)</span>';
+      
+      const valNota = (nfe.valores && nfe.valores.valor_total_nfe !== undefined) ? nfe.valores.valor_total_nfe : (nfe.totais && nfe.totais.valor_total_nfe) || 0;
+      const valProds = (nfe.valores && nfe.valores.valor_produtos !== undefined) ? nfe.valores.valor_produtos : (nfe.totais && nfe.totais.valor_produtos) || 0;
+      const pesoBrutoNfe = (nfe.carga && nfe.carga.peso_bruto !== undefined) ? nfe.carga.peso_bruto : (nfe.transporte && nfe.transporte.peso_bruto) || 0;
+      const volumesNfe = (nfe.carga && nfe.carga.volumes !== undefined) ? nfe.carga.volumes : (nfe.transporte && nfe.transporte.quantidade_volumes) || 1;
+      const end = nfe.destinatario.endereco || {};
+      const ieDest = nfe.destinatario.ie || nfe.destinatario.inscricao_estadual || '';
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 700; color: #0f172a;">${nfe.numero} <span style="font-size: 0.7rem; color: #64748b;">(Série ${nfe.serie || '1'})</span></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #64748b; letter-spacing: -0.3px;">${nfe.chave_acesso ? nfe.chave_acesso.slice(0, 22) + '...' : '-'}</div>
+          </td>
+          <td style="white-space: nowrap;">
+            ${nfe.data_emissao ? new Date(nfe.data_emissao).toLocaleDateString('pt-BR') : '-'}
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 2px;">
+              ${badgeDoc}
+              <span style="font-weight: 600; color: #1e293b;">${escapeHtml(nfe.destinatario.nome || 'Cliente')}</span>
+            </div>
+            <div style="font-size: 0.72rem; color: #475569; font-family: 'JetBrains Mono', monospace;">
+              Doc: ${docDest || '-'} ${ieDest ? '| IE: ' + ieDest : ''}
+            </div>
+          </td>
+          <td style="max-width: 220px; line-height: 1.25;">
+            <div style="font-size: 0.75rem; color: #334155;">${escapeHtml(end.logradouro || '')}, ${escapeHtml(end.numero || 'S/N')}</div>
+            <div style="font-size: 0.7rem; color: #64748b;">${escapeHtml(end.bairro || '')} - CEP: ${end.cep || '-'}</div>
+          </td>
+          <td style="font-weight: 700; color: #047857; text-align: right; white-space: nowrap;">
+            ${fmtMoney(valNota)}
+            <div style="font-size: 0.68rem; color: #64748b; font-weight: normal;">Prods: ${fmtMoney(valProds)}</div>
+          </td>
+          <td style="text-align: right; white-space: nowrap;">
+            <div style="font-weight: 700; color: #1e293b;">${fmtNumber(pesoBrutoNfe, 3)} kg</div>
+            <div style="font-size: 0.68rem; color: #64748b;">${volumesNfe} vol(s)</div>
+          </td>
+          <td style="text-align: center; white-space: nowrap;">
+            <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openNFeDetailsModal(${gIdx}, ${nIdx})" title="Ver Itens e Tributos da NF-e" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
+                🔍 Detalhes
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyNFeChave('${nfe.chave_acesso}')" title="Copiar Chave de 44 Dígitos" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
+                📋 Chave
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    html += `
+      <article class="nfe-group-card" id="nfe-group-card-${gIdx}">
+        <!-- Group Header: Destination and Route identification -->
+        <header class="nfe-group-header">
+          <div class="nfe-group-title">
+            <span class="nfe-route-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              DESTINO: ${rotaLabel}
+            </span>
+            <span class="nfe-group-badge-count">${nfes.length} NF-e(s) Agrupada(s)</span>
+          </div>
+          <div>
+            ${routingBadgeHtml}
+          </div>
+        </header>
+
+        <!-- Fiscal Recipient Banner -->
+        <div class="nfe-fiscal-recipient-box">
+          <div>
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">
+              Destinatário / Tomador Fiscal do CT-e (${isPF ? 'Filial da Empresa na Praça' : 'Destinatário PJ'})
+            </div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">
+              ${escapeHtml(destFiscal.razao_social || 'FILIAL DA EMPRESA')}
+            </div>
+            <div style="font-size: 0.75rem; color: #475569; margin-top: 2px;">
+              <strong>CNPJ:</strong> <span style="font-family: 'JetBrains Mono', monospace;">${destFiscal.cnpj || '-'}</span> | 
+              <strong>IE:</strong> ${destFiscal.inscricao_estadual || 'ISENTO'} | 
+              <strong>Endereço Fiscal:</strong> ${escapeHtml(destFiscal.endereco || '')}, ${escapeHtml(destFiscal.cidade || cidade)}/${destFiscal.uf || uf}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar Dados Fiscais deste Destino para Emissão" style="font-size: 0.75rem;">
+              📋 Copiar Dados Fiscais
+            </button>
+          </div>
+        </div>
+
+        <!-- Consolidated Metrics Summary -->
+        <div class="nfe-metrics-summary">
+          <div class="nfe-summary-pill">
+            <div class="nfe-summary-pill-label">Valor Total da Carga</div>
+            <div class="nfe-summary-pill-value" style="color: #059669;">${fmtMoney(valorCarga)}</div>
+          </div>
+          <div class="nfe-summary-pill">
+            <div class="nfe-summary-pill-label">Peso Bruto Acumulado</div>
+            <div class="nfe-summary-pill-value" style="color: #2563eb;">${fmtNumber(pesoBruto, 3)} kg</div>
+          </div>
+          <div class="nfe-summary-pill">
+            <div class="nfe-summary-pill-label">Quantidade de Volumes</div>
+            <div class="nfe-summary-pill-value" style="color: #7c3aed;">${volumes} vol(s)</div>
+          </div>
+          <div class="nfe-summary-pill">
+            <div class="nfe-summary-pill-label">Total NF-es Atreladas</div>
+            <div class="nfe-summary-pill-value" style="color: #475569;">${nfes.length} nota(s)</div>
+          </div>
+        </div>
+
+        <!-- Commodity Description Box for CT-e -->
+        <div class="nfe-commodity-box">
+          <div class="nfe-commodity-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #475569; margin-bottom: 2px;">
+              Resumo da Mercadoria / Produto Predominante (Para Campo Descrição do CT-e)
+            </div>
+            <div class="nfe-commodity-text">
+              ${escapeHtml(group.resumo_mercadoria || 'CARGA FRACIONADA DE MATERIAIS DIVERSOS')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Triage Table of NF-es -->
+        <div class="nfe-triage-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">
+              Notas Fiscais Vinculadas a Este Destino (${nfes.length})
+            </span>
+            <span style="font-size: 0.72rem; color: #64748b;">
+              Visualização tabular limpa de conferência e triagem fiscal
+            </span>
+          </div>
+
+          <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+            <table class="nfe-triage-table">
+              <thead>
+                <tr>
+                  <th>Nº / Série / Chave</th>
+                  <th>Emissão</th>
+                  <th>Destinatário</th>
+                  <th>Endereço Físico de Entrega</th>
+                  <th style="text-align: right;">Total Nota</th>
+                  <th style="text-align: right;">Peso / Vol</th>
+                  <th style="text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nfeRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quick Action Toolbar Footer -->
+        <footer class="nfe-group-footer">
+          <div style="font-size: 0.78rem; color: #64748b;">
+            Chaves NF-e: <strong>${chaves.length}</strong> chave(s) pronta(s) para atrelar ao CT-e.
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupNFeKeys(${gIdx})" title="Copiar todas as chaves de 44 dígitos deste lote">
+              🔑 Copiar Chaves NF-e
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar resumo fiscal completo para a área de transferência">
+              📋 Copiar Resumo Fiscal
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="fillCTeFromNFeGroup(${gIdx})" title="Abrir formulário de CT-e preenchendo automaticamente rota, remetente, filial/PJ recebedora, peso, valor e chaves">
+              ⚡ Preencher Formulário de CT-e
+            </button>
+          </div>
+        </footer>
+      </article>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/**
+ * Preencher Diretamente o Formulário de Emissão de CT-e com Dados do Grupo
+ */
+function fillCTeFromNFeGroup(groupIndex) {
+  if (!currentNFeBatchData) {
+    showToast('Lote de NF-e não encontrado.', 'error');
+    return;
+  }
+
+  const grupos = currentNFeBatchData.grupos_cte || currentNFeBatchData.grupos || [];
+  const group = grupos[groupIndex];
+  if (!group) {
+    showToast('Grupo de CT-e não encontrado.', 'error');
+    return;
+  }
+
+  // Open manual trip modal
+  openManualTripModal();
+
+  // Ensure CT-e mode
+  setManualTripType('CT-e');
+
+  const cidade = group.destino_cidade || group.cidade || '';
+  const uf = group.destino_uf || group.uf || '';
+  const destFiscal = group.destinatario_fiscal_consolidado || {};
+  const valorCarga = group.somatorio_valor_carga !== undefined ? group.somatorio_valor_carga : (group.valor_total_carga || 0);
+  const pesoBruto = group.somatorio_peso_bruto !== undefined ? group.somatorio_peso_bruto : (group.peso_bruto_total || 0);
+  const volumes = group.somatorio_volumes !== undefined ? group.somatorio_volumes : (group.volumes_total || 0);
+  const chaves = group.chaves_nfe || [];
+
+  // Fill destination & origin
+  const cidadeDestino = document.getElementById('manual-trip-cidade-destino');
+  if (cidadeDestino) cidadeDestino.value = cidade;
+  const ufDestino = document.getElementById('manual-trip-uf-destino');
+  if (ufDestino) ufDestino.value = uf;
+
+  const cidadeOrigem = document.getElementById('manual-trip-cidade-origem');
+  if (cidadeOrigem && !cidadeOrigem.value) cidadeOrigem.value = 'MACEIO';
+  const ufOrigem = document.getElementById('manual-trip-uf-origem');
+  if (ufOrigem && !ufOrigem.value) ufOrigem.value = 'AL';
+
+  // Fill Emitter (Carajás Matriz)
+  const remetenteNome = document.getElementById('manual-trip-remetente-nome');
+  if (remetenteNome) remetenteNome.value = (group.remetente && group.remetente.nome) || 'CARAJAS MATERIAL DE CONSTRUCAO LTDA';
+  const remetenteCnpj = document.getElementById('manual-trip-remetente-cnpj');
+  if (remetenteCnpj) remetenteCnpj.value = (group.remetente && group.remetente.documento) || '03.656.804/0001-31';
+
+  // Fill Recipient (Consolidated Branch or Direct PJ)
+  const destNome = document.getElementById('manual-trip-destinatario-nome');
+  if (destNome) destNome.value = destFiscal.razao_social || 'CARAJAS - FILIAL';
+  const destCnpj = document.getElementById('manual-trip-destinatario-cnpj');
+  if (destCnpj) destCnpj.value = destFiscal.cnpj || '03.656.804/0002-12';
+
+  // Fill Cargo Value, Gross Weight, Volumes, Description and Keys
+  const cargaInput = document.getElementById('manual-trip-carga-cte');
+  if (cargaInput) cargaInput.value = Number(valorCarga).toFixed(2);
+
+  const pesoInput = document.getElementById('manual-trip-peso-cte');
+  if (pesoInput) pesoInput.value = Number(pesoBruto).toFixed(3);
+
+  const volInput = document.getElementById('manual-trip-volumes-cte');
+  if (volInput) volInput.value = volumes;
+
+  const prodInput = document.getElementById('manual-trip-produto-predominante');
+  if (prodInput) prodInput.value = group.produto_predominante || group.resumo_mercadoria || 'MATERIAIS DE CONSTRUCAO';
+
+  const keysInput = document.getElementById('manual-trip-chaves-nfe');
+  if (keysInput) keysInput.value = chaves.join('\n');
+
+  // Suggest a realistic freight based on weight/cargo or default percentage
+  const freteInput = document.getElementById('manual-trip-frete');
+  if (freteInput && (!freteInput.value || parseFloat(freteInput.value) === 0)) {
+    const suggestedFreight = Math.max(1200, Math.round(Number(pesoBruto) * 0.48 * 100) / 100);
+    freteInput.value = suggestedFreight.toFixed(2);
+    updateManualCommissionPreview();
+  }
+
+  showToast(`Formulário de CT-e preenchido para ${cidade}/${uf} com sucesso!`, 'success');
+}
+
+/**
+ * Copiar Dados Fiscais Consolidados de um Grupo para o Clipboard
+ */
+function copyGroupFiscalData(groupIndex) {
+  if (!currentNFeBatchData) return;
+  const grupos = currentNFeBatchData.grupos_cte || currentNFeBatchData.grupos || [];
+  const group = grupos[groupIndex];
+  if (!group) return;
+
+  const cidade = group.destino_cidade || group.cidade || '';
+  const uf = group.destino_uf || group.uf || '';
+  const destFiscal = group.destinatario_fiscal_consolidado || {};
+  const valorCarga = group.somatorio_valor_carga !== undefined ? group.somatorio_valor_carga : (group.valor_total_carga || 0);
+  const pesoBruto = group.somatorio_peso_bruto !== undefined ? group.somatorio_peso_bruto : (group.peso_bruto_total || 0);
+  const volumes = group.somatorio_volumes !== undefined ? group.somatorio_volumes : (group.volumes_total || 0);
+  const chaves = group.chaves_nfe || [];
+
+  const text = [
+    `=== DADOS FISCAIS CONSOLIDADOS PARA EMISSÃO DE CT-E ===`,
+    `ROTA / DESTINO: ${cidade} / ${uf}`,
+    `DESTINATÁRIO FISCAL: ${destFiscal.razao_social || '-'}`,
+    `CNPJ DESTINATÁRIO: ${destFiscal.cnpj || '-'}`,
+    `INSCRIÇÃO ESTADUAL: ${destFiscal.inscricao_estadual || 'ISENTO'}`,
+    `ENDEREÇO FISCAL: ${destFiscal.endereco || '-'}, ${destFiscal.cidade || cidade}/${destFiscal.uf || uf} - CEP: ${destFiscal.cep || '-'}`,
+    `VALOR TOTAL DA CARGA: R$ ${Number(valorCarga).toFixed(2)}`,
+    `PESO BRUTO TOTAL: ${Number(pesoBruto).toFixed(3)} KG`,
+    `VOLUMES: ${volumes}`,
+    `PRODUTO PREDOMINANTE: ${group.resumo_mercadoria || 'CARGA FRACIONADA'}`,
+    `QUANTIDADE DE NF-ES: ${(group.nfes || []).length}`,
+    `CHAVES DAS NF-ES:`,
+    ...chaves
+  ].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Dados fiscais de ${cidade}/${uf} copiados para a área de transferência!`, 'success');
+  }).catch(() => {
+    showToast('Falha ao copiar para a área de transferência.', 'error');
+  });
+}
+
+/**
+ * Copiar Chaves de NF-e do Grupo
+ */
+function copyGroupNFeKeys(groupIndex) {
+  if (!currentNFeBatchData) return;
+  const grupos = currentNFeBatchData.grupos_cte || currentNFeBatchData.grupos || [];
+  const group = grupos[groupIndex];
+  if (!group) return;
+
+  const chaves = group.chaves_nfe || [];
+  const keysText = chaves.join('\n');
+
+  navigator.clipboard.writeText(keysText).then(() => {
+    showToast(`${chaves.length} chave(s) de NF-e copiada(s)!`, 'success');
+  }).catch(() => {
+    showToast('Falha ao copiar chaves.', 'error');
+  });
+}
+
+/**
+ * Copiar Chave Individual de uma NF-e
+ */
+function copyNFeChave(chave) {
+  if (!chave) return;
+  navigator.clipboard.writeText(chave).then(() => {
+    showToast('Chave NF-e copiada para a área de transferência!', 'info');
+  }).catch(() => {
+    showToast('Falha ao copiar chave.', 'error');
+  });
+}
+
+/**
+ * Exportar Triagem e Lotes em Planilha Excel
+ */
+async function exportNFeBatchExcel() {
+  if (!currentNFeBatchData) {
+    showToast('Nenhum lote processado para exportação.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-nfe-export-excel');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>Gerando Excel...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/nfe/export-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batchData: currentNFeBatchData })
+    });
+
+    if (!res.ok) throw new Error('Falha ao gerar planilha Excel.');
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    a.download = `Lotes_NFe_CTe_Roteamento_${timestamp}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+
+    showToast('Planilha Excel de triagem e lotes de CT-e baixada com sucesso!', 'success');
+  } catch (err) {
+    console.error('Erro na exportação Excel:', err);
+    showToast('Erro ao exportar Excel: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+/**
+ * Modal: Gerenciador de Filiais da Empresa
+ */
+async function openBranchesModal() {
+  openModal('modal-branches-manager');
+  await loadBranchesList();
+}
+
+async function loadBranchesList() {
+  try {
+    const res = await fetch('/api/branches');
+    const data = await res.json();
+    if (data.success) {
+      cachedCompanyBranches = data.items || data.data || [];
+      renderBranchesTable(cachedCompanyBranches);
+    }
+  } catch (err) {
+    console.error('Erro ao listar filiais:', err);
+    showToast('Erro ao carregar lista de filiais.', 'error');
+  }
+}
+
+function renderBranchesTable(branches) {
+  const tbody = document.getElementById('table-branches-tbody');
+  const badge = document.getElementById('branch-count-badge');
+  if (badge) badge.textContent = branches.length;
+  if (!tbody) return;
+
+  if (branches.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 1.5rem;">Nenhuma filial cadastrada.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = branches.map(b => `
+    <tr>
+      <td style="font-weight: 700; color: #1e293b;">
+        ${escapeHtml(b.nome_filial || b.razao_social || 'Filial')}
+        ${b.nome_fantasia ? `<div style="font-size: 0.7rem; color: #64748b;">${escapeHtml(b.nome_fantasia)}</div>` : ''}
+      </td>
+      <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">${b.cnpj}</td>
+      <td>${b.inscricao_estadual || 'ISENTO'}</td>
+      <td><span style="font-weight: 700; color: #2563eb;">${escapeHtml(b.cidade)} / ${b.uf}</span></td>
+      <td style="font-size: 0.72rem; color: #64748b;">
+        ${escapeHtml(b.logradouro || '')} ${b.numero || ''} ${b.bairro ? '- ' + escapeHtml(b.bairro) : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterBranchesList() {
+  const q = (document.getElementById('branch-search-input')?.value || '').toLowerCase().trim();
+  if (!q) {
+    renderBranchesTable(cachedCompanyBranches);
+    return;
+  }
+  const filtered = cachedCompanyBranches.filter(b => 
+    ((b.nome_filial || b.razao_social) && (b.nome_filial || b.razao_social).toLowerCase().includes(q)) ||
+    (b.cidade && b.cidade.toLowerCase().includes(q)) ||
+    (b.cnpj && b.cnpj.includes(q)) ||
+    (b.uf && b.uf.toLowerCase().includes(q))
+  );
+  renderBranchesTable(filtered);
+}
+
+async function handleSaveBranch(e) {
+  e.preventDefault();
+  const body = {
+    nome_filial: document.getElementById('branch-razao-social').value,
+    razao_social: document.getElementById('branch-razao-social').value,
+    cnpj: document.getElementById('branch-cnpj').value,
+    inscricao_estadual: document.getElementById('branch-ie').value,
+    cidade: document.getElementById('branch-cidade').value,
+    uf: document.getElementById('branch-uf').value.toUpperCase(),
+    logradouro: document.getElementById('branch-endereco').value,
+    cep: document.getElementById('branch-cep').value
+  };
+
+  try {
+    const res = await fetch('/api/branches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Erro ao salvar filial.');
+
+    showToast('Filial cadastrada com sucesso!', 'success');
+    document.getElementById('form-new-branch').reset();
+    const details = document.getElementById('details-new-branch');
+    if (details) details.removeAttribute('open');
+    await loadBranchesList();
+  } catch (err) {
+    showToast('Erro ao salvar filial: ' + err.message, 'error');
+  }
+}
+
+/**
+ * Modal: Detalhes Completos de uma NF-e
+ */
+function openNFeDetailsModal(groupIndex, nfeIndex) {
+  if (!currentNFeBatchData) return;
+  const grupos = currentNFeBatchData.grupos_cte || currentNFeBatchData.grupos || [];
+  const group = grupos[groupIndex];
+  if (!group || !group.nfes || !group.nfes[nfeIndex]) return;
+
+  const nfe = group.nfes[nfeIndex];
+
+  const fmtMoney = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+  const fmtNumber = (v, dec = 0) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+  const titleEl = document.getElementById('nfe-detail-title');
+  if (titleEl) titleEl.textContent = `NF-e Nº ${nfe.numero} - Série ${nfe.serie || '1'}`;
+
+  const chaveEl = document.getElementById('nfe-detail-chave-badge');
+  if (chaveEl) chaveEl.textContent = `Chave de Acesso: ${nfe.chave_acesso || 'Sem chave'}`;
+
+  const btnCopy = document.getElementById('btn-copy-modal-nfe-chave');
+  if (btnCopy) {
+    btnCopy.onclick = () => copyNFeChave(nfe.chave_acesso);
+  }
+
+  const docDest = nfe.destinatario.documento || nfe.destinatario.cpf || nfe.destinatario.cnpj || '';
+  const isPF = nfe.destinatario.is_pj === false || nfe.destinatario.tipo_documento === 'CPF' || docDest.length <= 14;
+  const valNota = (nfe.valores && nfe.valores.valor_total_nfe !== undefined) ? nfe.valores.valor_total_nfe : (nfe.totais && nfe.totais.valor_total_nfe) || 0;
+  const valProds = (nfe.valores && nfe.valores.valor_produtos !== undefined) ? nfe.valores.valor_produtos : (nfe.totais && nfe.totais.valor_produtos) || 0;
+  const pesoBrutoNfe = (nfe.carga && nfe.carga.peso_bruto !== undefined) ? nfe.carga.peso_bruto : (nfe.transporte && nfe.transporte.peso_bruto) || 0;
+  const volumesNfe = (nfe.carga && nfe.carga.volumes !== undefined) ? nfe.carga.volumes : (nfe.transporte && nfe.transporte.quantidade_volumes) || 1;
+  const endDest = nfe.destinatario.endereco || {};
+
+  const bodyEl = document.getElementById('nfe-detail-body');
+  if (bodyEl) {
+    const itemsHtml = (nfe.itens || []).map(it => `
+      <tr>
+        <td style="text-align: center; color: #64748b;">${it.numero_item}</td>
+        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;">${it.codigo_produto || '-'}</td>
+        <td style="font-weight: 600; color: #1e293b;">${escapeHtml(it.descricao)}</td>
+        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;">${it.ncm || '-'}</td>
+        <td style="text-align: center;">${it.unidade}</td>
+        <td style="text-align: right; font-weight: 700;">${fmtNumber(it.quantidade, 2)}</td>
+        <td style="text-align: right;">${fmtMoney(it.valor_unitario)}</td>
+        <td style="text-align: right; font-weight: 700; color: #047857;">${fmtMoney(it.valor_total)}</td>
+      </tr>
+    `).join('');
+
+    bodyEl.innerHTML = `
+      <!-- Dados de Identificação e Roteamento -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem;">
+          <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Emitente da NF-e</div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-top: 2px;">${escapeHtml(nfe.emitente.nome || 'CARAJAS')}</div>
+          <div style="font-size: 0.75rem; color: #475569; margin-top: 2px;">CNPJ: ${nfe.emitente.documento} | IE: ${nfe.emitente.ie || 'ISENTO'}</div>
+          <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(nfe.emitente.cidade || '')} / ${nfe.emitente.uf || ''}</div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Destinatário da NF-e</div>
+            <span class="${isPF ? 'badge-tag-pf' : 'badge-tag-pj'}">${isPF ? 'Pessoa Física (PF)' : 'Pessoa Jurídica (PJ)'}</span>
+          </div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-top: 2px;">${escapeHtml(nfe.destinatario.nome)}</div>
+          <div style="font-size: 0.75rem; color: #475569; margin-top: 2px;">${isPF ? 'CPF' : 'CNPJ'}: ${docDest}</div>
+          <div style="font-size: 0.72rem; color: #64748b;">
+            ${escapeHtml(endDest.logradouro || '')}, ${escapeHtml(endDest.numero || 'S/N')} - ${escapeHtml(endDest.bairro || '')}<br>
+            <strong>${escapeHtml(endDest.cidade || '')} / ${escapeHtml(endDest.uf || '')}</strong> - CEP: ${endDest.cep || '-'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo dos Valores e Carga -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 0.5rem;">
+          <div style="font-size: 0.68rem; color: #1e40af; font-weight: 700;">VALOR TOTAL NOTA</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #1e3a8a;">${fmtMoney(valNota)}</div>
+        </div>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 0.5rem;">
+          <div style="font-size: 0.68rem; color: #065f46; font-weight: 700;">VALOR PRODUTOS</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #047857;">${fmtMoney(valProds)}</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.5rem;">
+          <div style="font-size: 0.68rem; color: #64748b; font-weight: 700;">PESO BRUTO</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${fmtNumber(pesoBrutoNfe, 3)} kg</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.5rem;">
+          <div style="font-size: 0.68rem; color: #64748b; font-weight: 700;">VOLUMES</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">${volumesNfe}</div>
+        </div>
+      </div>
+
+      <!-- Tabela de Itens e Produtos -->
+      <div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 0.35rem;">
+          Produtos / Mercadorias (${(nfe.itens || []).length} itens)
+        </div>
+        <div style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+          <table class="data-table" style="font-size: 0.75rem; margin: 0;">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">#</th>
+                <th>Código</th>
+                <th>Descrição do Produto</th>
+                <th>NCM</th>
+                <th style="text-align: center;">UN</th>
+                <th style="text-align: right;">Qtd</th>
+                <th style="text-align: right;">Unitário</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  openModal('modal-nfe-details');
+}
+
+// Funções do Leitor de NF-e e Roteador de Cargas para CT-e
+window.setupNFeDropzone = setupNFeDropzone;
+window.uploadNFeBatch = uploadNFeBatch;
+window.loadNFeSampleBatch = loadNFeSampleBatch;
+window.clearNFeProcessor = clearNFeProcessor;
+window.renderNFeBatchView = renderNFeBatchView;
+window.fillCTeFromNFeGroup = fillCTeFromNFeGroup;
+window.copyGroupFiscalData = copyGroupFiscalData;
+window.copyGroupNFeKeys = copyGroupNFeKeys;
+window.copyNFeChave = copyNFeChave;
+window.exportNFeBatchExcel = exportNFeBatchExcel;
+window.openBranchesModal = openBranchesModal;
+window.loadBranchesList = loadBranchesList;
+window.renderBranchesTable = renderBranchesTable;
+window.filterBranchesList = filterBranchesList;
+window.handleSaveBranch = handleSaveBranch;
+window.openNFeDetailsModal = openNFeDetailsModal;
+
 
 

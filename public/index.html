@@ -92,6 +92,17 @@
           </svg>
           <span>Gráficos & Desempenho</span>
         </button>
+
+        <button class="sidebar-nav-btn tab-btn" data-tab="tab-nfe-processor" id="nav-btn-nfe-processor" title="Leitor de NF-e & Roteador de Cargas para Emissão de CT-e">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <line x1="10" y1="9" x2="8" y2="9"></line>
+          </svg>
+          <span>Leitor NF-e ➔ CT-e</span>
+        </button>
       </nav>
 
       <!-- Ações Rápidas -->
@@ -993,6 +1004,145 @@
       </section>
     </main>
 
+    <!-- TAB 6: LEITOR & PROCESSADOR DE NF-E (ROTEAMENTO E EMISSÃO DE CT-E) -->
+    <main id="tab-nfe-processor" class="tab-content">
+      <!-- Header Banner -->
+      <section class="nfe-header-card">
+        <div class="nfe-header-content">
+          <div class="nfe-title-box">
+            <div class="nfe-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0;">Leitor de NF-e & Roteador Automático de Cargas para CT-e</h2>
+              <p style="font-size: 0.8rem; color: #64748b; margin: 2px 0 0 0;">
+                Ingestão em lote de XMLs de NF-e (mod. 55), agrupamento por rota/destino, roteamento fiscal (PF ➔ Filial da praça vs PJ Direto) e preenchimento ágil de CT-e.
+              </p>
+            </div>
+          </div>
+          <div class="nfe-header-actions">
+            <button type="button" class="btn btn-primary btn-sm" onclick="loadNFeSampleBatch()" id="btn-nfe-load-sample" title="Carregar Lote de Demonstração com 6 NF-es (Maceió, Arapiraca e Juazeiro do Norte)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Carregar Lote Demonstração</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openBranchesModal()" id="btn-nfe-open-branches" title="Configurar Filiais das Empresas para Roteamento Fiscal de Clientes PF">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="2"></line><line x1="8" y1="6" x2="5" y2="6"></line><line x1="8" y1="10" x2="5" y2="10"></line><line x1="8" y1="14" x2="5" y2="14"></line><line x1="8" y1="18" x2="5" y2="18"></line><line x1="19" y1="6" x2="16" y2="6"></line><line x1="19" y1="10" x2="16" y2="10"></line><line x1="19" y1="14" x2="16" y2="14"></line><line x1="19" y1="18" x2="16" y2="18"></line></svg>
+              <span>Filiais das Empresas</span>
+            </button>
+            <button type="button" class="btn btn-success btn-sm" onclick="exportNFeBatchExcel()" id="btn-nfe-export-excel" title="Exportar Lotes e Triagem para Excel (.xlsx)" disabled>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              <span>Exportar Excel</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="clearNFeProcessor()" id="btn-nfe-clear" title="Limpar Triagem Atual">
+              <span>Limpar</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upload Dropzone Section -->
+      <section class="upload-card">
+        <div id="nfe-dropzone" class="dropzone-area" style="border: 2px dashed #3b82f6; background: #eff6ff; padding: 2rem 1.5rem;">
+          <div class="dropzone-icon" style="background: rgba(59, 130, 246, 0.15); color: #2563eb;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="dropzone-text">
+            <h3 style="color: #1e3a8a; font-weight: 700; margin-bottom: 0.25rem;">Upload em Lote de Arquivos XML de NF-e (.xml)</h3>
+            <p style="color: #475569; margin: 0;">Arraste múltiplos arquivos XML de NF-e da SEFAZ aqui ou clique no botão abaixo</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 0.5rem; font-size: 0.75rem; color: #2563eb; font-weight: 600;">
+              <span>✓ Classificação e separação automática por Cidade/UF de destino</span>
+              <span>•</span>
+              <span>✓ Roteamento fiscal: PF ➔ Filial da praça</span>
+              <span>•</span>
+              <span>✓ Totalizadores de peso, volume e valor para CT-e</span>
+            </div>
+          </div>
+          <input type="file" id="nfe-file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;">
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('nfe-file-input').click()" style="margin-top: 0.5rem;">
+            Selecionar Arquivos XML de NF-e
+          </button>
+        </div>
+      </section>
+
+      <!-- KPI Metrics Bar -->
+      <section class="kpi-grid" id="nfe-kpi-bar" style="margin-bottom: 1.5rem;">
+        <div class="kpi-card" style="border-left: 4px solid #2563eb;">
+          <div class="kpi-header">
+            <span class="kpi-label">Total de NF-es Lidas</span>
+            <div class="kpi-icon-badge" style="background: rgba(37,99,235,0.1); color: #2563eb;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+          </div>
+          <div id="nfe-kpi-total-docs" class="kpi-value">0</div>
+          <div class="kpi-footer"><span id="nfe-kpi-breakdown-clients" class="badge-trend">0 PF | 0 PJ</span></div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 4px solid #059669;">
+          <div class="kpi-header">
+            <span class="kpi-label">Grupos / Lotes de CT-e</span>
+            <div class="kpi-icon-badge" style="background: rgba(5,150,105,0.1); color: #059669;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
+          </div>
+          <div id="nfe-kpi-total-groups" class="kpi-value">0</div>
+          <div class="kpi-footer"><span id="nfe-kpi-breakdown-routes" class="badge-trend">Destinos separados</span></div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 4px solid #7c3aed;">
+          <div class="kpi-header">
+            <span class="kpi-label">Valor Total das Mercadorias</span>
+            <div class="kpi-icon-badge" style="background: rgba(124,58,237,0.1); color: #7c3aed;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+          </div>
+          <div id="nfe-kpi-total-valor" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-footer"><span class="badge-trend">Soma das notas</span></div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 4px solid #d97706;">
+          <div class="kpi-header">
+            <span class="kpi-label">Peso Bruto Acumulado</span>
+            <div class="kpi-icon-badge" style="background: rgba(217,119,6,0.1); color: #d97706;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+            </div>
+          </div>
+          <div id="nfe-kpi-total-peso" class="kpi-value">0,000 kg</div>
+          <div class="kpi-footer"><span id="nfe-kpi-total-volumes" class="badge-trend">0 volumes</span></div>
+        </div>
+      </section>
+
+      <!-- Container Dinâmico dos Grupos de Destino / CT-e -->
+      <section id="nfe-groups-container">
+        <div class="nfe-empty-state" style="background: #ffffff; border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 3.5rem 2rem; text-align: center; box-shadow: var(--shadow-sm);">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Nenhum lote de NF-e processado no momento</h3>
+          <p style="font-size: 0.85rem; color: #64748b; max-width: 580px; margin: 0 auto 1.5rem auto;">
+            Arraste arquivos XML de NF-e para a área acima ou clique no botão de demonstração para carregar um lote completo com clientes Pessoa Física (PF) e Pessoa Jurídica (PJ) separados por destino.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="loadNFeSampleBatch()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Carregar Lote Demonstração (Misto PF/PJ)</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
     </div><!-- /.main-viewport -->
   </div><!-- /.app-layout -->
 
@@ -1880,6 +2030,35 @@
               </div>
             </div>
 
+            <!-- Dados da Carga do CT-e (Preenchidos automaticamente pelo Leitor de NF-e) -->
+            <div style="background: rgba(59, 130, 246, 0.05); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: var(--radius-sm); padding: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;">
+                📦 Dados da Carga Transportada (NF-es)
+              </div>
+              <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.65rem;">
+                <div class="form-group">
+                  <label for="manual-trip-carga-cte">Valor da Carga (R$)</label>
+                  <input type="number" id="manual-trip-carga-cte" class="form-control" step="0.01" placeholder="Ex: 15400.00">
+                </div>
+                <div class="form-group">
+                  <label for="manual-trip-peso-cte">Peso Bruto (KG)</label>
+                  <input type="number" id="manual-trip-peso-cte" class="form-control" step="0.001" placeholder="Ex: 4850.000">
+                </div>
+                <div class="form-group">
+                  <label for="manual-trip-volumes-cte">Volumes</label>
+                  <input type="number" id="manual-trip-volumes-cte" class="form-control" step="1" placeholder="Ex: 32">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-produto-predominante">Produto Predominante / Resumo da Carga</label>
+                <input type="text" id="manual-trip-produto-predominante" class="form-control" placeholder="Ex: PISOS, PORCELANATOS E ARGAMASSAS">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-chaves-nfe">Chaves das NF-es Vinculadas ao CT-e</label>
+                <textarea id="manual-trip-chaves-nfe" class="form-control" rows="2" placeholder="Chaves de 44 dígitos das NF-es transportadas" style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;"></textarea>
+              </div>
+            </div>
+
             <!-- Dynamic 75% Commission Highlight Box -->
             <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
@@ -1971,6 +2150,135 @@
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-finance-reminder')">Fechar</button>
         <button type="button" class="btn btn-success" onclick="confirmSendToFinance()">
           Confirmar Envio ao Setor Financeiro
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Gerenciador de Filiais da Empresa (Roteamento Fiscal PF ➔ Filial) -->
+  <div id="modal-branches-manager" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 860px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; color: #1e293b; font-size: 1.15rem; font-weight: 800;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+              <line x1="9" y1="22" x2="9" y2="2"></line>
+              <line x1="8" y1="6" x2="5" y2="6"></line>
+              <line x1="8" y1="10" x2="5" y2="10"></line>
+              <line x1="8" y1="14" x2="5" y2="14"></line>
+              <line x1="8" y1="18" x2="5" y2="18"></line>
+              <line x1="19" y1="6" x2="16" y2="6"></line>
+              <line x1="19" y1="10" x2="16" y2="10"></line>
+              <line x1="19" y1="14" x2="16" y2="14"></line>
+              <line x1="19" y1="18" x2="16" y2="18"></line>
+            </svg>
+            Filiais da Empresa (Roteamento Fiscal de Cargas PF)
+          </h3>
+          <p style="font-size: 0.78rem; color: #64748b; margin: 3px 0 0 0;">
+            Regra Fiscal: Em entregas para <strong>Pessoa Física (CPF)</strong>, o CT-e é faturado automaticamente para a filial sediada na respectiva cidade/praça.
+          </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-branches-manager')">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Card de Cadastro Rápido de Nova Filial -->
+        <details id="details-new-branch" style="background: rgba(37,99,235,0.04); border: 1px solid rgba(37,99,235,0.2); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+          <summary style="cursor: pointer; font-weight: 700; font-size: 0.85rem; color: #2563eb; display: flex; align-items: center; gap: 0.4rem;">
+            <span>➕ Cadastrar Nova Filial / Praça</span>
+          </summary>
+          <form id="form-new-branch" onsubmit="handleSaveBranch(event)" style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 0.65rem;">
+              <div class="form-group">
+                <label for="branch-razao-social">Razão Social / Nome da Filial *</label>
+                <input type="text" id="branch-razao-social" class="form-control" required placeholder="Ex: CARAJAS - FILIAL ARAPIRACA">
+              </div>
+              <div class="form-group">
+                <label for="branch-cnpj">CNPJ da Filial *</label>
+                <input type="text" id="branch-cnpj" class="form-control" required placeholder="03.656.804/0003-01">
+              </div>
+              <div class="form-group">
+                <label for="branch-ie">Inscrição Estadual</label>
+                <input type="text" id="branch-ie" class="form-control" placeholder="240987654">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1.2fr 80px 1.5fr 1fr; gap: 0.65rem;">
+              <div class="form-group">
+                <label for="branch-cidade">Cidade *</label>
+                <input type="text" id="branch-cidade" class="form-control" required placeholder="Ex: Arapiraca">
+              </div>
+              <div class="form-group">
+                <label for="branch-uf">UF *</label>
+                <input type="text" id="branch-uf" class="form-control" required maxlength="2" placeholder="AL" style="text-transform: uppercase;">
+              </div>
+              <div class="form-group">
+                <label for="branch-endereco">Logradouro / Bairro</label>
+                <input type="text" id="branch-endereco" class="form-control" placeholder="Rodovia AL-220, Km 06">
+              </div>
+              <div class="form-group">
+                <label for="branch-cep">CEP</label>
+                <input type="text" id="branch-cep" class="form-control" placeholder="57300-000">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Salvar Filial</button>
+            </div>
+          </form>
+        </details>
+
+        <!-- Tabela de Filiais Cadastradas -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase;">
+            Filiais Ativas no Repositório Fiscal (<span id="branch-count-badge">0</span>)
+          </span>
+          <input type="text" id="branch-search-input" placeholder="Filtrar por cidade ou CNPJ..." oninput="filterBranchesList()" style="width: 260px; padding: 0.35rem 0.65rem; font-size: 0.78rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+        </div>
+
+        <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <table class="data-table" id="table-branches-list" style="font-size: 0.78rem; margin: 0;">
+            <thead>
+              <tr>
+                <th>Filial / Razão Social</th>
+                <th>CNPJ</th>
+                <th>Insc. Estadual</th>
+                <th>Praça (Cidade/UF)</th>
+                <th>Endereço</th>
+              </tr>
+            </thead>
+            <tbody id="table-branches-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-branches-manager')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalhes Completos da NF-e (Itens, Roteamento & Tributos) -->
+  <div id="modal-nfe-details" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 900px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="nfe-detail-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e293b;">
+            NF-e Nº 000000 - Série 1
+          </h3>
+          <div id="nfe-detail-chave-badge" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #64748b; margin-top: 3px; word-break: break-all;">
+            Chave: 00000000000000000000000000000000000000000000
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-nfe-details')">✕</button>
+      </div>
+      <div class="modal-body" id="nfe-detail-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Dynamically filled by openNFeDetailsModal -->
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-nfe-details')">Fechar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-copy-modal-nfe-chave">
+          Copiar Chave NF-e
         </button>
       </div>
     </div>
