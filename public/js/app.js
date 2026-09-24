@@ -31,6 +31,60 @@ let kpiDetailChartB = null;
 let freightRepoCache = [];
 
 /**
+ * Modern Vector Icon Helper (Lucide/Heroicon standardized SVG)
+ * Replaces emojis with crisp, color-coordinated, vertically aligned vector icons.
+ */
+function getIconSvg(name, opts = {}) {
+  const size = opts.size || 16;
+  const color = opts.color || 'currentColor';
+  const cls = opts.className ? ` ${opts.className}` : '';
+  const style = opts.style ? ` style="${opts.style}"` : '';
+  
+  const icons = {
+    'plane-takeoff': `<path d="M2 22h20"/><path d="M6.36 17.4 4 17l-2-4 1.1-.55a2 2 0 0 1 1.8 0l2.4 1.2 5.5-3.3-3.8-7.6 2.2-1.1 5.6 6.8 4.7-2.8a2.5 2.5 0 0 1 3.5 1 2.5 2.5 0 0 1-1 3.5l-15.5 9.3Z"/>`,
+    'plane-landing': `<path d="M2 22h20"/><path d="M3.77 10.77 2 9l2-4 1.1.55a2 2 0 0 1 .9 1.65v2.7l5.5 3.3 6.8-5.6 2.2 1.1-3.8 7.6 4.7 2.8a2.5 2.5 0 0 1 1 3.5 2.5 2.5 0 0 1-3.5 1l-15.1-9.03Z"/>`,
+    'dollar-sign': `<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>`,
+    'shield': `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+    'file-text': `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>`,
+    'receipt': `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>`,
+    'truck': `<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>`,
+    'arrow-up-right': `<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>`,
+    'arrow-down-left': `<line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/>`,
+    'route': `<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>`,
+    'trending-up': `<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>`,
+    'award': `<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>`,
+    'users': `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+    'building': `<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M16 18h.01"/>`,
+    'zap': `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`,
+    'pie-chart': `<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>`,
+    'bar-chart': `<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>`,
+    'settings': `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,
+    'map-pin': `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>`,
+    'package': `<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`,
+    'search': `<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>`,
+    'copy': `<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`,
+    'check': `<polyline points="20 6 9 17 4 12"/>`,
+    'x': `<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
+    'edit': `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
+    'trash': `<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>`,
+    'upload': `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>`,
+    'download': `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
+    'save': `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`,
+    'filter': `<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>`,
+    'calendar': `<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+    'printer': `<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>`,
+    'plus': `<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
+    'key': `<path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>`,
+    'alert-triangle': `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+    'refresh-cw': `<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>`
+  };
+
+  const body = icons[name] || icons['search'];
+  return `<svg class="ui-icon${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${style}>${body}</svg>`;
+}
+window.getIconSvg = getIconSvg;
+
+/**
  * Safely parses any date string (ISO, Brazilian DD/MM/YYYY, SQLite) into unix timestamp
  */
 function parseSafeTimestamp(val) {
@@ -160,7 +214,8 @@ let cachedCompanyBranches = [];
 
 // Global helper to switch active tab
 function switchTab(tabId) {
-  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  const normalizedId = tabId.startsWith('tab-') ? tabId : `tab-${tabId}`;
+  const btn = document.querySelector(`.tab-btn[data-tab="${normalizedId}"]`) || document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   if (btn) btn.click();
 }
 window.switchTab = switchTab;
@@ -177,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
   setupExcelScannerDropzone();
   setupNFeDropzone();
+  initCommandPalette();
 });
 
 /**
@@ -437,7 +493,7 @@ function selectKPIDetail(type, shouldScroll = true) {
 
   if (type === 'frete') {
     if (badgeIcon) {
-      badgeIcon.textContent = '💵';
+      badgeIcon.innerHTML = getIconSvg('dollar-sign', { size: 24, color: '#2563eb' });
       badgeIcon.style.background = 'rgba(37, 99, 235, 0.12)';
       badgeIcon.style.color = '#2563eb';
     }
@@ -447,7 +503,7 @@ function selectKPIDetail(type, shouldScroll = true) {
     if (filterTextEl) filterTextEl.textContent = 'Filtrar CT-e na Tabela';
   } else if (type === 'comissao') {
     if (badgeIcon) {
-      badgeIcon.textContent = '🛡️';
+      badgeIcon.innerHTML = getIconSvg('shield', { size: 24, color: '#059669' });
       badgeIcon.style.background = 'rgba(16, 185, 129, 0.15)';
       badgeIcon.style.color = '#059669';
     }
@@ -457,7 +513,7 @@ function selectKPIDetail(type, shouldScroll = true) {
     if (filterTextEl) filterTextEl.textContent = 'Ver Motoristas & Comissões';
   } else if (type === 'icms') {
     if (badgeIcon) {
-      badgeIcon.textContent = '🧾';
+      badgeIcon.innerHTML = getIconSvg('receipt', { size: 24, color: '#d97706' });
       badgeIcon.style.background = 'rgba(245, 158, 11, 0.15)';
       badgeIcon.style.color = '#d97706';
     }
@@ -468,7 +524,7 @@ function selectKPIDetail(type, shouldScroll = true) {
   } else {
     // documentos
     if (badgeIcon) {
-      badgeIcon.textContent = '📄';
+      badgeIcon.innerHTML = getIconSvg('file-text', { size: 24, color: '#7c3aed' });
       badgeIcon.style.background = 'rgba(139, 92, 246, 0.15)';
       badgeIcon.style.color = '#7c3aed';
     }
@@ -597,32 +653,32 @@ function renderKPIDetailStats(type, m) {
 
     html = `
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
-        <span class="kpi-sub-stat-label">💵 Total Frete Prestado</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('dollar-sign', { size: 14, color: '#2563eb' })} Total Frete Prestado</span>
         <span class="kpi-sub-stat-val" style="color: #2563eb;">${formatBRL(m.totalFrete)}</span>
         <span class="kpi-sub-stat-desc">${m.cteCount} Conhecimento(s) CT-e faturados</span>
       </div>
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
-        <span class="kpi-sub-stat-label">📦 Valor Total da Carga</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('package', { size: 14, color: '#8b5cf6' })} Valor Total da Carga</span>
         <span class="kpi-sub-stat-val" style="color: #7c3aed;">${formatBRL(m.totalCarga)}</span>
         <span class="kpi-sub-stat-desc">${m.mdfeCount} Manifesto(s) MDF-e averbados</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📈 Ticket Médio de Frete</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('trending-up', { size: 14, color: '#64748b' })} Ticket Médio de Frete</span>
         <span class="kpi-sub-stat-val">${formatBRL(avgTicket)}</span>
         <span class="kpi-sub-stat-desc">Média ponderada por conhecimento</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🏆 Maior Frete Registrado</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('award', { size: 14, color: '#059669' })} Maior Frete Registrado</span>
         <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(maxVal)}</span>
         <span class="kpi-sub-stat-desc">${maxDocNum} (${m.maxFreteDoc ? (m.maxFreteDoc.cidade_destino || m.maxFreteDoc.uf_destino) : '-'})</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🛣️ Faturamento Interestadual</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('route', { size: 14, color: '#8b5cf6' })} Faturamento Interestadual</span>
         <span class="kpi-sub-stat-val">${formatBRL(m.interstateFrete)}</span>
         <span class="kpi-sub-stat-desc">${interstatePct}% das operações fora de AL</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📊 Total Movimentado</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('bar-chart', { size: 14, color: '#64748b' })} Total Movimentado</span>
         <span class="kpi-sub-stat-val">${formatBRL(m.totalFrete + m.totalCarga)}</span>
         <span class="kpi-sub-stat-desc">Frete líquido + Carga em trânsito</span>
       </div>
@@ -635,32 +691,32 @@ function renderKPIDetailStats(type, m) {
 
     html = `
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #10b981; background: #f0fdf4;">
-        <span class="kpi-sub-stat-label" style="color: #059669;">🛡️ Repasse Motoristas (75%)</span>
+        <span class="kpi-sub-stat-label" style="color: #059669;">${getIconSvg('shield', { size: 14, color: '#059669' })} Repasse Motoristas (75%)</span>
         <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(m.totalComissao)}</span>
         <span class="kpi-sub-stat-desc">Regra contratual 75% garantida</span>
       </div>
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #6366f1;">
-        <span class="kpi-sub-stat-label">🏢 Margem Transportadora (25%)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('building', { size: 14, color: '#6366f1' })} Margem Transportadora (25%)</span>
         <span class="kpi-sub-stat-val" style="color: #4f46e5;">${formatBRL(margemEmpresa)}</span>
         <span class="kpi-sub-stat-desc">Retenção de custos operacionais</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📊 Média por Viagem</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('bar-chart', { size: 14, color: '#64748b' })} Média por Viagem</span>
         <span class="kpi-sub-stat-val">${formatBRL(avgComissao)}</span>
         <span class="kpi-sub-stat-desc">Comissão média repassada</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🥇 Maior Comissão Individual</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('award', { size: 14, color: '#059669' })} Maior Comissão Individual</span>
         <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(topComissaoVal)}</span>
         <span class="kpi-sub-stat-desc">${topNome}</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">👥 Motoristas Beneficiados</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('users', { size: 14, color: '#64748b' })} Motoristas Beneficiados</span>
         <span class="kpi-sub-stat-val">${m.driverList.length} condutores</span>
         <span class="kpi-sub-stat-desc">Com saldos apurados em fretes</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">⚙️ Taxa Contratual</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('settings', { size: 14, color: '#047857' })} Taxa Contratual</span>
         <span class="kpi-sub-stat-val" style="color: #047857;">75,0%</span>
         <span class="kpi-sub-stat-desc">Percentual de frota auditado</span>
       </div>
@@ -671,32 +727,32 @@ function renderKPIDetailStats(type, m) {
 
     html = `
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #f59e0b; background: #fffbeb;">
-        <span class="kpi-sub-stat-label" style="color: #b45309;">🧾 Total ICMS Destacado</span>
+        <span class="kpi-sub-stat-label" style="color: #b45309;">${getIconSvg('receipt', { size: 14, color: '#b45309' })} Total ICMS Destacado</span>
         <span class="kpi-sub-stat-val" style="color: #d97706;">${formatBRL(m.totalIcms)}</span>
         <span class="kpi-sub-stat-desc">Imposto destacado em DACTE</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📐 Base de Cálculo Total</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('bar-chart', { size: 14, color: '#64748b' })} Base de Cálculo Total</span>
         <span class="kpi-sub-stat-val">${formatBRL(m.totalFrete)}</span>
         <span class="kpi-sub-stat-desc">Base tributável nos serviços</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">⚡ Alíquota Média Efetiva</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('zap', { size: 14, color: '#d97706' })} Alíquota Média Efetiva</span>
         <span class="kpi-sub-stat-val" style="color: #d97706;">${aliquotaMedia}%</span>
         <span class="kpi-sub-stat-desc">Média ponderada das operações</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🛣️ ICMS Interestadual (12%)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('route', { size: 14, color: '#8b5cf6' })} ICMS Interestadual (12%)</span>
         <span class="kpi-sub-stat-val">${formatBRL(m.interstateIcms)}</span>
         <span class="kpi-sub-stat-desc">Prestações para fora de AL</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📍 ICMS Interno AL (19%)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('map-pin', { size: 14, color: '#38bdf8' })} ICMS Interno AL (19%)</span>
         <span class="kpi-sub-stat-val">${formatBRL(m.internalIcms)}</span>
         <span class="kpi-sub-stat-desc">Prestações estaduais em AL</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🏛️ Outros Tributos (PIS/COF/IBS)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('building', { size: 14, color: '#64748b' })} Outros Tributos (PIS/COF/IBS)</span>
         <span class="kpi-sub-stat-val">${formatBRL(outrosTributos)}</span>
         <span class="kpi-sub-stat-desc">Tributos federais informados</span>
       </div>
@@ -709,32 +765,32 @@ function renderKPIDetailStats(type, m) {
 
     html = `
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
-        <span class="kpi-sub-stat-label">🚛 Total de Viagens / Operações</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('truck', { size: 14, color: '#7c3aed' })} Total de Viagens / Operações</span>
         <span class="kpi-sub-stat-val" style="color: #7c3aed;">${m.totalDocs}</span>
         <span class="kpi-sub-stat-desc">Conhecimentos e manifestos</span>
       </div>
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
-        <span class="kpi-sub-stat-label">📄 Conhecimentos CT-e</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('file-text', { size: 14, color: '#2563eb' })} Conhecimentos CT-e</span>
         <span class="kpi-sub-stat-val" style="color: #2563eb;">${m.cteCount}</span>
         <span class="kpi-sub-stat-desc">Documentos modelo 57 emitidos</span>
       </div>
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #06b6d4;">
-        <span class="kpi-sub-stat-label">🚚 Manifestos MDF-e</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('truck', { size: 14, color: '#0891b2' })} Manifestos MDF-e</span>
         <span class="kpi-sub-stat-val" style="color: #0891b2;">${m.mdfeCount}</span>
         <span class="kpi-sub-stat-desc">Documentos modelo 58 vinculados</span>
       </div>
       <div class="kpi-sub-stat-card" style="border-left: 3px solid #b45309;">
-        <span class="kpi-sub-stat-label">🌐 Interestaduais (Fora de AL)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('route', { size: 14, color: '#b45309' })} Interestaduais (Fora de AL)</span>
         <span class="kpi-sub-stat-val" style="color: #b45309;">${m.interstateCount}</span>
         <span class="kpi-sub-stat-desc">${interPct}% do volume operacional</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">📍 Operações Internas (AL)</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('map-pin', { size: 14, color: '#38bdf8' })} Operações Internas (AL)</span>
         <span class="kpi-sub-stat-val">${estaduais}</span>
         <span class="kpi-sub-stat-desc">${estPct}% do volume dentro de AL</span>
       </div>
       <div class="kpi-sub-stat-card">
-        <span class="kpi-sub-stat-label">🛣️ Trajetos & Rotas Atendidas</span>
+        <span class="kpi-sub-stat-label">${getIconSvg('route', { size: 14, color: '#64748b' })} Trajetos & Rotas Atendidas</span>
         <span class="kpi-sub-stat-val">${m.routeList.length}</span>
         <span class="kpi-sub-stat-desc">Origens e destinos cadastrados</span>
       </div>
@@ -763,9 +819,9 @@ function renderKPIDetailCharts(type, m) {
   const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
   if (type === 'frete') {
-    titleA.textContent = '📈 Faturamento por Documento (CT-e)';
+    titleA.textContent = 'Faturamento por Documento (CT-e)';
     descA.textContent = 'Valores individuais de cada frete auditado';
-    titleB.textContent = '🍩 Composição por Rota / Destino';
+    titleB.textContent = 'Composição por Rota / Destino';
     descB.textContent = 'Distribuição do frete total por destino';
 
     // Chart A: CT-e values
@@ -829,9 +885,9 @@ function renderKPIDetailCharts(type, m) {
     });
 
   } else if (type === 'comissao') {
-    titleA.textContent = '🏆 Ranking de Repasse de Comissão (75%)';
+    titleA.textContent = 'Ranking de Repasse de Comissão (75%)';
     descA.textContent = 'Valores a repassar por condutor sobre fretes realizados';
-    titleB.textContent = '🍩 Divisão Contratual do Frete';
+    titleB.textContent = 'Divisão Contratual do Frete';
     descB.textContent = '75% Condutor vs 25% Margem Transportadora';
 
     // Chart A: Driver Commission Ranking
@@ -892,9 +948,9 @@ function renderKPIDetailCharts(type, m) {
     });
 
   } else if (type === 'icms') {
-    titleA.textContent = '🏛️ Arrecadação de ICMS por Destino';
+    titleA.textContent = 'Arrecadação de ICMS por Destino';
     descA.textContent = 'Imposto destacado conforme estado / cidade de destino';
-    titleB.textContent = '🍩 Tributação: Interestadual vs Interno';
+    titleB.textContent = 'Tributação: Interestadual vs Interno';
     descB.textContent = 'Alíquota de 12% (fora de AL) vs 19% (interna AL)';
 
     // Chart A: ICMS by destination
@@ -957,9 +1013,9 @@ function renderKPIDetailCharts(type, m) {
 
   } else {
     // documentos
-    titleA.textContent = '🛣️ Volume de Viagens por Trajeto / Rota';
+    titleA.textContent = 'Volume de Viagens por Trajeto / Rota';
     descA.textContent = 'Rotas com maior frequência de viagens operadas';
-    titleB.textContent = '🍩 Composição dos Documentos Emitidos';
+    titleB.textContent = 'Composição dos Documentos Emitidos';
     descB.textContent = 'Conhecimentos CT-e vs Manifestos MDF-e';
 
     // Chart A: Top Routes by Trips
@@ -1270,11 +1326,11 @@ function renderTable(items) {
         <td>${doc.serie}</td>
         <td>
           <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
-            <div style="color: #38bdf8; font-weight: 600;" title="Data e Hora de Saída">
-              🛫 ${formatDateTime(doc.data_saida || doc.data_emissao)}
+            <div style="color: #38bdf8; font-weight: 600; display: flex; align-items: center; gap: 5px;" title="Data e Hora de Saída">
+              ${getIconSvg('plane-takeoff', { size: 14, color: '#38bdf8' })} ${formatDateTime(doc.data_saida || doc.data_emissao)}
             </div>
-            <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;" title="Previsão de Chegada no Destino Final">
-              🛬 ${formatDateTime(doc.previsao_chegada)}
+            <div style="color: #fbbf24; font-weight: 600; margin-top: 2px; display: flex; align-items: center; gap: 5px;" title="Previsão de Chegada no Destino Final">
+              ${getIconSvg('plane-landing', { size: 14, color: '#fbbf24' })} ${formatDateTime(doc.previsao_chegada)}
             </div>
           </div>
         </td>
@@ -1282,11 +1338,11 @@ function renderTable(items) {
         <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${doc.motorista_cpf}</td>
         <td>
           <div style="font-size: 0.775rem; line-height: 1.35; max-width: 250px;">
-            <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${doc.remetente_nome || 'Remetente não informado'} (${doc.remetente_cnpj || ''})">
-              📤 <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${doc.remetente_nome || 'Empresa Remetente'}
+            <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;" title="Remetente: ${doc.remetente_nome || 'Remetente não informado'} (${doc.remetente_cnpj || ''})">
+              ${getIconSvg('arrow-up-right', { size: 13, color: '#94a3b8' })} <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${doc.remetente_nome || 'Empresa Remetente'}
             </div>
-            <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora/Destinatária: ${doc.destinatario_nome || 'Destinatário não informado'} (${doc.destinatario_cnpj || ''})">
-              📥 <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${doc.destinatario_nome || 'Empresa Recebedora'}
+            <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; display: flex; align-items: center; gap: 4px;" title="Recebedora/Destinatária: ${doc.destinatario_nome || 'Destinatário não informado'} (${doc.destinatario_cnpj || ''})">
+              ${getIconSvg('arrow-down-left', { size: 13, color: '#38bdf8' })} <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${doc.destinatario_nome || 'Empresa Recebedora'}
             </div>
             ${(doc.remetente_cnpj || doc.destinatario_cnpj) ? `<div style="font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px;">CNPJ: ${doc.remetente_cnpj || '-'} ➔ ${doc.destinatario_cnpj || '-'}</div>` : ''}
           </div>
@@ -1295,7 +1351,7 @@ function renderTable(items) {
           <span style="font-weight: 600;">${doc.destino}</span>
           ${doc.origem ? `<br><small style="color: var(--text-muted);">${doc.origem}</small>` : ''}
           ${(doc.ufs_percurso || (!isCTe && isInterstate))
-            ? `<div style="margin-top: 4px;"><span class="badge-interstate" style="background: rgba(139, 92, 246, 0.18); border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd; font-size: 0.68rem; font-weight: 700;" title="Estados que o veículo fará no trajeto">🛣️ Percurso: ${doc.ufs_percurso || 'PE'}</span></div>`
+            ? `<div style="margin-top: 4px;"><span class="badge-interstate" style="background: rgba(139, 92, 246, 0.18); border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Estados que o veículo fará no trajeto">${getIconSvg('route', { size: 12, color: '#c4b5fd' })} Percurso: ${doc.ufs_percurso || 'PE'}</span></div>`
             : ''
           }
         </td>
@@ -1357,8 +1413,8 @@ async function loadCTEs() {
           <td>${c.serie}</td>
           <td>
             <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
-              <div style="color: #38bdf8; font-weight: 600;">🛫 ${formatDateTime(c.data_saida || c.data_emissao)}</div>
-              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;">🛬 ${formatDateTime(c.previsao_chegada)}</div>
+              <div style="color: #38bdf8; font-weight: 600; display: flex; align-items: center; gap: 5px;">${getIconSvg('plane-takeoff', { size: 14, color: '#38bdf8' })} ${formatDateTime(c.data_saida || c.data_emissao)}</div>
+              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px; display: flex; align-items: center; gap: 5px;">${getIconSvg('plane-landing', { size: 14, color: '#fbbf24' })} ${formatDateTime(c.previsao_chegada)}</div>
             </div>
           </td>
           <td>
@@ -1367,17 +1423,17 @@ async function loadCTEs() {
           </td>
           <td>
             <div style="font-size: 0.775rem; line-height: 1.35; max-width: 220px;">
-              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${c.remetente_nome || ''}">
-                📤 Rem: ${c.remetente_nome || 'Não informado'}
+              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;" title="Remetente: ${c.remetente_nome || ''}">
+                ${getIconSvg('arrow-up-right', { size: 13, color: '#94a3b8' })} <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${c.remetente_nome || 'Não informado'}
               </div>
-              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora: ${c.destinatario_nome || ''}">
-                📥 Rec: ${c.destinatario_nome || 'Não informado'}
+              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; display: flex; align-items: center; gap: 4px;" title="Recebedora: ${c.destinatario_nome || ''}">
+                ${getIconSvg('arrow-down-left', { size: 13, color: '#38bdf8' })} <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${c.destinatario_nome || 'Não informado'}
               </div>
             </div>
           </td>
           <td>
             <span style="font-weight: 600;">${c.origem} ➔ ${c.destino}</span>
-            ${c.ufs_percurso ? `<div style="margin-top: 3px;"><span class="badge-interstate" style="font-size: 0.68rem;">🛣️ Percurso: ${c.ufs_percurso}</span></div>` : ''}
+            ${c.ufs_percurso ? `<div style="margin-top: 3px;"><span class="badge-interstate" style="font-size: 0.68rem; display: inline-flex; align-items: center; gap: 4px;">${getIconSvg('route', { size: 12, color: '#c4b5fd' })} Percurso: ${c.ufs_percurso}</span></div>` : ''}
           </td>
           <td class="currency-cell">${formatBRL(c.valor)}</td>
           <td style="text-align: right; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
@@ -1459,18 +1515,18 @@ async function loadManifestos() {
           <td>${m.serie}</td>
           <td>
             <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
-              <div style="color: #38bdf8; font-weight: 600;">🛫 ${formatDateTime(m.data_saida || m.data_emissao)}</div>
-              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;">🛬 ${formatDateTime(m.previsao_chegada)}</div>
+              <div style="color: #38bdf8; font-weight: 600; display: flex; align-items: center; gap: 5px;">${getIconSvg('plane-takeoff', { size: 14, color: '#38bdf8' })} ${formatDateTime(m.data_saida || m.data_emissao)}</div>
+              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px; display: flex; align-items: center; gap: 5px;">${getIconSvg('plane-landing', { size: 14, color: '#fbbf24' })} ${formatDateTime(m.previsao_chegada)}</div>
             </div>
           </td>
           <td style="font-weight: 600;">${m.motorista_nome}</td>
           <td>
             <div style="font-size: 0.775rem; line-height: 1.35; max-width: 200px;">
-              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${m.remetente_nome || ''}">
-                📤 Rem: ${m.remetente_nome || 'Não informado'}
+              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;" title="Remetente: ${m.remetente_nome || ''}">
+                ${getIconSvg('arrow-up-right', { size: 13, color: '#94a3b8' })} <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${m.remetente_nome || 'Não informado'}
               </div>
-              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora: ${m.destinatario_nome || ''}">
-                📥 Rec: ${m.destinatario_nome || 'Não informado'}
+              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; display: flex; align-items: center; gap: 4px;" title="Recebedora: ${m.destinatario_nome || ''}">
+                ${getIconSvg('arrow-down-left', { size: 13, color: '#38bdf8' })} <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${m.destinatario_nome || 'Não informado'}
               </div>
             </div>
           </td>
@@ -1863,21 +1919,10 @@ function setupEventListeners() {
   }
 
   // Clear filters
-  document.getElementById('btn-clear-filters').addEventListener('click', () => {
-    initDateDefaults();
-    document.getElementById('filter-driver').value = 'all';
-    document.getElementById('filter-doc-type').value = 'all';
-    document.getElementById('filter-destination').value = '';
-    document.getElementById('table-search').value = '';
-    const catEl = document.getElementById('search-category');
-    if (catEl) catEl.value = 'all';
-    currentFilters.driverId = 'all';
-    currentFilters.docType = 'all';
-    currentFilters.destination = '';
-    currentFilters.search = '';
-    currentFilters.searchType = 'all';
-    fetchAndRenderDocuments();
-  });
+  const btnClearFilters = document.getElementById('btn-clear-filters');
+  if (btnClearFilters) {
+    btnClearFilters.addEventListener('click', clearAllFilters);
+  }
 
   // Search input debouncing with multi-field searchType
   let searchTimer;
@@ -2403,7 +2448,7 @@ function setupEventListeners() {
             </div>
           </div>
           <div class="fin-report-meta-box">
-            <span class="fin-status-stamp">✓ Auditado SEFAZ & Liberado</span>
+            <span class="fin-status-stamp">${getIconSvg('shield', { size: 13, color: '#059669', style: 'vertical-align: -2px; margin-right: 4px;' })} Auditado SEFAZ & Liberado</span>
             <div>Protocolo: <strong>${auditCode}</strong></div>
             <div>Período: <strong>${escapeHtml(periodText)}</strong></div>
             <div>Emissão: <strong>${nowStr}</strong></div>
@@ -2954,13 +2999,13 @@ function displayUploadResults(data) {
   const resultsList = document.getElementById('upload-results-list');
   resultsList.innerHTML = (data.results || []).map((r) => {
     let color = '#34d399';
-    let icon = '✓';
+    let icon = getIconSvg('check', { size: 18, color: '#34d399' });
     if (r.status === 'duplicate') {
       color = '#fbbf24';
-      icon = '⚠';
+      icon = getIconSvg('alert-triangle', { size: 18, color: '#fbbf24' });
     } else if (r.status === 'error') {
       color = '#f87171';
-      icon = '✕';
+      icon = getIconSvg('x', { size: 18, color: '#f87171' });
     }
 
     return `
@@ -2971,7 +3016,7 @@ function displayUploadResults(data) {
             ${r.message || ''}
           </div>
         </div>
-        <span style="color: ${color}; font-weight: bold; font-size: 1.1rem;">${icon}</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center;">${icon}</span>
       </div>
     `;
   }).join('');
@@ -4056,7 +4101,7 @@ async function loadFreightRepositoryPresets() {
           <option value="">Selecione para preencher automaticamente...</option>
           ${data.items.map(item => `
             <option value="${escapeHtml(item.id)}">
-              🏢 ${escapeHtml(item.pagador_nome || 'CARAJAS')} - ${escapeHtml(item.codigo_tabela || 'TABELA')} (${escapeHtml(item.tipo_pagamento || 'FOB')}) [Frete: R$ ${Number(item.frete_valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | ICMS: ${item.aliquota_icms}% | ${escapeHtml(item.uf_destino || 'AL')}]
+              ${escapeHtml(item.pagador_nome || 'CARAJAS')} - ${escapeHtml(item.codigo_tabela || 'TABELA')} (${escapeHtml(item.tipo_pagamento || 'FOB')}) [Frete: R$ ${Number(item.frete_valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | ICMS: ${item.aliquota_icms}% | ${escapeHtml(item.uf_destino || 'AL')}]
             </option>
           `).join('')}
         `;
@@ -4201,7 +4246,7 @@ function applyFreightPresetToManualTrip(presetId) {
 
   const hint = document.getElementById('manual-freight-preset-hint');
   if (hint) {
-    hint.innerHTML = `<span style="color: #34d399; font-weight: 600;">✓ Parâmetros Carajás Ativos:</span> Frete R$ 850,00 | ICMS 21,5% (R$ 182,75) | CBS/IBS R$ 6,42 | Condutor 75% (R$ 637,50) | Carga: 30,6t (20 NFs)`;
+    hint.innerHTML = `<span style="color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">${getIconSvg('check', { size: 14, color: '#34d399' })} Parâmetros Carajás Ativos:</span> Frete R$ 850,00 | ICMS 21,5% (R$ 182,75) | CBS/IBS R$ 6,42 | Condutor 75% (R$ 637,50) | Carga: 30,6t (20 NFs)`;
   }
 
   showToast(`Parâmetros de frete ${rule.pagador_nome || 'CARAJAS'} carregados para destino ${rule.cidade_destino || 'Maceió'}/${rule.uf_destino || 'AL'}!`, 'success');
@@ -4474,11 +4519,11 @@ function renderScannedTable() {
     let statusBadge = '';
     if (hasWarnings) {
       const tip = (r.avisos || []).join(' | ');
-      statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="${escapeHtml(tip)}">⚠️ ${escapeHtml(r.avisos ? r.avisos[0] : 'Verificar')}</span>`;
+      statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); display: inline-flex; align-items: center; gap: 4px;" title="${escapeHtml(tip)}">${getIconSvg('alert-triangle', { size: 13, color: '#fbbf24' })} ${escapeHtml(r.avisos ? r.avisos[0] : 'Verificar')}</span>`;
     } else if (isUpdate) {
-      statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);" title="Motorista já cadastrado; seus dados e frota serão atualizados.">🔄 Atualização</span>`;
+      statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); display: inline-flex; align-items: center; gap: 4px;" title="Motorista já cadastrado; seus dados e frota serão atualizados.">${getIconSvg('refresh-cw', { size: 13, color: '#60a5fa' })} Atualização</span>`;
     } else {
-      statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✓ Novo Válido</span>`;
+      statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 4px;">${getIconSvg('check', { size: 13, color: '#34d399' })} Novo Válido</span>`;
     }
 
     const placasStr = [r.placa_cavalo, r.placa_carreta].filter(Boolean).join(' / ') || '<span style="color: var(--text-muted);">-</span>';
@@ -4521,10 +4566,10 @@ function renderScannedTable() {
         </td>
         <td style="text-align: center; white-space: nowrap;">
           <button type="button" class="btn btn-secondary btn-sm" onclick="openEditScannedRow('${r._tempId}')" title="Editar dados desta linha antes de salvar" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; margin-right: 0.25rem;">
-            ✏️
+            ${getIconSvg('edit', { size: 13, color: '#38bdf8' })}
           </button>
           <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteScannedRow('${r._tempId}')" title="Excluir da lista" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;">
-            🗑️
+            ${getIconSvg('trash', { size: 13, color: '#ef4444' })}
           </button>
         </td>
       </tr>
@@ -4737,7 +4782,7 @@ async function confirmImportScannedDrivers() {
   } finally {
     if (btnConfirm) {
       btnConfirm.disabled = false;
-      btnConfirm.innerHTML = `💾 Gravar no Cadastro (<span id="btn-import-count">${currentScannedExcelRows.length}</span> Condutores & Frotas)`;
+      btnConfirm.innerHTML = `${getIconSvg('save', { size: 15, color: '#ffffff' })} Gravar no Cadastro (<span id="btn-import-count">${currentScannedExcelRows.length}</span> Condutores & Frotas)`;
     }
   }
 }
@@ -4910,7 +4955,7 @@ function toggleMultiKPISelection(kpiName) {
     }
     if (toggleBtn) {
       if (isSel) {
-        toggleBtn.textContent = '✓ Ativo';
+        toggleBtn.innerHTML = `${getIconSvg('check', { size: 12, style: 'vertical-align: -1px; margin-right: 2px;' })} Ativo`;
         toggleBtn.classList.add('active');
       } else {
         toggleBtn.textContent = '+ Consulta';
@@ -4945,7 +4990,7 @@ function renderMultiKPIConsolidation() {
   const badgeIcon = document.getElementById('kpi-detail-badge-icon');
 
   if (badgeIcon) {
-    badgeIcon.textContent = '⚡';
+    badgeIcon.innerHTML = getIconSvg('zap', { size: 24, color: '#818cf8' });
     badgeIcon.style.background = 'rgba(99, 102, 241, 0.2)';
     badgeIcon.style.color = '#818cf8';
   }
@@ -4975,7 +5020,7 @@ function renderMultiKPIConsolidation() {
     if (selectedKPIIcons.has('frete')) {
       cardsHtml += `
         <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
-          <span class="kpi-sub-stat-label">💵 Faturamento Total Frete</span>
+          <span class="kpi-sub-stat-label">${getIconSvg('dollar-sign', { size: 14, color: '#2563eb' })} Faturamento Total Frete</span>
           <span class="kpi-sub-stat-val" style="color: #60a5fa;">${formatBRL(m.totalFrete)}</span>
           <span class="kpi-sub-stat-desc">${m.cteCount} CT-e(s) emitidos</span>
         </div>
@@ -4985,7 +5030,7 @@ function renderMultiKPIConsolidation() {
       const margemEmpresa = Math.max(0, m.totalFrete - m.totalComissao);
       cardsHtml += `
         <div class="kpi-sub-stat-card" style="border-left: 3px solid #10b981;">
-          <span class="kpi-sub-stat-label">🛡️ Comissão Motoristas (75%)</span>
+          <span class="kpi-sub-stat-label">${getIconSvg('shield', { size: 14, color: '#10b981' })} Comissão Motoristas (75%)</span>
           <span class="kpi-sub-stat-val" style="color: #34d399;">${formatBRL(m.totalComissao)}</span>
           <span class="kpi-sub-stat-desc">Margem Empresa (25%): ${formatBRL(margemEmpresa)}</span>
         </div>
@@ -4995,7 +5040,7 @@ function renderMultiKPIConsolidation() {
       const cargaTrib = m.totalFrete > 0 ? ((m.totalIcms / m.totalFrete) * 100).toFixed(1) : '0.0';
       cardsHtml += `
         <div class="kpi-sub-stat-card" style="border-left: 3px solid #f59e0b;">
-          <span class="kpi-sub-stat-label">🧾 Total ICMS Destacado</span>
+          <span class="kpi-sub-stat-label">${getIconSvg('receipt', { size: 14, color: '#f59e0b' })} Total ICMS Destacado</span>
           <span class="kpi-sub-stat-val" style="color: #fbbf24;">${formatBRL(m.totalIcms)}</span>
           <span class="kpi-sub-stat-desc">Carga Efetiva: ${cargaTrib}% s/ Frete</span>
         </div>
@@ -5005,7 +5050,7 @@ function renderMultiKPIConsolidation() {
       const avgFrete = m.cteCount > 0 ? m.totalFrete / m.cteCount : 0;
       cardsHtml += `
         <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
-          <span class="kpi-sub-stat-label">📄 Viagens & Operações</span>
+          <span class="kpi-sub-stat-label">${getIconSvg('file-text', { size: 14, color: '#8b5cf6' })} Viagens & Operações</span>
           <span class="kpi-sub-stat-val" style="color: #c084fc;">${m.totalDocs} docs</span>
           <span class="kpi-sub-stat-desc">Ticket Médio: ${formatBRL(avgFrete)}</span>
         </div>
@@ -5390,11 +5435,11 @@ function renderNFeBatchView(rawBatchData) {
           </td>
           <td style="text-align: center; white-space: nowrap;">
             <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
-              <button type="button" class="btn btn-secondary btn-sm" onclick="openNFeDetailsModal(${gIdx}, ${nIdx})" title="Ver Itens e Tributos da NF-e" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
-                🔍 Detalhes
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openNFeDetailsModal(${gIdx}, ${nIdx})" title="Ver Itens e Tributos da NF-e" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px;">
+                ${getIconSvg('search', { size: 12, color: '#38bdf8' })} Detalhes
               </button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="copyNFeChave('${nfe.chave_acesso}')" title="Copiar Chave de 44 Dígitos" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
-                📋 Chave
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyNFeChave('${nfe.chave_acesso}')" title="Copiar Chave de 44 Dígitos" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 4px;">
+                ${getIconSvg('copy', { size: 12, color: '#94a3b8' })} Chave
               </button>
             </div>
           </td>
@@ -5437,8 +5482,8 @@ function renderNFeBatchView(rawBatchData) {
             </div>
           </div>
           <div style="text-align: right;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar Dados Fiscais deste Destino para Emissão" style="font-size: 0.75rem;">
-              📋 Copiar Dados Fiscais
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar Dados Fiscais deste Destino para Emissão" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;">
+              ${getIconSvg('copy', { size: 13, color: '#38bdf8' })} Copiar Dados Fiscais
             </button>
           </div>
         </div>
@@ -5518,14 +5563,14 @@ function renderNFeBatchView(rawBatchData) {
             Chaves NF-e: <strong>${chaves.length}</strong> chave(s) pronta(s) para atrelar ao CT-e.
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupNFeKeys(${gIdx})" title="Copiar todas as chaves de 44 dígitos deste lote">
-              🔑 Copiar Chaves NF-e
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupNFeKeys(${gIdx})" title="Copiar todas as chaves de 44 dígitos deste lote" style="display: inline-flex; align-items: center; gap: 4px;">
+              ${getIconSvg('key', { size: 14, color: '#38bdf8' })} Copiar Chaves NF-e
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar resumo fiscal completo para a área de transferência">
-              📋 Copiar Resumo Fiscal
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGroupFiscalData(${gIdx})" title="Copiar resumo fiscal completo para a área de transferência" style="display: inline-flex; align-items: center; gap: 4px;">
+              ${getIconSvg('copy', { size: 14, color: '#94a3b8' })} Copiar Resumo Fiscal
             </button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="fillCTeFromNFeGroup(${gIdx})" title="Abrir formulário de CT-e preenchendo automaticamente rota, remetente, filial/PJ recebedora, peso, valor e chaves">
-              ⚡ Preencher Formulário de CT-e
+            <button type="button" class="btn btn-primary btn-sm" onclick="fillCTeFromNFeGroup(${gIdx})" title="Abrir formulário de CT-e preenchendo automaticamente rota, remetente, filial/PJ recebedora, peso, valor e chaves" style="display: inline-flex; align-items: center; gap: 5px;">
+              ${getIconSvg('zap', { size: 14, color: '#ffffff' })} Preencher Formulário de CT-e
             </button>
           </div>
         </footer>
@@ -5973,6 +6018,535 @@ window.renderBranchesTable = renderBranchesTable;
 window.filterBranchesList = filterBranchesList;
 window.handleSaveBranch = handleSaveBranch;
 window.openNFeDetailsModal = openNFeDetailsModal;
+
+/**
+ * Limpa todos os filtros ativos e restaura visualização padrão
+ */
+function clearAllFilters() {
+  initDateDefaults();
+  const dr = document.getElementById('filter-driver'); if (dr) dr.value = 'all';
+  const dt = document.getElementById('filter-doc-type'); if (dt) dt.value = 'all';
+  const dst = document.getElementById('filter-destination'); if (dst) dst.value = '';
+  const ts = document.getElementById('table-search'); if (ts) ts.value = '';
+  const catEl = document.getElementById('search-category'); if (catEl) catEl.value = 'all';
+  
+  currentFilters.driverId = 'all';
+  currentFilters.docType = 'all';
+  currentFilters.destination = '';
+  currentFilters.search = '';
+  currentFilters.searchType = 'all';
+  
+  // Limpa seletores multicritério se houver
+  if (typeof selectedQueryIcons !== 'undefined' && selectedQueryIcons.size > 0) {
+    selectedQueryIcons.clear();
+    document.querySelectorAll('.filter-icon-item').forEach(el => el.classList.remove('selected'));
+  }
+
+  fetchAndRenderDocuments();
+  showToast('Filtros de pesquisa redefinidos com sucesso!', 'info');
+}
+window.clearAllFilters = clearAllFilters;
+
+// =========================================================================
+// COMMAND PALETTE / BUSCA RÁPIDA GLOBAL (CTRL + X / CMD + X)
+// =========================================================================
+
+let commandPaletteItems = [];
+let cmdSelectedIndex = 0;
+
+function initCommandPalette() {
+  commandPaletteItems = [
+    // --- NAVEGAÇÃO ENTRE PÁGINAS E ABAS ---
+    {
+      id: 'nav-overview',
+      category: 'Navegação entre Módulos',
+      title: 'Painel Geral & Saldo',
+      desc: 'Visão executiva, saldo líquido, KPIs e histórico consolidado',
+      icon: 'bar-chart',
+      badge: 'Aba 1',
+      keywords: 'geral dashboard saldo inicio resumo kpi auditoria tabela',
+      action: () => switchTab('overview')
+    },
+    {
+      id: 'nav-ctes',
+      category: 'Navegação entre Módulos',
+      title: 'Conhecimentos de Frete (CT-e 75%)',
+      desc: 'Listagem dos CT-es emitidos, repasses aos motoristas e tributos',
+      icon: 'file-text',
+      badge: 'Aba 2',
+      keywords: 'cte conhecimentos frete comissao fiscal dacte 75%',
+      action: () => switchTab('ctes')
+    },
+    {
+      id: 'nav-manifestos',
+      category: 'Navegação entre Módulos',
+      title: 'Manifestos Interestaduais (MDF-e)',
+      desc: 'Operações interestaduais fora de Alagoas, placas e percursos',
+      icon: 'truck',
+      badge: 'Aba 3',
+      keywords: 'mdfe manifesto interestadual viagem placas carga percurso',
+      action: () => switchTab('manifestos')
+    },
+    {
+      id: 'nav-drivers',
+      category: 'Navegação entre Módulos',
+      title: 'Gestão e Cadastro de Condutores',
+      desc: 'Cadastro de frotas, motoristas próprios, agregados e comissões',
+      icon: 'users',
+      badge: 'Aba 4',
+      keywords: 'motoristas condutores frota agregados cadastro cpf cnh veiculos',
+      action: () => switchTab('drivers')
+    },
+    {
+      id: 'nav-analytics',
+      category: 'Navegação entre Módulos',
+      title: 'Gráficos & Desempenho Operacional',
+      desc: 'Evolução de faturamento, comparativos e destinos frequentes',
+      icon: 'pie-chart',
+      badge: 'Aba 5',
+      keywords: 'graficos analytics analise desempenho faturamento destinos rotas',
+      action: () => switchTab('analytics')
+    },
+    {
+      id: 'nav-nfe-xml',
+      category: 'Navegação entre Módulos',
+      title: 'Leitor de NF-e & Roteador para Emissão de CT-e',
+      desc: 'Processamento em lote de XMLs de NF-e, separação por rota e emissão',
+      icon: 'file-text',
+      badge: 'Aba 6',
+      keywords: 'xml nfe notas fiscais leitor lote carajas tomador roteador emissao',
+      action: () => switchTab('nfe-processor')
+    },
+    {
+      id: 'nav-fin-report',
+      category: 'Navegação entre Módulos',
+      title: 'Prestação de Contas ao Setor Financeiro',
+      desc: 'Demonstrativo executivo de fretes, margem da empresa e ICMS',
+      icon: 'receipt',
+      badge: 'Modal',
+      keywords: 'financeiro prestacao contas relatorio impressao pdf margem icms fiscal',
+      action: () => openFinancialReportModal()
+    },
+    {
+      id: 'nav-freight-repo',
+      category: 'Navegação entre Módulos',
+      title: 'Repositório de Parâmetros de Frete & Destinos',
+      desc: 'Tabela gravada Carajás, alíquotas fiscais (ICMS, CBS, IBS) e simulador',
+      icon: 'dollar-sign',
+      badge: 'Modal',
+      keywords: 'repositorio parametros carajas tabela simulador aliquota icms cbs ibs',
+      action: () => openFreightRepoModal()
+    },
+    {
+      id: 'nav-branches',
+      category: 'Navegação entre Módulos',
+      title: 'Filiais Fiscais Cadastradas',
+      desc: 'Gerenciador de filiais ativas, praças, CNPJs e inscrições estaduais',
+      icon: 'building',
+      badge: 'Modal',
+      keywords: 'filiais empresas matriz praca cnpjs enderecos tomador',
+      action: () => openBranchesModal()
+    },
+
+    // --- AÇÕES RÁPIDAS ---
+    {
+      id: 'act-new-xml-reading',
+      category: 'Ações Rápidas',
+      title: 'Nova Leitura de XML (Upload em Lote)',
+      desc: 'Selecionar múltiplos arquivos XML de NF-e para triagem e emissão',
+      icon: 'upload',
+      badge: 'Ação',
+      keywords: 'nova leitura ler xml upload importar arrastar lote nfe processar',
+      action: () => {
+        switchTab('nfe-processor');
+        setTimeout(() => {
+          const input = document.getElementById('nfe-xml-file-input');
+          if (input) input.click();
+        }, 150);
+      }
+    },
+    {
+      id: 'act-emit-cte',
+      category: 'Ações Rápidas',
+      title: 'Emitir CT-e (Inserir Conhecimento Manual)',
+      desc: 'Abrir formulário de cadastro manual para Conhecimento de Transporte',
+      icon: 'file-text',
+      badge: 'Ação',
+      keywords: 'emitir cte novo conhecimento cadastrar viagem manual frete',
+      action: () => {
+        openModal('modal-manual-trip');
+        setManualTripType('CT-e');
+      }
+    },
+    {
+      id: 'act-emit-mdfe',
+      category: 'Ações Rápidas',
+      title: 'Emitir MDF-e (Manifesto Eletrônico Manual)',
+      desc: 'Registrar viagem interestadual com rota fora de AL e dados de frota',
+      icon: 'truck',
+      badge: 'Ação',
+      keywords: 'emitir mdfe manifesto interestadual manual trajeto viagem',
+      action: () => {
+        openModal('modal-manual-trip');
+        setManualTripType('MDF-e');
+      }
+    },
+    {
+      id: 'act-new-driver',
+      category: 'Ações Rápidas',
+      title: 'Cadastrar Novo Condutor / Frota',
+      desc: 'Adicionar motorista próprio, agregado ou terceirizado com comissão',
+      icon: 'users',
+      badge: 'Ação',
+      keywords: 'novo motorista cadastrar condutor adicionar frota cpf placa pix',
+      action: () => {
+        openModal('modal-motorista');
+        resetDriverForm();
+      }
+    },
+    {
+      id: 'act-excel-drivers',
+      category: 'Ações Rápidas',
+      title: 'Importar Planilha Excel de Motoristas',
+      desc: 'Escanear arquivo .xlsx/.csv para cadastrar condutores em massa',
+      icon: 'upload',
+      badge: 'Ação',
+      keywords: 'escanear importar planilha excel condutores frotas csv lote motoristas',
+      action: () => openExcelScannerModal()
+    },
+    {
+      id: 'act-filter-destination',
+      category: 'Ações Rápidas',
+      title: 'Filtrar por Destino',
+      desc: 'Focar o campo de pesquisa por praça, cidade ou estado de entrega',
+      icon: 'map-pin',
+      badge: 'Filtro',
+      keywords: 'filtrar destino cidade uf entrega buscar rota praca',
+      action: () => {
+        switchTab('overview');
+        setTimeout(() => {
+          const input = document.getElementById('filter-destination');
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        }, 120);
+      }
+    },
+    {
+      id: 'act-filter-dates',
+      category: 'Ações Rápidas',
+      title: 'Filtrar por Período / Data',
+      desc: 'Definir datas de início e término das operações no cronograma',
+      icon: 'calendar',
+      badge: 'Filtro',
+      keywords: 'filtrar data periodo inicio fim calendario cronograma',
+      action: () => {
+        switchTab('overview');
+        setTimeout(() => {
+          const input = document.getElementById('filter-start-date');
+          if (input) input.focus();
+        }, 120);
+      }
+    },
+    {
+      id: 'act-clear-filters',
+      category: 'Ações Rápidas',
+      title: 'Limpar Filtros de Busca',
+      desc: 'Restaurar período padrão e desmarcar filtros de motoristas e destinos',
+      icon: 'filter',
+      badge: 'Ação',
+      keywords: 'limpar resetar filtros busca todos registros',
+      action: () => clearAllFilters()
+    },
+    {
+      id: 'act-sort-toggle',
+      category: 'Ações Rápidas',
+      title: 'Inverter Ordenação de Datas (Mais Recente ⇄ Mais Antigo)',
+      desc: 'Alternar entre ordenação decrescente (DESC) e crescente (ASC)',
+      icon: 'trending-up',
+      badge: 'Ação',
+      keywords: 'ordenar inverter data horario recente antigo desc asc cronograma',
+      action: () => toggleChronogramSort('overview')
+    },
+    {
+      id: 'act-export-excel',
+      category: 'Ações Rápidas',
+      title: 'Exportar Relatório Geral para Excel (.xlsx)',
+      desc: 'Baixar planilha completa com dados fiscais, fretes e repasses',
+      icon: 'download',
+      badge: 'Download',
+      keywords: 'exportar excel baixar relatorio xlsx planilha dados faturamento',
+      action: () => handleExportExcel()
+    },
+    {
+      id: 'act-print-financial',
+      category: 'Ações Rápidas',
+      title: 'Imprimir Prestação de Contas / Salvar PDF',
+      desc: 'Abrir diálogo de impressão do demonstrativo auditado SEFAZ',
+      icon: 'printer',
+      badge: 'PDF',
+      keywords: 'imprimir prestacao contas pdf salvar demonstrativo relatorio financeiro',
+      action: () => {
+        openFinancialReportModal();
+        setTimeout(printFinancialReport, 400);
+      }
+    }
+  ];
+
+  // Listener no campo de busca do modal
+  const inputEl = document.getElementById('cmd-palette-input');
+  if (inputEl) {
+    inputEl.addEventListener('input', (e) => {
+      filterCommandPalette(e.target.value);
+    });
+
+    inputEl.addEventListener('keydown', handleCommandPaletteKeydown);
+  }
+}
+
+function openCommandPalette() {
+  const backdrop = document.getElementById('command-palette-backdrop');
+  const input = document.getElementById('cmd-palette-input');
+  if (!backdrop || !input) return;
+
+  backdrop.classList.add('active');
+  input.value = '';
+  cmdSelectedIndex = 0;
+  filterCommandPalette('');
+
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 40);
+}
+
+function closeCommandPalette() {
+  const backdrop = document.getElementById('command-palette-backdrop');
+  if (backdrop) {
+    backdrop.classList.remove('active');
+  }
+}
+
+function handleCommandPaletteBackdropClick(e) {
+  if (e.target.id === 'command-palette-backdrop') {
+    closeCommandPalette();
+  }
+}
+
+function filterCommandPalette(query) {
+  const cleanQ = (query || '').toLowerCase().trim();
+  const bodyEl = document.getElementById('cmd-palette-body');
+  if (!bodyEl) return;
+
+  let filtered = commandPaletteItems;
+  if (cleanQ) {
+    filtered = commandPaletteItems.filter(item => {
+      const text = `${item.title} ${item.desc} ${item.category} ${item.keywords || ''}`.toLowerCase();
+      return text.includes(cleanQ);
+    });
+  }
+
+  cmdSelectedIndex = Math.min(cmdSelectedIndex, Math.max(0, filtered.length - 1));
+
+  if (filtered.length === 0) {
+    bodyEl.innerHTML = `
+      <div class="cmd-empty-state">
+        ${getIconSvg('search', { size: 36, color: '#64748b' })}
+        <h4 style="margin: 0; color: #f8fafc; font-size: 1rem;">Nenhum comando encontrado</h4>
+        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Tente digitar termos como "CT-e", "XML", "Motorista", "Destino" ou "Filtro".</p>
+      </div>
+    `;
+    bodyEl._currentFilteredItems = [];
+    return;
+  }
+
+  // Agrupamento por categoria
+  const categories = {};
+  filtered.forEach(item => {
+    if (!categories[item.category]) categories[item.category] = [];
+    categories[item.category].push(item);
+  });
+
+  let globalIdx = 0;
+  let html = '';
+
+  for (const [catName, items] of Object.entries(categories)) {
+    html += `<div class="cmd-group-label">${catName}</div>`;
+    items.forEach(item => {
+      const isSelected = globalIdx === cmdSelectedIndex;
+      html += `
+        <div 
+          class="cmd-item ${isSelected ? 'selected' : ''}" 
+          id="cmd-item-${globalIdx}"
+          data-index="${globalIdx}"
+          onclick="executeCommandPaletteItem(${globalIdx})"
+          onmouseenter="setCommandPaletteSelectedIndex(${globalIdx})"
+        >
+          <div class="cmd-item-icon">
+            ${getIconSvg(item.icon, { size: 16, color: isSelected ? '#38bdf8' : '#94a3b8' })}
+          </div>
+          <div class="cmd-item-content">
+            <div class="cmd-item-title">
+              <span>${highlightMatch(item.title, cleanQ)}</span>
+              ${item.badge ? `<span class="cmd-item-badge">${item.badge}</span>` : ''}
+            </div>
+            <div class="cmd-item-desc">${highlightMatch(item.desc, cleanQ)}</div>
+          </div>
+          <div class="cmd-item-arrow" style="color: #64748b; font-size: 0.8rem; font-weight: 700;">
+            ${isSelected ? '↵' : ''}
+          </div>
+        </div>
+      `;
+      globalIdx++;
+    });
+  }
+
+  bodyEl.innerHTML = html;
+  bodyEl._currentFilteredItems = filtered;
+
+  scrollSelectedCmdIntoView();
+}
+
+function highlightMatch(text, query) {
+  if (!query || !text) return text || '';
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  const before = text.substring(0, idx);
+  const match = text.substring(idx, idx + query.length);
+  const after = text.substring(idx + query.length);
+  return `${before}<mark style="background: rgba(56, 189, 248, 0.25); color: #38bdf8; border-radius: 3px; padding: 0 2px;">${match}</mark>${after}`;
+}
+
+function setCommandPaletteSelectedIndex(idx) {
+  cmdSelectedIndex = idx;
+  const items = document.querySelectorAll('.cmd-item');
+  items.forEach((el, i) => {
+    if (i === idx) {
+      el.classList.add('selected');
+      const arrow = el.querySelector('.cmd-item-arrow');
+      if (arrow) arrow.textContent = '↵';
+    } else {
+      el.classList.remove('selected');
+      const arrow = el.querySelector('.cmd-item-arrow');
+      if (arrow) arrow.textContent = '';
+    }
+  });
+}
+
+function handleCommandPaletteKeydown(e) {
+  const bodyEl = document.getElementById('cmd-palette-body');
+  const items = bodyEl ? bodyEl._currentFilteredItems : [];
+  if (!items || items.length === 0) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCommandPalette();
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    cmdSelectedIndex = (cmdSelectedIndex + 1) % items.length;
+    updateCommandPaletteSelection();
+    scrollSelectedCmdIntoView();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    cmdSelectedIndex = (cmdSelectedIndex - 1 + items.length) % items.length;
+    updateCommandPaletteSelection();
+    scrollSelectedCmdIntoView();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    executeCommandPaletteItem(cmdSelectedIndex);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeCommandPalette();
+  }
+}
+
+function updateCommandPaletteSelection() {
+  const domItems = document.querySelectorAll('.cmd-item');
+  domItems.forEach((el, i) => {
+    if (i === cmdSelectedIndex) {
+      el.classList.add('selected');
+      const arrow = el.querySelector('.cmd-item-arrow');
+      if (arrow) arrow.textContent = '↵';
+    } else {
+      el.classList.remove('selected');
+      const arrow = el.querySelector('.cmd-item-arrow');
+      if (arrow) arrow.textContent = '';
+    }
+  });
+}
+
+function scrollSelectedCmdIntoView() {
+  const selectedEl = document.getElementById(`cmd-item-${cmdSelectedIndex}`);
+  if (selectedEl) {
+    selectedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function executeCommandPaletteItem(idx) {
+  const bodyEl = document.getElementById('cmd-palette-body');
+  const items = bodyEl ? bodyEl._currentFilteredItems : [];
+  if (!items || !items[idx]) return;
+
+  const item = items[idx];
+  closeCommandPalette();
+
+  try {
+    if (typeof item.action === 'function') {
+      item.action();
+    }
+  } catch (err) {
+    console.error('Erro ao executar comando da paleta:', err);
+  }
+}
+
+// Global shortcut listener: Ctrl + X / Cmd + X for Command Palette
+window.addEventListener('keydown', (e) => {
+  const isX = e.key === 'x' || e.key === 'X' || e.code === 'KeyX';
+  if ((e.ctrlKey || e.metaKey) && isX) {
+    const activeEl = document.activeElement;
+    const isEditable = activeEl && (
+      activeEl.tagName === 'INPUT' || 
+      activeEl.tagName === 'TEXTAREA' || 
+      activeEl.isContentEditable
+    );
+    
+    // Verifica se há texto selecionado no campo editável
+    let hasSelection = false;
+    if (isEditable) {
+      if (typeof activeEl.selectionStart === 'number' && typeof activeEl.selectionEnd === 'number') {
+        hasSelection = activeEl.selectionStart !== activeEl.selectionEnd;
+      } else if (window.getSelection && window.getSelection().toString().length > 0) {
+        hasSelection = true;
+      }
+    }
+
+    // Apenas intercepta o atalho se nenhum texto estiver ativamente selecionado
+    if (!hasSelection) {
+      e.preventDefault();
+      openCommandPalette();
+    }
+  } else if (e.key === 'Escape') {
+    const paletteBackdrop = document.getElementById('command-palette-backdrop');
+    if (paletteBackdrop && paletteBackdrop.classList.contains('active')) {
+      e.preventDefault();
+      closeCommandPalette();
+    }
+  }
+});
+
+// Window Exports
+window.initCommandPalette = initCommandPalette;
+window.openCommandPalette = openCommandPalette;
+window.closeCommandPalette = closeCommandPalette;
+window.handleCommandPaletteBackdropClick = handleCommandPaletteBackdropClick;
+window.executeCommandPaletteItem = executeCommandPaletteItem;
+window.setCommandPaletteSelectedIndex = setCommandPaletteSelectedIndex;
+window.filterCommandPalette = filterCommandPalette;
+
 
 
 

@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="/css/styles.css">
   <!-- Chart.js for Interactive Visual Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons Library -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
   <div class="app-layout">
@@ -38,6 +40,17 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
+        </button>
+      </div>
+
+      <!-- Busca Rápida (Atalho Ctrl+X) -->
+      <div style="padding: 0.5rem 0.85rem; margin-bottom: 0.25rem;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openCommandPalette()" style="width: 100%; display: flex; align-items: center; justify-content: space-between; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(59, 130, 246, 0.25); color: #cbd5e1; padding: 0.45rem 0.7rem; border-radius: 8px; cursor: pointer;" title="Abrir busca rápida e comandos (Ctrl + X)">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span style="font-size: 0.8rem; font-weight: 600;">Busca Rápida</span>
+          </div>
+          <kbd style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 1px 5px; font-size: 0.65rem; color: #94a3b8; font-family: monospace;">Ctrl+X</kbd>
         </button>
       </div>
 
@@ -310,7 +323,7 @@
         <div class="kpi-detail-header">
           <div class="kpi-detail-title-group">
             <div id="kpi-detail-badge-icon" class="kpi-detail-badge-icon">
-              📊
+              <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             </div>
             <div>
               <div class="kpi-detail-eyebrow" id="kpi-detail-eyebrow">AUDITORIA DE FRETES & SEFAZ</div>
@@ -323,16 +336,16 @@
             <!-- Selector pills to change active view directly inside panel -->
             <div class="kpi-pill-group">
               <button type="button" class="kpi-pill-btn active" id="pill-kpi-frete" onclick="selectKPIDetail('frete')">
-                💵 Fretes
+                <svg class="ui-icon ui-icon-sm ui-icon-freight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Fretes
               </button>
               <button type="button" class="kpi-pill-btn" id="pill-kpi-comissao" onclick="selectKPIDetail('comissao')">
-                🛡️ Comissões (75%)
+                <svg class="ui-icon ui-icon-sm ui-icon-commission" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> Comissões (75%)
               </button>
               <button type="button" class="kpi-pill-btn" id="pill-kpi-icms" onclick="selectKPIDetail('icms')">
-                🧾 ICMS
+                <svg class="ui-icon ui-icon-sm ui-icon-tax" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> ICMS
               </button>
               <button type="button" class="kpi-pill-btn" id="pill-kpi-documentos" onclick="selectKPIDetail('documentos')">
-                📄 Documentos
+                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documentos
               </button>
             </div>
 
@@ -345,8 +358,8 @@
             </button>
 
             <!-- Close / Collapse Button -->
-            <button type="button" class="btn btn-secondary btn-sm" onclick="closeKPIDetailPanel()" title="Recolher painel de gráficos">
-              ✕ Ocultar
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeKPIDetailPanel()" title="Recolher painel de gráficos" style="display: inline-flex; align-items: center; gap: 4px;">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Ocultar
             </button>
           </div>
         </div>
@@ -472,49 +485,49 @@
 
         <div class="multi-icon-chips-container">
           <button type="button" class="multi-icon-chip" data-icon="cte" onclick="toggleQueryIcon('cte')" title="Filtrar Conhecimentos de Transporte (CT-e)">
-            <span class="chip-icon">📄</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
             <span class="chip-text">CT-e (Fretes)</span>
             <span class="chip-count" id="chip-count-cte">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="mdfe" onclick="toggleQueryIcon('mdfe')" title="Filtrar Manifestos de Documentos Fiscais (MDF-e)">
-            <span class="chip-icon">🚛</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
             <span class="chip-text">MDF-e (Manifestos)</span>
             <span class="chip-count" id="chip-count-mdfe">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="frota_propria" onclick="toggleQueryIcon('frota_propria')" title="Filtrar Viagens da Frota Própria">
-            <span class="chip-icon">🏢</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></span>
             <span class="chip-text">Frota Própria</span>
             <span class="chip-count" id="chip-count-frota">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="agregado" onclick="toggleQueryIcon('agregado')" title="Filtrar Viagens de Motoristas Agregados">
-            <span class="chip-icon">🤝</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             <span class="chip-text">Agregados</span>
             <span class="chip-count" id="chip-count-agregado">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="terceirizado" onclick="toggleQueryIcon('terceirizado')" title="Filtrar Viagens de Condutores Terceirizados">
-            <span class="chip-icon">🌐</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
             <span class="chip-text">Terceirizados</span>
             <span class="chip-count" id="chip-count-terceirizado">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="interestadual" onclick="toggleQueryIcon('interestadual')" title="Filtrar Operações Interestaduais (Fora de AL)">
-            <span class="chip-icon">🛣️</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></span>
             <span class="chip-text">Interestaduais</span>
             <span class="chip-count" id="chip-count-interestadual">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="com_icms" onclick="toggleQueryIcon('com_icms')" title="Filtrar Operações com ICMS Destacado">
-            <span class="chip-icon">⚖️</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/></svg></span>
             <span class="chip-text">Com ICMS</span>
             <span class="chip-count" id="chip-count-icms">0</span>
           </button>
 
           <button type="button" class="multi-icon-chip" data-icon="carajas" onclick="toggleQueryIcon('carajas')" title="Filtrar Operações CARAJAS MATERIAL DE CONSTRUCAO">
-            <span class="chip-icon">🏷️</span>
+            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg></span>
             <span class="chip-text">Carajás</span>
             <span class="chip-count" id="chip-count-carajas">0</span>
           </button>
@@ -522,10 +535,12 @@
 
         <div id="multi-icon-active-feedback" class="multi-icon-active-feedback" style="display: none;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span>🔍 <strong>Consulta Ativa:</strong></span>
+            <span><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><strong>Consulta Ativa:</strong></span>
             <span id="multi-icon-feedback-text">0 ícones selecionados</span>
           </div>
-          <button type="button" class="btn-clear-chips" onclick="clearSelectedQueryIcons()">✕ Limpar Ícones</button>
+          <button type="button" class="btn-clear-chips" onclick="clearSelectedQueryIcons()" style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Limpar Ícones
+          </button>
         </div>
       </section>
 
@@ -577,11 +592,11 @@
           <!-- Campo de Pesquisa Compacto -->
           <div class="search-control-group search-compact">
             <select id="search-category" class="search-type-select" title="Filtrar por Motorista, CT-e, MDF-e ou Rota">
-              <option value="all">🔍 Todos</option>
-              <option value="driver">👤 Motorista</option>
-              <option value="cte">📄 CT-e</option>
-              <option value="mdfe">🚛 MDF-e</option>
-              <option value="route">🛣️ Rota</option>
+              <option value="all">Todos os Tipos</option>
+              <option value="driver">Motorista</option>
+              <option value="cte">CT-e</option>
+              <option value="mdfe">MDF-e</option>
+              <option value="route">Rota</option>
             </select>
             <input type="search" id="table-search" class="search-input-inner" placeholder="Pesquisar..." title="Digite para pesquisar em tempo real">
           </div>
@@ -649,7 +664,7 @@
           <div class="overview-chart-card chart-card-revenue">
             <div class="overview-chart-card-header">
               <div>
-                <h4 class="overview-chart-card-title">📊 Faturamento Total e Comissões Destinadas aos Motoristas (75%)</h4>
+                <h4 class="overview-chart-card-title"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Faturamento Total e Comissões Destinadas aos Motoristas (75%)</h4>
                 <span class="overview-chart-card-desc">Valores gerados por frete vs repasse de comissão acumulada</span>
               </div>
             </div>
@@ -662,7 +677,7 @@
           <div class="overview-chart-card chart-card-category">
             <div class="overview-chart-card-header">
               <div>
-                <h4 class="overview-chart-card-title">🍩 Distribuição por Vínculo de Frota</h4>
+                <h4 class="overview-chart-card-title"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>Distribuição por Vínculo de Frota</h4>
                 <span class="overview-chart-card-desc">Frota Própria vs Agregados vs Terceirizados</span>
               </div>
             </div>
@@ -774,10 +789,10 @@
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" class="btn btn-secondary btn-sm" onclick="downloadDriverExcelTemplate()" title="Baixar Modelo de Planilha Excel (.xlsx) para preenchimento">
-            📥 Baixar Modelo Excel
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar Modelo Excel
           </button>
           <button type="button" class="btn btn-primary btn-sm" onclick="openDriverExcelScannerModal()" style="background: #10b981; border-color: #059669;" title="Escanear e importar planilha Excel de motoristas e frotas">
-            📊 Escanear Planilha Excel
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg>Escanear Planilha Excel
           </button>
           <button type="button" class="btn btn-primary" onclick="openDriverModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -822,7 +837,7 @@
         <div style="display: flex; gap: 0.5rem;">
           <button type="button" class="btn btn-secondary btn-sm" onclick="clearDriverSelections()">Desmarcar Todos</button>
           <button type="button" class="btn btn-outline-danger btn-sm" onclick="batchDeleteSelectedDrivers()">
-            🗑️ Excluir Selecionados em Lote
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Excluir Selecionados em Lote
           </button>
         </div>
       </div>
@@ -867,7 +882,7 @@
           </p>
         </div>
         <button type="button" class="btn btn-secondary btn-sm" onclick="loadDriversAnalytics()">
-          🔄 Atualizar Gráficos
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Atualizar Gráficos
         </button>
       </div>
 
@@ -877,7 +892,7 @@
           <div class="kpi-header">
             <span class="kpi-label">Campeão em Faturamento</span>
             <div class="kpi-icon-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
-              🏆
+              <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
             </div>
           </div>
           <div id="analytics-top-revenue-name" class="kpi-value" style="font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Carregando...</div>
@@ -890,7 +905,7 @@
           <div class="kpi-header">
             <span class="kpi-label">Maior Volume de Viagens</span>
             <div class="kpi-icon-badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
-              🚚
+              <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             </div>
           </div>
           <div id="analytics-top-trips-name" class="kpi-value" style="font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Carregando...</div>
@@ -903,7 +918,7 @@
           <div class="kpi-header">
             <span class="kpi-label">Total Pago em Comissões (75%)</span>
             <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
-              💰
+              <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
           </div>
           <div id="analytics-total-commission" class="kpi-value">R$ 0,00</div>
@@ -916,7 +931,7 @@
           <div class="kpi-header">
             <span class="kpi-label">Distribuição da Frota</span>
             <div class="kpi-icon-badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
-              👥
+              <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
           </div>
           <div id="analytics-total-drivers" class="kpi-value">0 Condutores</div>
@@ -933,7 +948,7 @@
           <div class="chart-header">
             <div>
               <div class="chart-title">
-                <span>📊</span>
+                <span><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
                 <span>Faturamento Total e Comissões Destinadas aos Motoristas (75%)</span>
               </div>
               <div class="chart-subtitle">Top 10 condutores por valor de frete gerado</div>
@@ -949,7 +964,7 @@
           <div class="chart-header">
             <div>
               <div class="chart-title">
-                <span>🍩</span>
+                <span><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
                 <span>Distribuição por Vínculo</span>
               </div>
               <div class="chart-subtitle">Frota Própria vs Agregados vs Terceirizados</div>
@@ -965,7 +980,7 @@
           <div class="chart-header">
             <div>
               <div class="chart-title">
-                <span>📈</span>
+                <span><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
                 <span>Quantidade de Fretes Realizados por cada Motorista</span>
               </div>
               <div class="chart-subtitle">Volume total de documentos (CT-e e MDF-e emitidos)</div>
@@ -981,7 +996,7 @@
       <section class="table-card" style="margin-top: 1.5rem;">
         <div class="table-header-bar">
           <div class="table-title">
-            <h2>🏆 Tabela de Ranqueamento de Desempenho</h2>
+            <h2><svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>Tabela de Ranqueamento de Desempenho</h2>
             <span id="analytics-ranking-count" class="results-badge">0 Motoristas</span>
           </div>
         </div>
@@ -1065,11 +1080,11 @@
             <h3 style="color: #1e3a8a; font-weight: 700; margin-bottom: 0.25rem;">Upload em Lote de Arquivos XML de NF-e (.xml)</h3>
             <p style="color: #475569; margin: 0;">Arraste múltiplos arquivos XML de NF-e da SEFAZ aqui ou clique no botão abaixo</p>
             <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 0.5rem; font-size: 0.75rem; color: #2563eb; font-weight: 600;">
-              <span>✓ Classificação e separação automática por Cidade/UF de destino</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Classificação e separação automática por Cidade/UF de destino</span>
               <span>•</span>
-              <span>✓ Roteamento fiscal: PF ➔ Filial da praça</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Roteamento fiscal: PF ➔ Filial da praça</span>
               <span>•</span>
-              <span>✓ Totalizadores de peso, volume e valor para CT-e</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Totalizadores de peso, volume e valor para CT-e</span>
             </div>
           </div>
           <input type="file" id="nfe-file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;">
@@ -1157,7 +1172,7 @@
     <div class="modal-container" style="max-width: 580px;">
       <div class="modal-header">
         <h3 id="modal-driver-title">Cadastrar Novo Motorista</h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-driver')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-driver')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <form id="form-driver">
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1168,7 +1183,7 @@
               Deseja preencher dados do motorista a partir de um XML?
             </div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="openCompleteXmlModal('driver')" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">
-              ⚡ Preencher via XML
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Preencher via XML
             </button>
           </div>
 
@@ -1249,7 +1264,7 @@
           </svg>
           Completar Informações através do XML SEFAZ
         </h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-complete-xml')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-complete-xml')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
@@ -1264,10 +1279,10 @@
         <!-- Input Selection Tabs (Paste vs Upload) -->
         <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem; align-items: center; flex-wrap: wrap;">
           <button type="button" id="tab-xml-paste" class="btn btn-primary btn-sm" onclick="switchXmlInputMode('paste')">
-            📝 Colar XML (Texto)
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>Colar XML (Texto)
           </button>
           <button type="button" id="tab-xml-file" class="btn btn-secondary btn-sm" onclick="switchXmlInputMode('file')">
-            📁 Carregar Arquivo XML
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Carregar Arquivo XML
           </button>
           <div style="margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-warning btn-sm" onclick="loadSampleXmlForCompletion('cte3199')" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" title="Carregar XML do CT-e 3199 (Rio Largo/AL -> Juazeiro/CE)">
@@ -1382,7 +1397,7 @@
           <!-- Buttons inside Preview -->
           <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
             <button type="button" id="btn-use-in-driver" class="btn btn-secondary btn-sm" onclick="populateDriverFromXmlPreview()" style="display: none;">
-              👤 Usar Dados no Formulário do Motorista
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usar Dados no Formulário do Motorista
             </button>
             <button type="button" id="btn-save-completed-xml" class="btn btn-success" onclick="saveCompletedXml()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1465,9 +1480,9 @@
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <button type="button" class="btn btn-primary btn-sm" onclick="useCurrentRepoInTrip()">
-            ⚡ Usar na Nova Viagem
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Usar na Nova Viagem
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-freight-repo')">✕</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-freight-repo')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       </div>
 
@@ -1516,7 +1531,7 @@
           <!-- Quadro Tributário & Reforma Tributária (ICMS, CBS, IBS) -->
           <div style="background: rgba(0,0,0,0.4); border-radius: var(--radius-sm); padding: 1rem; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem;">
             <div style="font-size: 0.8rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.65rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;">
-              <span>⚖️</span> Memória de Cálculo Tributária (ICMS + CBS/IBS Reforma Tributária)
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/></svg>Memória de Cálculo Tributária (ICMS + CBS/IBS Reforma Tributária)
             </div>
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; text-align: center;">
               <div style="background: rgba(245, 158, 11, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.25);">
@@ -1561,7 +1576,7 @@
         <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div style="font-size: 0.95rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 0.4rem;">
-              <span>🧮</span> Simulador Rápido de Frete, Tributos & Rateio 75%
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>Simulador Rápido de Frete, Tributos & Rateio 75%
             </div>
             <div style="font-size: 0.75rem; color: var(--text-secondary);">
               Digite novos valores para simular qualquer destino e carregar na viagem
@@ -1644,9 +1659,9 @@
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <button type="button" class="btn btn-secondary btn-sm" onclick="downloadDriverExcelTemplate()" title="Baixar Modelo de Planilha Formatada (.xlsx)">
-            📥 Baixar Modelo (.xlsx)
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar Modelo (.xlsx)
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-excel-scanner')">✕</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-excel-scanner')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       </div>
 
@@ -1654,17 +1669,19 @@
         <!-- ETAPA 1: DROPZONE / SELEÇÃO DE ARQUIVO -->
         <div id="excel-scanner-upload-area" class="excel-dropzone" onclick="document.getElementById('excel-file-scanner-input').click()">
           <input type="file" id="excel-file-scanner-input" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleExcelFileSelected(event)">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
+          <div style="margin-bottom: 0.5rem; color: #38bdf8;">
+            <svg class="ui-icon" style="width: 46px; height: 46px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          </div>
           <h4 style="margin: 0 0 0.35rem 0; font-size: 1.1rem; color: #ffffff;">Arraste ou clique para selecionar a Planilha de Motoristas</h4>
           <p style="margin: 0; font-size: 0.825rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
             Formatos suportados: <strong>.xlsx, .xls, .csv</strong>. O scanner reconhece automaticamente colunas de Nome, CPF, Vínculo (Frota Própria/Agregado/Terceirizado), Placas de Tração/Reboque, Comissão e PIX.
           </p>
           <div style="margin-top: 1.25rem; display: flex; justify-content: center; gap: 0.75rem;">
             <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('excel-file-scanner-input').click()">
-              📁 Selecionar Arquivo do Computador
+              <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Selecionar Arquivo do Computador
             </button>
             <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); downloadDriverExcelTemplate()">
-              📥 Baixar Modelo em Branco (.xlsx)
+              <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar Modelo em Branco (.xlsx)
             </button>
           </div>
         </div>
@@ -1710,10 +1727,10 @@
 
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <button type="button" id="btn-scan-batch-delete" class="btn btn-outline-danger btn-sm" onclick="batchDeleteScannedRows()" style="display: none;">
-                🗑️ Excluir Selecionados (<span id="scan-selected-count">0</span>)
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Excluir Selecionados (<span id="scan-selected-count">0</span>)
               </button>
               <button type="button" class="btn btn-secondary btn-sm" onclick="resetExcelScanner()" title="Carregar outra planilha">
-                🔄 Trocar Planilha
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Trocar Planilha
               </button>
             </div>
           </div>
@@ -1755,7 +1772,7 @@
         <div style="display: flex; gap: 0.5rem;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('modal-excel-scanner')">Fechar</button>
           <button type="button" id="btn-confirm-excel-import" class="btn btn-primary" onclick="confirmImportScannedDrivers()" style="display: none; background: #10b981; border-color: #059669;">
-            💾 Gravar no Cadastro (<span id="btn-import-count">0</span> Condutores & Frotas)
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Gravar no Cadastro (<span id="btn-import-count">0</span> Condutores & Frotas)
           </button>
         </div>
       </div>
@@ -1767,7 +1784,7 @@
     <div class="modal-container" style="max-width: 580px;">
       <div class="modal-header">
         <h3>Editar Dados do Motorista Escaneado</h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-edit-scanned-row')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-edit-scanned-row')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <form id="form-edit-scanned-row" onsubmit="saveEditedScannedRow(event)">
         <input type="hidden" id="edit-scanned-temp-id">
@@ -1882,17 +1899,17 @@
           </svg>
           Inserir Viagem Manualmente
         </h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-manual-trip')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-manual-trip')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <form id="form-manual-trip">
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
           <!-- Trip Type Selector -->
           <div style="display: flex; gap: 0.75rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: var(--radius-md);">
             <button type="button" id="manual-type-cte" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center;" onclick="setManualTripType('CT-e')">
-              📄 Conhecimento (CT-e)
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Conhecimento (CT-e)
             </button>
             <button type="button" id="manual-type-mdfe" class="btn btn-secondary btn-sm" style="flex: 1; justify-content: center;" onclick="setManualTripType('MDF-e')">
-              🚛 Manifesto (MDF-e)
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Manifesto (MDF-e)
             </button>
           </div>
           <input type="hidden" id="manual-trip-tipo" value="CT-e">
@@ -1910,7 +1927,7 @@
             </div>
             <select id="manual-freight-preset" class="form-control" onchange="applyFreightPresetToManualTrip(this.value)">
               <option value="">Selecione para preencher automaticamente...</option>
-              <option value="carajas-frete-infor-001">🏢 CARAJAS MATERIAL DE CONSTRUCAO - FRETE INFOR (FOB CARTEIRA) [Frete: R$ 850,00 | ICMS: 21,5% | 30,6t]</option>
+              <option value="carajas-frete-infor-001">CARAJAS MATERIAL DE CONSTRUCAO - FRETE INFOR (FOB CARTEIRA) [Frete: R$ 850,00 | ICMS: 21,5% | 30,6t]</option>
             </select>
             <div id="manual-freight-preset-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">
               Dica: Preenche automaticamente Remetente, CNPJ, Frete R$ 850,00, ICMS 21,5% (R$ 182,75), CBS 0,9%, IBS 0,1% e Repasse de 75% aos motoristas.
@@ -2038,8 +2055,9 @@
 
             <!-- Dados da Carga do CT-e (Preenchidos automaticamente pelo Leitor de NF-e) -->
             <div style="background: rgba(59, 130, 246, 0.05); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: var(--radius-sm); padding: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;">
-                📦 Dados da Carga Transportada (NF-es)
+              <div style="font-size: 0.75rem; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.4rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                <span>Dados da Carga Transportada (NF-es)</span>
               </div>
               <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.65rem;">
                 <div class="form-group">
@@ -2130,12 +2148,13 @@
           </svg>
           Lembrete do Setor Financeiro
         </h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-finance-reminder')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-finance-reminder')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem;">
         <div class="finance-alert-box">
-          <div class="finance-alert-title">
-            ⚠️ ENCAMINHE ESTE VALOR AO FINANCEIRO
+          <div class="finance-alert-title" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>ENCAMINHE ESTE VALOR AO FINANCEIRO</span>
           </div>
           <div id="finance-reminder-value" class="finance-alert-highlight">
             R$ 0,00
@@ -2185,14 +2204,15 @@
             Regra Fiscal: Em entregas para <strong>Pessoa Física (CPF)</strong>, o CT-e é faturado automaticamente para a filial sediada na respectiva cidade/praça.
           </p>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-branches-manager')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-branches-manager')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
         <!-- Card de Cadastro Rápido de Nova Filial -->
         <details id="details-new-branch" style="background: rgba(37,99,235,0.04); border: 1px solid rgba(37,99,235,0.2); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
           <summary style="cursor: pointer; font-weight: 700; font-size: 0.85rem; color: #2563eb; display: flex; align-items: center; gap: 0.4rem;">
-            <span>➕ Cadastrar Nova Filial / Praça</span>
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Cadastrar Nova Filial / Praça</span>
           </summary>
           <form id="form-new-branch" onsubmit="handleSaveBranch(event)" style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
             <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 0.65rem;">
@@ -2276,7 +2296,7 @@
             Chave: 00000000000000000000000000000000000000000000
           </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-nfe-details')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-nfe-details')" aria-label="Fechar"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="modal-body" id="nfe-detail-body" style="display: flex; flex-direction: column; gap: 1rem;">
         <!-- Dynamically filled by openNFeDetailsModal -->
@@ -2286,6 +2306,43 @@
         <button type="button" class="btn btn-primary btn-sm" id="btn-copy-modal-nfe-chave">
           Copiar Chave NF-e
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal (Ctrl + X / Cmd + X) -->
+  <div id="command-palette-backdrop" class="cmd-palette-backdrop" onclick="handleCommandPaletteBackdropClick(event)">
+    <div class="cmd-palette-modal" onclick="event.stopPropagation()">
+      <div class="cmd-palette-header">
+        <div class="cmd-palette-search-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="cmd-palette-input" 
+          class="cmd-palette-input" 
+          placeholder="O que você deseja fazer? (Digite para navegar ou executar ações...)" 
+          autocomplete="off" 
+          spellcheck="false"
+        >
+        <div class="cmd-palette-badge-kbd">
+          <kbd>ESC</kbd>
+        </div>
+      </div>
+      <div id="cmd-palette-body" class="cmd-palette-body">
+        <!-- Results dynamically inserted by JS -->
+      </div>
+      <div class="cmd-palette-footer">
+        <div class="cmd-palette-shortcuts">
+          <span><kbd>↑</kbd> <kbd>↓</kbd> navegar</span>
+          <span><kbd>↵</kbd> executar</span>
+          <span><kbd>esc</kbd> fechar</span>
+          <span><kbd>Ctrl</kbd> + <kbd>X</kbd> abrir</span>
+        </div>
+        <div class="cmd-palette-brand">CARGA BALANCE &bull; COMANDOS</div>
       </div>
     </div>
   </div>
