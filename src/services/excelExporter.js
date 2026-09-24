@@ -1,10 +1,12 @@
 const ExcelJS = require('exceljs');
+const { compareDocumentsDesc } = require('./documentService');
 
 /**
  * Generates an executive Excel workbook (.xlsx) with multiple sheets
  * for financial accountability and fiscal auditing (CARGA BALANCE).
  */
 async function generateExcelReport(documents, kpis, filterParams = {}) {
+  const sortedDocs = [...(documents || [])].sort(compareDocumentsDesc);
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'CARGA BALANCE - Auditoria de frete';
   workbook.lastModifiedBy = 'CARGA BALANCE - Auditoria de frete';
@@ -15,12 +17,12 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   const totalComissao75 = parseFloat(kpis.totalComissao75 || (totalFrete * 0.75));
   const margemTransportadora25 = Math.max(0, totalFrete - totalComissao75);
   const totalICMS = parseFloat(kpis.totalICMS || 0);
-  const totalDocs = parseInt(kpis.documentCount || documents.length, 10);
+  const totalDocs = parseInt(kpis.documentCount || sortedDocs.length, 10);
   const totalInterstate = parseInt(kpis.interstateCount || 0, 10);
 
   // Group by driver for payment distribution
   const driverMap = {};
-  documents.forEach((d) => {
+  sortedDocs.forEach((d) => {
     const key = d.motorista_cpf || d.motorista_nome || 'Outros';
     if (!driverMap[key]) {
       const pct = (d.motorista_percentual_comissao !== undefined && d.motorista_percentual_comissao !== null)
@@ -338,7 +340,7 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   });
 
   const startDocs = docHeader.number + 1;
-  documents.forEach((doc, idx) => {
+  sortedDocs.forEach((doc, idx) => {
     const isEven = idx % 2 === 0;
     const formattedDate = doc.data_emissao
       ? new Date(doc.data_emissao).toLocaleDateString('pt-BR')

@@ -30,6 +30,113 @@ let kpiDetailChartB = null;
 
 let freightRepoCache = [];
 
+/**
+ * Safely parses any date string (ISO, Brazilian DD/MM/YYYY, SQLite) into unix timestamp
+ */
+function parseSafeTimestamp(val) {
+  if (!val) return 0;
+  if (val instanceof Date) return isNaN(val.getTime()) ? 0 : val.getTime();
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const str = String(val).trim();
+  if (!str || str === '-') return 0;
+
+  // 1. Direct standard parse
+  let d = new Date(str);
+  if (!isNaN(d.getTime())) return d.getTime();
+
+  // 2. Brazilian format: DD/MM/YYYY or DD/MM/YY with optional HH:mm[:ss]
+  const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (brMatch) {
+    let dia = parseInt(brMatch[1], 10);
+    let mes = parseInt(brMatch[2], 10) - 1;
+    let ano = parseInt(brMatch[3], 10);
+    if (ano < 100) ano += 2000;
+    let hora = brMatch[4] ? parseInt(brMatch[4], 10) : 0;
+    let min = brMatch[5] ? parseInt(brMatch[5], 10) : 0;
+    let seg = brMatch[6] ? parseInt(brMatch[6], 10) : 0;
+    const parsed = new Date(ano, mes, dia, hora, min, seg);
+    if (!isNaN(parsed.getTime())) return parsed.getTime();
+  }
+
+  // 3. SQLite format: YYYY-MM-DD HH:mm:ss
+  const isoSpaceMatch = str.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (isoSpaceMatch) {
+    d = new Date(str.replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  return 0;
+}
+
+/**
+ * Retorna o timestamp do evento principal mais recente de uma linha/viagem
+ * Avalia início (data_saida || data_emissao), previsão/fim (previsao_chegada) e criação
+ */
+function getDocPrimaryTimestamp(doc) {
+  if (!doc) return 0;
+  const tSaida = parseSafeTimestamp(doc.data_saida || doc.data_emissao);
+  const tChegada = parseSafeTimestamp(doc.previsao_chegada);
+  const tEmissao = parseSafeTimestamp(doc.data_emissao);
+  const tCriado = parseSafeTimestamp(doc.criado_em);
+  return Math.max(tSaida, tChegada, tEmissao, tCriado);
+}
+
+/**
+ * Ordenador decrescente (DESC) para listagens e históricos de documentos fiscais e viagens
+ * Critério principal: timestamp do evento mais recente (DESC)
+ * Critério de desempate: saída -> chegada -> emissão -> número do documento
+ */
+function compareDocumentsDesc(a, b) {
+  const timeA = getDocPrimaryTimestamp(a);
+  const timeB = getDocPrimaryTimestamp(b);
+  if (timeB !== timeA) return timeB - timeA;
+
+  const saidaA = parseSafeTimestamp(a.data_saida || a.data_emissao);
+  const saidaB = parseSafeTimestamp(b.data_saida || b.data_emissao);
+  if (saidaB !== saidaA) return saidaB - saidaA;
+
+  const prevA = parseSafeTimestamp(a.previsao_chegada);
+  const prevB = parseSafeTimestamp(b.previsao_chegada);
+  if (prevB !== prevA) return prevB - prevA;
+
+  const numA = parseInt(String(a.numero || 0).replace(/\D/g, ''), 10) || 0;
+  const numB = parseInt(String(b.numero || 0).replace(/\D/g, ''), 10) || 0;
+  if (numB !== numA) return numB - numA;
+
+  return String(b.chave_acesso || b.id || '').localeCompare(String(a.chave_acesso || a.id || ''));
+}
+
+function compareDocumentsAsc(a, b) {
+  return compareDocumentsDesc(b, a);
+}
+
+let docSortDirection = 'desc';
+
+function toggleChronogramSort(viewType = 'overview') {
+  docSortDirection = (docSortDirection === 'desc') ? 'asc' : 'desc';
+  const sortFn = docSortDirection === 'desc' ? compareDocumentsDesc : compareDocumentsAsc;
+  
+  if (viewType === 'overview') {
+    allDocumentsCache.sort(sortFn);
+    renderTable(allDocumentsCache);
+  } else if (viewType === 'cte') {
+    if (typeof loadCTEs === 'function') loadCTEs();
+  } else if (viewType === 'mdfe') {
+    if (typeof loadManifestos === 'function') loadManifestos();
+  }
+  updateSortIndicators();
+  showToast(docSortDirection === 'desc' ? 'Ordenado: Mais recentes no topo (DESC)' : 'Ordenado: Mais antigos no topo (ASC)', 'info');
+}
+window.toggleChronogramSort = toggleChronogramSort;
+
+function updateSortIndicators() {
+  const label = docSortDirection === 'desc' ? '▼ Recente' : '▲ Antigo';
+  ['overview', 'cte', 'mdfe'].forEach(id => {
+    const el = document.getElementById(`sort-indicator-${id}`);
+    if (el) el.textContent = label;
+  });
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -203,9 +310,10 @@ async function fetchAndRenderDocuments() {
       throw new Error(data.error || 'Falha ao buscar documentos.');
     }
 
-    allDocumentsCache = data.items || [];
+    allDocumentsCache = (data.items || []).sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
     renderKPIs(data.kpis);
     renderTable(allDocumentsCache);
+    updateSortIndicators();
     updateMultiIconCounts(allDocumentsCache);
     if (selectedQueryIcons.size > 0) {
       applyMultiIconFilter();
@@ -1098,6 +1206,8 @@ function renderTable(items) {
     return;
   }
 
+  const sortedItems = [...items].sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
+
   const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
   const formatDate = (str) => str ? new Date(str).toLocaleDateString('pt-BR') : '-';
   const formatDateTime = (str) => {
@@ -1112,7 +1222,7 @@ function renderTable(items) {
     }
   };
 
-  tableBody.innerHTML = items.map((doc) => {
+  tableBody.innerHTML = sortedItems.map((doc) => {
     const isCTe = doc.tipo === 'CT-e';
     const badgeClass = isCTe ? 'badge-cte' : 'badge-mdfe';
     const cleanKey = String(doc.chave_acesso).replace(/\D/g, '');
@@ -1217,7 +1327,7 @@ async function loadCTEs() {
   try {
     const res = await fetch('/api/documents?docType=cte');
     const data = await res.json();
-    const ctes = data.items || [];
+    const ctes = (data.items || []).sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
 
     document.getElementById('cte-results-count').textContent = `${ctes.length} CT-es encontrados`;
 
@@ -1317,7 +1427,7 @@ async function loadManifestos() {
   try {
     const res = await fetch('/api/manifestos');
     const data = await res.json();
-    const manifestos = data.manifestos || [];
+    const manifestos = (data.manifestos || []).sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
 
     document.getElementById('manifestos-count').textContent = `${manifestos.length} manifestos cadastrados`;
 
@@ -2468,7 +2578,7 @@ function setupEventListeners() {
                     Nenhuma viagem auditada para os parâmetros selecionados.
                   </td>
                 </tr>
-              ` : docs.map(doc => {
+              ` : [...docs].sort(compareDocumentsDesc).map(doc => {
                 const isCte = (doc.tipo || '').toUpperCase().includes('CT');
                 const val = parseFloat(doc.valor || 0);
                 const icms = parseFloat(doc.valor_icms || 0);
@@ -4751,6 +4861,7 @@ function applyMultiIconFilter() {
     feedbackText.innerHTML = `<strong>${selectedList.length} critério(s) selecionado(s):</strong> [${labelsText}] &bull; <span style="color: #60a5fa; font-weight: 700;">${filtered.length} registro(s) encontrado(s)</span>`;
   }
 
+  filtered.sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
   renderTable(filtered);
 
   // Recalcula os KPIs para o conjunto filtrado

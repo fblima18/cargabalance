@@ -34,6 +34,82 @@ function generateAccessKey(uf = '27', model = '57', serie = 1, numero = 1) {
 }
 
 /**
+ * Safely parses any date string (ISO, Brazilian DD/MM/YYYY, SQLite) into unix timestamp
+ */
+function parseSafeTimestamp(val) {
+  if (!val) return 0;
+  if (val instanceof Date) return isNaN(val.getTime()) ? 0 : val.getTime();
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const str = String(val).trim();
+  if (!str || str === '-') return 0;
+
+  // 1. Direct standard parse
+  let d = new Date(str);
+  if (!isNaN(d.getTime())) return d.getTime();
+
+  // 2. Brazilian format: DD/MM/YYYY or DD/MM/YY with optional HH:mm[:ss]
+  const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (brMatch) {
+    let dia = parseInt(brMatch[1], 10);
+    let mes = parseInt(brMatch[2], 10) - 1;
+    let ano = parseInt(brMatch[3], 10);
+    if (ano < 100) ano += 2000;
+    let hora = brMatch[4] ? parseInt(brMatch[4], 10) : 0;
+    let min = brMatch[5] ? parseInt(brMatch[5], 10) : 0;
+    let seg = brMatch[6] ? parseInt(brMatch[6], 10) : 0;
+    const parsed = new Date(ano, mes, dia, hora, min, seg);
+    if (!isNaN(parsed.getTime())) return parsed.getTime();
+  }
+
+  // 3. SQLite format: YYYY-MM-DD HH:mm:ss
+  const isoSpaceMatch = str.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (isoSpaceMatch) {
+    d = new Date(str.replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  return 0;
+}
+
+/**
+ * Retorna o timestamp do evento principal mais recente de uma linha/viagem
+ * Avalia início (data_saida || data_emissao), previsão/fim (previsao_chegada) e criação
+ */
+function getDocPrimaryTimestamp(doc) {
+  if (!doc) return 0;
+  const tSaida = parseSafeTimestamp(doc.data_saida || doc.data_emissao);
+  const tChegada = parseSafeTimestamp(doc.previsao_chegada);
+  const tEmissao = parseSafeTimestamp(doc.data_emissao);
+  const tCriado = parseSafeTimestamp(doc.criado_em);
+  return Math.max(tSaida, tChegada, tEmissao, tCriado);
+}
+
+/**
+ * Ordenador decrescente (DESC) para listagens e históricos de documentos fiscais e viagens
+ * Critério principal: timestamp do evento mais recente (DESC)
+ * Critério de desempate: saída -> chegada -> emissão -> número do documento
+ */
+function compareDocumentsDesc(a, b) {
+  const timeA = getDocPrimaryTimestamp(a);
+  const timeB = getDocPrimaryTimestamp(b);
+  if (timeB !== timeA) return timeB - timeA;
+
+  const saidaA = parseSafeTimestamp(a.data_saida || a.data_emissao);
+  const saidaB = parseSafeTimestamp(b.data_saida || b.data_emissao);
+  if (saidaB !== saidaA) return saidaB - saidaA;
+
+  const prevA = parseSafeTimestamp(a.previsao_chegada);
+  const prevB = parseSafeTimestamp(b.previsao_chegada);
+  if (prevB !== prevA) return prevB - prevA;
+
+  const numA = parseInt(String(a.numero || 0).replace(/\D/g, ''), 10) || 0;
+  const numB = parseInt(String(b.numero || 0).replace(/\D/g, ''), 10) || 0;
+  if (numB !== numA) return numB - numA;
+
+  return String(b.chave_acesso || b.id || '').localeCompare(String(a.chave_acesso || a.id || ''));
+}
+
+/**
  * Retrieves filtered list of documents (CT-e and MDF-e) with balance and 75% commission metrics
  */
 function getFilteredDocuments(filters = {}) {
@@ -151,7 +227,12 @@ function getFilteredDocuments(filters = {}) {
       cteSql += ` AND (c.interestadual = 1 OR c.uf_origem != c.uf_destino OR (c.uf_origem = 'AL' AND c.uf_destino != 'AL'))`;
     }
 
-    cteSql += ` ORDER BY c.data_emissao DESC`;
+    cteSql += ` ORDER BY MAX(
+      COALESCE(c.data_saida, ''),
+      COALESCE(c.previsao_chegada, ''),
+      COALESCE(c.data_emissao, ''),
+      COALESCE(c.criado_em, '')
+    ) DESC, c.numero DESC`;
     const ctes = queryAll(cteSql, cteParams);
     results.push(...ctes);
   }
@@ -253,13 +334,18 @@ function getFilteredDocuments(filters = {}) {
       }
     }
 
-    mdfeSql += ` ORDER BY mdf.data_emissao DESC`;
+    mdfeSql += ` ORDER BY MAX(
+      COALESCE(mdf.data_saida, ''),
+      COALESCE(mdf.previsao_chegada, ''),
+      COALESCE(mdf.data_emissao, ''),
+      COALESCE(mdf.criado_em, '')
+    ) DESC, mdf.numero DESC`;
     const mdfes = queryAll(mdfeSql, mdfeParams);
     results.push(...mdfes);
   }
 
-  // Sort unified results by date_emissao descending
-  results.sort((a, b) => new Date(b.data_emissao) - new Date(a.data_emissao));
+  // Sort unified results by most recent event timestamp descending (DESC)
+  results.sort(compareDocumentsDesc);
 
   // Compute dynamic KPI metrics
   let totalAmount = 0;
@@ -372,8 +458,14 @@ function getInterstateManifestos(filters = {}) {
     }
   }
 
-  sql += ` ORDER BY mdf.data_emissao DESC`;
+  sql += ` ORDER BY MAX(
+    COALESCE(mdf.data_saida, ''),
+    COALESCE(mdf.previsao_chegada, ''),
+    COALESCE(mdf.data_emissao, ''),
+    COALESCE(mdf.criado_em, '')
+  ) DESC, mdf.numero DESC`;
   const manifestos = queryAll(sql, params);
+  manifestos.sort(compareDocumentsDesc);
 
   return manifestos.map(m => ({
     ...m,
@@ -854,6 +946,9 @@ module.exports = {
   getInterstateManifestos,
   getDocumentByKey,
   createManualTrip,
-  deleteDocument
+  deleteDocument,
+  parseSafeTimestamp,
+  getDocPrimaryTimestamp,
+  compareDocumentsDesc
 };
 

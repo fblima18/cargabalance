@@ -595,7 +595,9 @@
                 <th style="text-align: center;">Ações</th>
                 <th>Número</th>
                 <th>Série</th>
-                <th>Cronograma (Saída / Prev. Chegada)</th>
+                <th style="cursor: pointer; user-select: none;" onclick="toggleChronogramSort('overview')" title="Clique para inverter a ordenação das viagens (Mais recente / Mais antigo)">
+                  Cronograma (Saída / Prev. Chegada) <span id="sort-indicator-overview" style="display: inline-block; padding: 1px 6px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; color: #38bdf8; font-size: 0.675rem; font-weight: 700; margin-left: 4px;">▼ Recente</span>
+                </th>
                 <th>Motorista</th>
                 <th>CPF</th>
                 <th>Empresas (Remetente ➔ Recebedor)</th>
@@ -687,7 +689,9 @@
               <tr>
                 <th>Número</th>
                 <th>Série</th>
-                <th>Cronograma (Saída / Prev. Chegada)</th>
+                <th style="cursor: pointer; user-select: none;" onclick="toggleChronogramSort('cte')" title="Clique para inverter a ordenação das viagens (Mais recente / Mais antigo)">
+                  Cronograma (Saída / Prev. Chegada) <span id="sort-indicator-cte" style="display: inline-block; padding: 1px 6px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; color: #38bdf8; font-size: 0.675rem; font-weight: 700; margin-left: 4px;">▼ Recente</span>
+                </th>
                 <th>Motorista</th>
                 <th>Empresas (Remetente ➔ Recebedor)</th>
                 <th>Rota & Percurso</th>
@@ -737,7 +741,9 @@
               <tr>
                 <th>Nº MDF-e</th>
                 <th>Série</th>
-                <th>Cronograma (Saída / Prev. Chegada)</th>
+                <th style="cursor: pointer; user-select: none;" onclick="toggleChronogramSort('mdfe')" title="Clique para inverter a ordenação das viagens (Mais recente / Mais antigo)">
+                  Cronograma (Saída / Prev. Chegada) <span id="sort-indicator-mdfe" style="display: inline-block; padding: 1px 6px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; color: #38bdf8; font-size: 0.675rem; font-weight: 700; margin-left: 4px;">▼ Recente</span>
+                </th>
                 <th>Motorista</th>
                 <th>Empresas (Remetente ➔ Recebedor)</th>
                 <th>Placas (Tração / Reboque)</th>

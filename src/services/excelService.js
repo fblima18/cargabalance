@@ -4,6 +4,7 @@
  */
 
 const ExcelJS = require('exceljs');
+const { compareDocumentsDesc } = require('./documentService');
 
 /**
  * Formats date string into Brazilian format DD/MM/YYYY HH:mm
@@ -108,9 +109,10 @@ async function generateAuditExcel(documents, kpis, filterInfo = {}) {
     };
   });
 
-  // Populate Data Rows
+  // Populate Data Rows (Descending by most recent movement/timestamp)
+  const sortedDocs = [...(documents || [])].sort(compareDocumentsDesc);
   let currentRow = 7;
-  for (const doc of documents) {
+  for (const doc of sortedDocs) {
     const row = sheet.getRow(currentRow);
     const origem = doc.cidade_origem ? `${doc.cidade_origem}/${doc.uf_origem}` : doc.uf_origem;
     const destino = doc.cidade_destino ? `${doc.cidade_destino}/${doc.uf_destino}` : doc.uf_destino;
