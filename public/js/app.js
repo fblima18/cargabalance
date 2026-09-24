@@ -1743,7 +1743,288 @@ function setupEventListeners() {
   if (overviewExportPdf) overviewExportPdf.addEventListener('click', () => openFinancialReportModal());
 
   window.printFinancialReport = function() {
-    window.print();
+    const reportSheet = document.getElementById('financial-report-print-area') || document.getElementById('financial-report-content');
+    if (!reportSheet) {
+      showToast('Conteúdo do relatório ainda não carregado.', 'warning');
+      return;
+    }
+
+    // Cria ou reutiliza iframe oculto dedicado para impressão 100% isolada e compatível
+    let printFrame = document.getElementById('print-report-iframe');
+    if (!printFrame) {
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'print-report-iframe';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      printFrame.style.visibility = 'hidden';
+      document.body.appendChild(printFrame);
+    }
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Prestação de Contas - Setor Financeiro | CARGA BALANCE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 8mm 6mm 8mm 6mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+    .fin-report-sheet {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      padding: 0 !important;
+      width: 100% !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+    .fin-report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #0f172a;
+      margin-bottom: 10px;
+    }
+    .fin-brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .fin-brand-subtitle {
+      font-size: 11px;
+      color: #1e293b;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .fin-report-meta-box {
+      text-align: right;
+      font-size: 9.5px;
+      color: #475569;
+    }
+    .fin-report-meta-box strong {
+      color: #0f172a;
+    }
+    .fin-status-stamp {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #ecfdf5 !important;
+      color: #047857 !important;
+      border: 1px solid #a7f3d0;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 8.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .fin-kpi-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .fin-kpi-card {
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc !important;
+    }
+    .fin-kpi-card.blue { border-left: 4px solid #2563eb !important; }
+    .fin-kpi-card.green { border-left: 4px solid #059669 !important; }
+    .fin-kpi-card.amber { border-left: 4px solid #d97706 !important; }
+    .fin-kpi-card.purple { border-left: 4px solid #7c3aed !important; }
+    .fin-kpi-title {
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+    .fin-kpi-val {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .fin-kpi-card.blue .fin-kpi-val { color: #1d4ed8 !important; }
+    .fin-kpi-card.green .fin-kpi-val { color: #047857 !important; }
+    .fin-kpi-card.amber .fin-kpi-val { color: #b45309 !important; }
+    .fin-kpi-desc {
+      font-size: 8.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .fin-sec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a !important;
+      color: #ffffff !important;
+      padding: 5px 8px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 10px 0 5px 0;
+    }
+    .fin-sec-header.green { background: #065f46 !important; }
+    .fin-sec-header.blue { background: #1e3a8a !important; }
+    table.fin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+      margin-bottom: 8px;
+    }
+    table.fin-table th {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+      font-weight: 700;
+      text-align: left;
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 8.5px;
+      text-transform: uppercase;
+    }
+    table.fin-table td {
+      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+    table.fin-table tr:nth-child(even) td {
+      background: #f8fafc !important;
+    }
+    table.fin-table tr.total-row td {
+      background: #e2e8f0 !important;
+      font-weight: 800;
+      color: #0f172a;
+      border-top: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+    }
+    .text-right { text-align: right !important; }
+    .text-center { text-align: center !important; }
+    .fin-badge-cte { color: #0d9488 !important; font-weight: 700; }
+    .fin-badge-mdfe { color: #6366f1 !important; font-weight: 700; }
+    .fin-signatures-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed #94a3b8;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .fin-sign-col { text-align: center; }
+    .fin-sign-line {
+      border-bottom: 1px solid #0f172a;
+      margin-bottom: 4px;
+      height: 22px;
+    }
+    .fin-sign-role {
+      font-weight: 700;
+      font-size: 9px;
+      color: #0f172a;
+    }
+    .fin-sign-dept {
+      font-size: 8px;
+      color: #475569;
+    }
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .no-print {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  ${reportSheet.outerHTML}
+</body>
+</html>`;
+
+    const frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+    const doc = frameDoc.document || frameDoc;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+    }, 300);
+  };
+
+  window.printDacte = function() {
+    const dacteSheet = document.getElementById('modal-dacte-content');
+    if (!dacteSheet) {
+      window.print();
+      return;
+    }
+    let printFrame = document.getElementById('print-report-iframe');
+    if (!printFrame) {
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'print-report-iframe';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      printFrame.style.visibility = 'hidden';
+      document.body.appendChild(printFrame);
+    }
+    const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Documento Fiscal Auxiliar | CARGA BALANCE</title>
+  <style>
+    @page { size: A4 portrait; margin: 6mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { margin: 0; padding: 0; background: #fff; font-family: monospace, sans-serif; font-size: 11px; }
+    .dacte-sheet { width: 100%; border: 1px solid #000; padding: 4px; }
+    .no-print { display: none !important; }
+  </style>
+</head>
+<body>
+  ${dacteSheet.innerHTML}
+</body>
+</html>`;
+    const frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+    const doc = frameDoc.document || frameDoc;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+    setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+    }, 300);
   };
 
   window.openFinancialReportModal = async function() {
