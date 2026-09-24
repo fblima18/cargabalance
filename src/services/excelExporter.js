@@ -15,9 +15,9 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   });
 
   // 1. Title Banner
-  worksheet.mergeCells('A1:L1');
+  worksheet.mergeCells('A1:S1');
   const titleCell = worksheet.getCell('A1');
-  titleCell.value = 'CARGA BALANCE - AUDITORIA DE FRETE (CT-e / MDF-e & COMISSÕES 75%)';
+  titleCell.value = 'CARGA BALANCE - AUDITORIA DE FRETE (EMPRESAS, ROTAS, CRONOGRAMA & COMISSÕES 75%)';
   titleCell.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.fill = {
@@ -29,7 +29,7 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
 
   // 2. Metadata / Filter Summary
   const periodText = `Período: ${filterParams.startDate || 'Início'} até ${filterParams.endDate || 'Fim'} | Tipo: ${filterParams.docType ? filterParams.docType.toUpperCase() : 'TODOS'} | Data Emissão: ${new Date().toLocaleString('pt-BR')}`;
-  worksheet.mergeCells('A2:L2');
+  worksheet.mergeCells('A2:S2');
   const metaCell = worksheet.getCell('A2');
   metaCell.value = periodText;
   metaCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
@@ -49,8 +49,7 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
     kpis.totalComissao75 || 0,
     'Viagens Interestaduais:',
     kpis.interstateCount || 0,
-    '',
-    ''
+    '', '', '', '', '', '', '', '', ''
   ]);
   kpiRow.font = { bold: true, size: 10 };
   kpiRow.height = 24;
@@ -67,8 +66,15 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
     'Chave de Acesso',
     'Data Emissão',
     'Motorista',
-    'CPF',
+    'CPF Motorista',
+    'Empresa Remetente',
+    'CNPJ Remetente',
+    'Empresa Recebedora / Dest.',
+    'CNPJ Destinatário',
     'Origem -> Destino',
+    'UFs Percurso (MDF-e)',
+    'Data/Hora Saída',
+    'Prev. Chegada Destino',
     'Interestadual',
     'Valor Frete/Carga (R$)',
     'ICMS (R$)',
@@ -100,6 +106,16 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
       ? new Date(doc.data_emissao).toLocaleDateString('pt-BR')
       : '-';
 
+    const formatDt = (dt) => {
+      if (!dt) return '-';
+      try {
+        const d = new Date(dt);
+        return isNaN(d.getTime()) ? dt : d.toLocaleString('pt-BR');
+      } catch {
+        return dt;
+      }
+    };
+
     const isInterstate = doc.interestadual === 1 || doc.uf_origem !== doc.uf_destino ? 'SIM' : 'NÃO';
 
     const row = worksheet.addRow([
@@ -110,7 +126,14 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
       formattedDate,
       doc.motorista_nome,
       doc.motorista_cpf,
+      doc.remetente_nome || 'Não Informado',
+      doc.remetente_cnpj || '-',
+      doc.destinatario_nome || 'Não Informado',
+      doc.destinatario_cnpj || '-',
       `${doc.origem} -> ${doc.destino}`,
+      doc.ufs_percurso || (isInterstate === 'SIM' ? 'PE' : '-'),
+      formatDt(doc.data_saida),
+      formatDt(doc.previsao_chegada),
       isInterstate,
       parseFloat(doc.valor || 0),
       parseFloat(doc.valor_icms || 0),
@@ -137,9 +160,10 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
       }
 
       // Column alignments
-      if ([1, 2, 3, 5, 7, 9].includes(colNumber)) {
+      // 1: Tipo, 2: Num, 3: Serie, 5: DataEmi, 7: CPF, 9: CNPJ Rem, 11: CNPJ Dest, 13: UFs, 14: Saida, 15: Chegada, 16: Inter
+      if ([1, 2, 3, 5, 7, 9, 11, 13, 14, 15, 16].includes(colNumber)) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      } else if ([10, 11, 12].includes(colNumber)) {
+      } else if ([17, 18, 19].includes(colNumber)) {
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
         cell.numFmt = '"R$" #,##0.00';
       } else {
@@ -156,7 +180,7 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
       }
 
       // Commission highlight
-      if (colNumber === 12) {
+      if (colNumber === 19) {
         cell.font = { bold: true, color: { argb: 'FF059669' } }; // Green
       }
     });
@@ -169,16 +193,11 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
     const totalRow = worksheet.addRow([
       'TOTALIZAÇÃO',
       { formula: `COUNT(B${startDataRow}:B${endDataRow})` },
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
+      '', '', '', '', '', '', '', '', '', '', '', '', '',
       'TOTAIS:',
-      { formula: `SUM(J${startDataRow}:J${endDataRow})` },
-      { formula: `SUM(K${startDataRow}:K${endDataRow})` },
-      { formula: `SUM(L${startDataRow}:L${endDataRow})` }
+      { formula: `SUM(Q${startDataRow}:Q${endDataRow})` },
+      { formula: `SUM(R${startDataRow}:R${endDataRow})` },
+      { formula: `SUM(S${startDataRow}:S${endDataRow})` }
     ]);
     totalRow.height = 25;
 
@@ -196,10 +215,10 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
         right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
       };
 
-      if ([10, 11, 12].includes(colNumber)) {
+      if ([17, 18, 19].includes(colNumber)) {
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
         cell.numFmt = '"R$" #,##0.00';
-      } else if ([1, 2, 9].includes(colNumber)) {
+      } else if ([1, 2, 16].includes(colNumber)) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       }
     });
@@ -218,7 +237,9 @@ async function generateExcelReport(documents, kpis, filterParams = {}) {
   });
 
   worksheet.getColumn(4).width = 46; // Chave de acesso
-  worksheet.getColumn(12).width = 24; // Comissão 75%
+  worksheet.getColumn(8).width = 28; // Remetente
+  worksheet.getColumn(10).width = 28; // Destinatário
+  worksheet.getColumn(19).width = 24; // Comissão 75%
 
   return await workbook.xlsx.writeBuffer();
 }

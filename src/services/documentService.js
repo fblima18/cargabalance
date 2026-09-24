@@ -66,6 +66,13 @@ function getFilteredDocuments(filters = {}) {
         (c.cidade_destino || '/' || c.uf_destino) AS destino,
         c.cidade_destino,
         c.uf_destino,
+        c.ufs_percurso,
+        c.remetente_nome,
+        c.remetente_cnpj,
+        c.destinatario_nome,
+        c.destinatario_cnpj,
+        c.data_saida,
+        c.previsao_chegada,
         c.valor_frete AS valor,
         COALESCE(c.valor_icms, 0.0) AS valor_icms,
         COALESCE(c.valor_impostos_total, 0.0) AS valor_impostos_total,
@@ -112,10 +119,10 @@ function getFilteredDocuments(filters = {}) {
         cteSql += ` AND (c.chave_acesso LIKE ? OR CAST(c.numero AS TEXT) LIKE ?)`;
         cteParams.push(term, term);
       } else if (searchType === 'route') {
-        cteSql += ` AND (c.cidade_origem LIKE ? OR c.uf_origem LIKE ? OR c.cidade_destino LIKE ? OR c.uf_destino LIKE ? OR (c.cidade_origem || ' ' || c.cidade_destino) LIKE ? OR (c.cidade_origem || '/' || c.uf_origem || ' - ' || c.cidade_destino || '/' || c.uf_destino) LIKE ?)`;
-        cteParams.push(term, term, term, term, term, term);
+        cteSql += ` AND (c.cidade_origem LIKE ? OR c.uf_origem LIKE ? OR c.cidade_destino LIKE ? OR c.uf_destino LIKE ? OR c.ufs_percurso LIKE ? OR (c.cidade_origem || ' ' || c.cidade_destino) LIKE ? OR (c.cidade_origem || '/' || c.uf_origem || ' - ' || c.cidade_destino || '/' || c.uf_destino) LIKE ?)`;
+        cteParams.push(term, term, term, term, term, term, term);
       } else {
-        // 'all': matches across Driver, CT-e, or Route
+        // 'all': matches across Driver, CT-e, Route, or Companies
         cteSql += ` AND (
           c.chave_acesso LIKE ? 
           OR CAST(c.numero AS TEXT) LIKE ? 
@@ -125,9 +132,14 @@ function getFilteredDocuments(filters = {}) {
           OR c.uf_origem LIKE ? 
           OR c.cidade_destino LIKE ? 
           OR c.uf_destino LIKE ? 
+          OR c.ufs_percurso LIKE ?
+          OR c.remetente_nome LIKE ?
+          OR c.destinatario_nome LIKE ?
+          OR c.remetente_cnpj LIKE ?
+          OR c.destinatario_cnpj LIKE ?
           OR (c.cidade_origem || ' ' || c.cidade_destino) LIKE ?
         )`;
-        cteParams.push(term, term, term, term, term, term, term, term, term);
+        cteParams.push(term, term, term, term, term, term, term, term, term, term, term, term, term, term);
       }
     }
     if (interstateOnly === 'true' || interstateOnly === true || interstateOnly === '1') {
@@ -155,6 +167,12 @@ function getFilteredDocuments(filters = {}) {
         mdf.uf_destino AS destino,
         '' AS cidade_destino,
         mdf.uf_destino,
+        mdf.remetente_nome,
+        mdf.remetente_cnpj,
+        mdf.destinatario_nome,
+        mdf.destinatario_cnpj,
+        mdf.data_saida,
+        mdf.previsao_chegada,
         mdf.valor_total_carga AS valor,
         0.0 AS valor_icms,
         0.0 AS valor_impostos_total,
@@ -216,8 +234,12 @@ function getFilteredDocuments(filters = {}) {
           OR mdf.uf_origem LIKE ?
           OR mdf.uf_destino LIKE ?
           OR mdf.ufs_percurso LIKE ?
+          OR mdf.remetente_nome LIKE ?
+          OR mdf.destinatario_nome LIKE ?
+          OR mdf.remetente_cnpj LIKE ?
+          OR mdf.destinatario_cnpj LIKE ?
         )`;
-        mdfeParams.push(term, term, term, term, term, term, term);
+        mdfeParams.push(term, term, term, term, term, term, term, term, term, term, term);
       }
     }
 
@@ -414,6 +436,12 @@ function createManualTrip(data) {
     uf_origem = 'AL',
     cidade_destino = 'Juazeiro do Norte',
     uf_destino = 'CE',
+    remetente_nome = 'CARAJAS MATERIAL DE CONSTRUCAO LTDA',
+    remetente_cnpj = '03.656.804/0007-27',
+    destinatario_nome = 'CARAJAS - FIL JUAZEIRO DO NORTE',
+    destinatario_cnpj = '03.656.804/0016-18',
+    data_saida,
+    previsao_chegada,
     valor_frete = 0,
     aliquota_icms = 12.0,
     valor_icms: customValorIcms,
@@ -441,6 +469,15 @@ function createManualTrip(data) {
   const docSerie = parseInt(serie, 10) || (tipo === 'CT-e' ? 1 : 3);
   const docDate = data_emissao ? new Date(data_emissao).toISOString() : new Date().toISOString();
   const id = crypto.randomUUID();
+
+  // Departure and arrival dates
+  const dataSaidaReal = data_saida ? new Date(data_saida).toISOString() : docDate;
+  let previsaoChegadaReal = previsao_chegada ? new Date(previsao_chegada).toISOString() : null;
+  if (!previsaoChegadaReal) {
+    const d = new Date(dataSaidaReal);
+    d.setHours(d.getHours() + (uf_origem !== uf_destino ? 36 : 14));
+    previsaoChegadaReal = d.toISOString();
+  }
 
   // Model 57 for CT-e, 58 for MDF-e
   const model = tipo === 'CT-e' ? '57' : '58';
@@ -477,15 +514,24 @@ function createManualTrip(data) {
         uf: uf_origem
       },
       remetente: {
-        razao_social: 'INDUSTRIA E COMERCIO MATRIZ',
+        nome: remetente_nome,
+        razao_social: remetente_nome,
+        cnpj_cpf: remetente_cnpj,
         municipio: cidade_origem,
         uf: uf_origem
       },
       destinatario: {
-        razao_social: 'DISTRIBUIDORA REGIONAL DE CARGAS',
+        nome: destinatario_nome,
+        razao_social: destinatario_nome,
+        cnpj_cpf: destinatario_cnpj,
         municipio: cidade_destino,
         uf: uf_destino
       },
+      cronograma: {
+        dataSaida: dataSaidaReal,
+        previsaoChegada: previsaoChegadaReal
+      },
+      ufsPercurso: ufs_percurso,
       veiculo: {
         placa_tracao,
         placa_reboque
@@ -507,6 +553,7 @@ function createManualTrip(data) {
         <serie>${docSerie}</serie>
         <nCT>${docNumero}</nCT>
         <dhEmi>${docDate}</dhEmi>
+        <dhSaiEnt>${dataSaidaReal}</dhSaiEnt>
         <tpImp>1</tpImp>
         <tpEmis>1</tpEmis>
         <cDV>${chaveAcesso.slice(-1)}</cDV>
@@ -527,8 +574,8 @@ function createManualTrip(data) {
         <xNome>AUTO VIACAO TRANSPORTE LTDA</xNome>
         <xFant>CARGA BALANCE</xFant>
       </emit>
-      <rem><CNPJ>00000000000191</CNPJ><xNome>EMBARCADOR MATRIZ</xNome></rem>
-      <dest><CNPJ>99999999000199</CNPJ><xNome>CLIENTE DESTINATARIO</xNome></dest>
+      <rem><CNPJ>${remetente_cnpj.replace(/\D/g, '') || '03656804000727'}</CNPJ><xNome>${remetente_nome}</xNome></rem>
+      <dest><CNPJ>${destinatario_cnpj.replace(/\D/g, '') || '03656804001618'}</CNPJ><xNome>${destinatario_nome}</xNome></dest>
       <vPrest>
         <vTPrest>${frete.toFixed(2)}</vTPrest>
         <vRec>${frete.toFixed(2)}</vRec>
@@ -554,9 +601,11 @@ function createManualTrip(data) {
       INSERT INTO conhecimentos_cte (
         id, motorista_id, chave_acesso, numero, serie, data_emissao,
         cidade_origem, uf_origem, cidade_destino, uf_destino,
+        ufs_percurso, remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
         valor_frete, valor_icms, valor_impostos_total, valor_comissao_motorista,
         interestadual, caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
       motorista_id,
@@ -568,6 +617,13 @@ function createManualTrip(data) {
       uf_origem,
       cidade_destino,
       uf_destino,
+      ufs_percurso,
+      remetente_nome,
+      remetente_cnpj,
+      destinatario_nome,
+      destinatario_cnpj,
+      dataSaidaReal,
+      previsaoChegadaReal,
       frete,
       valorIcms,
       valorIcms,
@@ -585,6 +641,11 @@ function createManualTrip(data) {
       numero: docNumero,
       motorista_nome: driver.nome,
       motorista_cpf: driver.cpf,
+      remetente_nome,
+      destinatario_nome,
+      data_saida: dataSaidaReal,
+      previsao_chegada: previsaoChegadaReal,
+      ufs_percurso,
       valor_frete: frete,
       valor_icms: valorIcms,
       valor_comissao: valorComissao,
@@ -605,6 +666,19 @@ function createManualTrip(data) {
         municipio: cidade_origem || 'Rio Largo',
         uf: uf_origem
       },
+      remetente: {
+        nome: remetente_nome,
+        cnpj: remetente_cnpj
+      },
+      destinatario: {
+        nome: destinatario_nome,
+        cnpj: destinatario_cnpj
+      },
+      cronograma: {
+        dataSaida: dataSaidaReal,
+        previsaoChegada: previsaoChegadaReal
+      },
+      ufsPercurso: ufs_percurso,
       veiculo: {
         placa_tracao,
         placa_reboque,
@@ -626,8 +700,10 @@ function createManualTrip(data) {
         <serie>${docSerie}</serie>
         <nMDF>${docNumero}</nMDF>
         <dhEmi>${docDate}</dhEmi>
+        <dhIniViagem>${dataSaidaReal}</dhIniViagem>
         <UFIni>${uf_origem}</UFIni>
         <UFFim>${uf_destino}</UFFim>
+        <infPercurso><UFPer>${ufs_percurso || 'PE'}</UFPer></infPercurso>
       </ide>
       <emit>
         <CNPJ>20664328000110</CNPJ>
@@ -662,9 +738,12 @@ function createManualTrip(data) {
     execute(`
       INSERT INTO manifestos_mdfe (
         id, chave_acesso, numero, serie, data_emissao,
-        uf_origem, uf_destino, ufs_percurso, placa_tracao, placa_reboque,
+        uf_origem, uf_destino, ufs_percurso,
+        remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
+        placa_tracao, placa_reboque,
         peso_bruto, motorista_id, valor_total_carga, caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
       chaveAcesso,
@@ -674,6 +753,12 @@ function createManualTrip(data) {
       uf_origem,
       uf_destino,
       ufs_percurso,
+      remetente_nome,
+      remetente_cnpj,
+      destinatario_nome,
+      destinatario_cnpj,
+      dataSaidaReal,
+      previsaoChegadaReal,
       placa_tracao,
       placa_reboque,
       peso,
@@ -691,6 +776,11 @@ function createManualTrip(data) {
       numero: docNumero,
       motorista_nome: driver.nome,
       motorista_cpf: driver.cpf,
+      remetente_nome,
+      destinatario_nome,
+      data_saida: dataSaidaReal,
+      previsao_chegada: previsaoChegadaReal,
+      ufs_percurso,
       valor_total_carga: valorCarga,
       origem: uf_origem,
       destino: uf_destino,

@@ -221,7 +221,7 @@ function renderTable(items) {
   if (!items || items.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <td colspan="13" style="text-align: center; padding: 3rem; color: var(--text-muted);">
           Nenhum documento encontrado para os filtros selecionados.
         </td>
       </tr>
@@ -231,6 +231,17 @@ function renderTable(items) {
 
   const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
   const formatDate = (str) => str ? new Date(str).toLocaleDateString('pt-BR') : '-';
+  const formatDateTime = (str) => {
+    if (!str) return '-';
+    try {
+      const d = new Date(str);
+      if (isNaN(d.getTime())) return str;
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+        d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return str;
+    }
+  };
 
   tableBody.innerHTML = items.map((doc) => {
     const isCTe = doc.tipo === 'CT-e';
@@ -278,12 +289,36 @@ function renderTable(items) {
         </td>
         <td style="font-weight: 700; color: ${isCTe ? '#059669' : '#7c3aed'};">${doc.numero}</td>
         <td>${doc.serie}</td>
-        <td>${formatDate(doc.data_emissao)}</td>
+        <td>
+          <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
+            <div style="color: #38bdf8; font-weight: 600;" title="Data e Hora de Saída">
+              🛫 ${formatDateTime(doc.data_saida || doc.data_emissao)}
+            </div>
+            <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;" title="Previsão de Chegada no Destino Final">
+              🛬 ${formatDateTime(doc.previsao_chegada)}
+            </div>
+          </div>
+        </td>
         <td style="font-weight: 600;">${doc.motorista_nome}</td>
         <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${doc.motorista_cpf}</td>
         <td>
+          <div style="font-size: 0.775rem; line-height: 1.35; max-width: 250px;">
+            <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${doc.remetente_nome || 'Remetente não informado'} (${doc.remetente_cnpj || ''})">
+              📤 <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${doc.remetente_nome || 'Empresa Remetente'}
+            </div>
+            <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora/Destinatária: ${doc.destinatario_nome || 'Destinatário não informado'} (${doc.destinatario_cnpj || ''})">
+              📥 <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${doc.destinatario_nome || 'Empresa Recebedora'}
+            </div>
+            ${(doc.remetente_cnpj || doc.destinatario_cnpj) ? `<div style="font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px;">CNPJ: ${doc.remetente_cnpj || '-'} ➔ ${doc.destinatario_cnpj || '-'}</div>` : ''}
+          </div>
+        </td>
+        <td>
           <span style="font-weight: 600;">${doc.destino}</span>
           ${doc.origem ? `<br><small style="color: var(--text-muted);">${doc.origem}</small>` : ''}
+          ${(doc.ufs_percurso || (!isCTe && isInterstate))
+            ? `<div style="margin-top: 4px;"><span class="badge-interstate" style="background: rgba(139, 92, 246, 0.18); border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd; font-size: 0.68rem; font-weight: 700;" title="Estados que o veículo fará no trajeto">🛣️ Percurso: ${doc.ufs_percurso || 'PE'}</span></div>`
+            : ''
+          }
         </td>
         <td style="text-align: center;">
           ${isInterstate 
@@ -308,7 +343,7 @@ function renderTable(items) {
  */
 async function loadCTEs() {
   const tableBody = document.getElementById('ctes-table-body');
-  tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem;">Carregando CT-es...</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem;">Carregando CT-es...</td></tr>`;
 
   try {
     const res = await fetch('/api/documents?docType=cte');
@@ -318,12 +353,22 @@ async function loadCTEs() {
     document.getElementById('cte-results-count').textContent = `${ctes.length} CT-es encontrados`;
 
     if (ctes.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum CT-e registrado.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum CT-e registrado.</td></tr>`;
       return;
     }
 
     const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-    const formatDate = (str) => str ? new Date(str).toLocaleDateString('pt-BR') : '-';
+    const formatDateTime = (str) => {
+      if (!str) return '-';
+      try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return str;
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+          d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        return str;
+      }
+    };
 
     tableBody.innerHTML = ctes.map((c) => {
       const cleanKey = String(c.chave_acesso).replace(/\D/g, '');
@@ -331,11 +376,30 @@ async function loadCTEs() {
         <tr>
           <td style="font-weight: 700; color: #38bdf8;">${c.numero}</td>
           <td>${c.serie}</td>
-          <td>${formatDate(c.data_emissao)}</td>
-          <td style="font-weight: 600;">${c.motorista_nome}</td>
-          <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${c.motorista_cpf}</td>
-          <td>${c.origem}</td>
-          <td style="font-weight: 600;">${c.destino}</td>
+          <td>
+            <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
+              <div style="color: #38bdf8; font-weight: 600;">🛫 ${formatDateTime(c.data_saida || c.data_emissao)}</div>
+              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;">🛬 ${formatDateTime(c.previsao_chegada)}</div>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 600;">${c.motorista_nome}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.725rem; color: var(--text-muted);">${c.motorista_cpf}</div>
+          </td>
+          <td>
+            <div style="font-size: 0.775rem; line-height: 1.35; max-width: 220px;">
+              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${c.remetente_nome || ''}">
+                📤 Rem: ${c.remetente_nome || 'Não informado'}
+              </div>
+              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora: ${c.destinatario_nome || ''}">
+                📥 Rec: ${c.destinatario_nome || 'Não informado'}
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="font-weight: 600;">${c.origem} ➔ ${c.destino}</span>
+            ${c.ufs_percurso ? `<div style="margin-top: 3px;"><span class="badge-interstate" style="font-size: 0.68rem;">🛣️ Percurso: ${c.ufs_percurso}</span></div>` : ''}
+          </td>
           <td class="currency-cell">${formatBRL(c.valor)}</td>
           <td style="text-align: right; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
             ${formatBRL(c.valor_icms)}
@@ -370,7 +434,7 @@ async function loadCTEs() {
       `;
     }).join('');
   } catch (err) {
-    tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro: ${err.message}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro: ${err.message}</td></tr>`;
   }
 }
 
@@ -379,7 +443,7 @@ async function loadCTEs() {
  */
 async function loadManifestos() {
   const tableBody = document.getElementById('manifestos-table-body');
-  tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem;">Carregando manifestos interestaduais...</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 2rem;">Carregando manifestos interestaduais...</td></tr>`;
 
   try {
     const res = await fetch('/api/manifestos');
@@ -389,12 +453,22 @@ async function loadManifestos() {
     document.getElementById('manifestos-count').textContent = `${manifestos.length} manifestos cadastrados`;
 
     if (manifestos.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum manifesto interestadual encontrado.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted);">Nenhum manifesto interestadual encontrado.</td></tr>`;
       return;
     }
 
     const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-    const formatDate = (str) => str ? new Date(str).toLocaleDateString('pt-BR') : '-';
+    const formatDateTime = (str) => {
+      if (!str) return '-';
+      try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return str;
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+          d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        return str;
+      }
+    };
 
     tableBody.innerHTML = manifestos.map((m) => {
       const cleanKey = String(m.chave_acesso).replace(/\D/g, '');
@@ -404,11 +478,30 @@ async function loadManifestos() {
         <tr>
           <td style="font-weight: 700; color: #a78bfa;">${m.numero}</td>
           <td>${m.serie}</td>
-          <td>${formatDate(m.data_emissao)}</td>
+          <td>
+            <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
+              <div style="color: #38bdf8; font-weight: 600;">🛫 ${formatDateTime(m.data_saida || m.data_emissao)}</div>
+              <div style="color: #fbbf24; font-weight: 600; margin-top: 2px;">🛬 ${formatDateTime(m.previsao_chegada)}</div>
+            </div>
+          </td>
           <td style="font-weight: 600;">${m.motorista_nome}</td>
+          <td>
+            <div style="font-size: 0.775rem; line-height: 1.35; max-width: 200px;">
+              <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Remetente: ${m.remetente_nome || ''}">
+                📤 Rem: ${m.remetente_nome || 'Não informado'}
+              </div>
+              <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="Recebedora: ${m.destinatario_nome || ''}">
+                📥 Rec: ${m.destinatario_nome || 'Não informado'}
+              </div>
+            </div>
+          </td>
           <td><span style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">${placas}</span></td>
           <td style="font-weight: 600;">${m.uf_origem} -> ${m.uf_destino}</td>
-          <td><span class="badge-interstate">${m.ufs_percurso || 'PE'}</span></td>
+          <td>
+            <span class="badge-interstate" style="background: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.5); color: #c4b5fd; font-weight: 700; font-size: 0.75rem;">
+              ${m.uf_origem} ➔ ${m.ufs_percurso || 'PE'} ➔ ${m.uf_destino}
+            </span>
+          </td>
           <td style="text-align: center; font-weight: 700;">${m.total_ctes_vinculados || 1}</td>
           <td style="text-align: right; font-family: 'JetBrains Mono', monospace;">${Number(m.peso_bruto || 10384).toLocaleString('pt-BR')} kg</td>
           <td class="currency-cell" style="color: #c4b5fd;">${formatBRL(m.valor_total_carga)}</td>
@@ -439,7 +532,7 @@ async function loadManifestos() {
       `;
     }).join('');
   } catch (err) {
-    tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro: ${err.message}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; color: var(--accent-rose); padding: 2rem;">Erro: ${err.message}</td></tr>`;
   }
 }
 
@@ -1518,6 +1611,20 @@ function openManualTripModal() {
   // Suggest today's date
   document.getElementById('manual-trip-data').value = new Date().toISOString().slice(0, 10);
 
+  // Suggest default trip timeline: departure now, arrival +36h
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatIsoForInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  
+  const saidaInput = document.getElementById('manual-trip-data-saida');
+  if (saidaInput && !saidaInput.value) saidaInput.value = formatIsoForInput(now);
+  
+  const chegadaInput = document.getElementById('manual-trip-previsao-chegada');
+  if (chegadaInput && !chegadaInput.value) {
+    const arrival = new Date(now.getTime() + 36 * 3600 * 1000);
+    chegadaInput.value = formatIsoForInput(arrival);
+  }
+
   // Suggest default document number
   const nextNum = Math.floor(3200 + Math.random() * 50);
   document.getElementById('manual-trip-numero').value = nextNum;
@@ -1603,7 +1710,13 @@ async function saveManualTrip(e) {
     peso_bruto: document.getElementById('manual-trip-peso').value,
     placa_tracao: document.getElementById('manual-trip-placa-tracao').value,
     placa_reboque: document.getElementById('manual-trip-placa-reboque').value,
-    ufs_percurso: document.getElementById('manual-trip-percurso').value
+    ufs_percurso: document.getElementById('manual-trip-percurso') ? document.getElementById('manual-trip-percurso').value : '',
+    remetente_nome: document.getElementById('manual-trip-remetente-nome') ? document.getElementById('manual-trip-remetente-nome').value : '',
+    remetente_cnpj: document.getElementById('manual-trip-remetente-cnpj') ? document.getElementById('manual-trip-remetente-cnpj').value : '',
+    destinatario_nome: document.getElementById('manual-trip-destinatario-nome') ? document.getElementById('manual-trip-destinatario-nome').value : '',
+    destinatario_cnpj: document.getElementById('manual-trip-destinatario-cnpj') ? document.getElementById('manual-trip-destinatario-cnpj').value : '',
+    data_saida: document.getElementById('manual-trip-data-saida') ? document.getElementById('manual-trip-data-saida').value : '',
+    previsao_chegada: document.getElementById('manual-trip-previsao-chegada') ? document.getElementById('manual-trip-previsao-chegada').value : ''
   };
 
   try {

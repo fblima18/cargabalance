@@ -118,22 +118,47 @@ function seedAttachedDacteAndDamdfe() {
   </MDFe>
 </mdfeProc>`, 'utf-8');
 
+  const mdfeRemetenteNome = 'CENTRAL2023CENTRAL';
+  const mdfeRemetenteCnpj = '20.664.328/0001-10';
+  const mdfeDestinatarioNome = 'CARAJAS - FIL JUAZEIRO DO NORTE';
+  const mdfeDestinatarioCnpj = '03.656.804/0016-18';
+  const mdfeDataSaida = '2026-09-19T08:46:00-03:00';
+  const mdfePrevisaoChegada = '2026-09-20T18:00:00-03:00';
+
   let mdfeId = uuidv4();
   const existingMdfe = queryOne('SELECT id FROM manifestos_mdfe WHERE chave_acesso = ?', [mdfeChave]);
   if (!existingMdfe) {
     execute(`
       INSERT INTO manifestos_mdfe (
         id, chave_acesso, numero, serie, data_emissao,
-        uf_origem, uf_destino, ufs_percurso, placa_tracao, placa_reboque,
+        uf_origem, uf_destino, ufs_percurso,
+        remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
+        placa_tracao, placa_reboque,
         peso_bruto, motorista_id, valor_total_carga, caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       mdfeId, mdfeChave, mdfeNumero, mdfeSerie, mdfeDataEmissao,
-      mdfeUfOrigem, mdfeUfDestino, mdfeUfsPercurso, mdfePlacaTracao, mdfePlacaReboque,
+      mdfeUfOrigem, mdfeUfDestino, mdfeUfsPercurso,
+      mdfeRemetenteNome, mdfeRemetenteCnpj, mdfeDestinatarioNome, mdfeDestinatarioCnpj,
+      mdfeDataSaida, mdfePrevisaoChegada,
+      mdfePlacaTracao, mdfePlacaReboque,
       mdfePesoBruto, driver.id, mdfeValorCarga, mdfeXmlPath, JSON.stringify(mdfeExtras)
     ]);
   } else {
     mdfeId = existingMdfe.id;
+    execute(`
+      UPDATE manifestos_mdfe SET
+        ufs_percurso = ?, remetente_nome = ?, remetente_cnpj = ?,
+        destinatario_nome = ?, destinatario_cnpj = ?,
+        data_saida = ?, previsao_chegada = ?
+      WHERE id = ?
+    `, [
+      mdfeUfsPercurso, mdfeRemetenteNome, mdfeRemetenteCnpj,
+      mdfeDestinatarioNome, mdfeDestinatarioCnpj,
+      mdfeDataSaida, mdfePrevisaoChegada,
+      mdfeId
+    ]);
   }
 
   // 3. Setup CT-e 3199 (Série 1)
@@ -288,6 +313,14 @@ function seedAttachedDacteAndDamdfe() {
   </CTe>
 </cteProc>`, 'utf-8');
 
+  const cteRemetenteNome = 'CARAJAS MATERIAL DE CONSTRUCAO LTDA';
+  const cteRemetenteCnpj = '03.656.804/0007-27';
+  const cteDestinatarioNome = 'CARAJAS - FIL JUAZEIRO DO NORTE';
+  const cteDestinatarioCnpj = '03.656.804/0016-18';
+  const cteDataSaida = '2026-09-19T08:43:00-03:00';
+  const ctePrevisaoChegada = '2026-09-20T18:00:00-03:00';
+  const cteUfsPercurso = 'PE';
+
   let cteId = uuidv4();
   const existingCte = queryOne('SELECT id FROM conhecimentos_cte WHERE chave_acesso = ?', [cteChave]);
   if (!existingCte) {
@@ -295,12 +328,16 @@ function seedAttachedDacteAndDamdfe() {
       INSERT INTO conhecimentos_cte (
         id, manifesto_id, motorista_id, chave_acesso, numero, serie,
         data_emissao, cidade_origem, uf_origem, cidade_destino, uf_destino,
+        ufs_percurso, remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
         valor_frete, valor_icms, valor_impostos_total, valor_comissao_motorista,
         interestadual, caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       cteId, mdfeId, driver.id, cteChave, cteNumero, cteSerie,
       cteDataEmissao, cteCidadeOrigem, cteUfOrigem, cteCidadeDestino, cteUfDestino,
+      cteUfsPercurso, cteRemetenteNome, cteRemetenteCnpj, cteDestinatarioNome, cteDestinatarioCnpj,
+      cteDataSaida, ctePrevisaoChegada,
       cteValorFrete, cteValorIcms, cteValorImpostosTotal, cteComissao75,
       cteInterestadual, cteXmlPath, JSON.stringify(cteExtras)
     ]);
@@ -311,6 +348,13 @@ function seedAttachedDacteAndDamdfe() {
       UPDATE conhecimentos_cte SET
         manifesto_id = ?,
         motorista_id = ?,
+        ufs_percurso = ?,
+        remetente_nome = ?,
+        remetente_cnpj = ?,
+        destinatario_nome = ?,
+        destinatario_cnpj = ?,
+        data_saida = ?,
+        previsao_chegada = ?,
         valor_icms = ?,
         valor_impostos_total = ?,
         valor_comissao_motorista = ?,
@@ -318,7 +362,11 @@ function seedAttachedDacteAndDamdfe() {
         dados_extras = ?
       WHERE id = ?
     `, [
-      mdfeId, driver.id, cteValorIcms, cteValorImpostosTotal, cteComissao75,
+      mdfeId, driver.id,
+      cteUfsPercurso, cteRemetenteNome, cteRemetenteCnpj,
+      cteDestinatarioNome, cteDestinatarioCnpj,
+      cteDataSaida, ctePrevisaoChegada,
+      cteValorIcms, cteValorImpostosTotal, cteComissao75,
       cteInterestadual, JSON.stringify(cteExtras), cteId
     ]);
   }

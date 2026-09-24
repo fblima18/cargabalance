@@ -313,6 +313,32 @@ function processMDFe(parsedObj, xmlContent, originalFilename) {
   }
   const pesoBruto = parseFloat(tot.qCarga || 0) || 0.0;
 
+  // Company & Schedule Information
+  let remetenteNome = emit.xNome || emit.xFant || 'Transportadora / Embarcador';
+  let remetenteCnpj = emit.CNPJ || '';
+  let destinatarioNome = `Destinatário Final (${ufDestino})`;
+  let destinatarioCnpj = '';
+
+  const dataSaida = ide.dhIniViagem || ide.dhEmi || dataEmissao;
+  let previsaoChegada = null;
+  if (dataSaida) {
+    const d = new Date(dataSaida);
+    d.setHours(d.getHours() + (ufOrigem !== ufDestino ? 36 : 14));
+    previsaoChegada = d.toISOString();
+  }
+
+  // If there are linked CT-es, pull actual shipper / consignee from first linked CT-e
+  if (relatedCTes.length > 0) {
+    const firstCte = queryOne('SELECT remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj, previsao_chegada FROM conhecimentos_cte WHERE chave_acesso = ? LIMIT 1', [relatedCTes[0]]);
+    if (firstCte) {
+      if (firstCte.remetente_nome) remetenteNome = firstCte.remetente_nome;
+      if (firstCte.remetente_cnpj) remetenteCnpj = firstCte.remetente_cnpj;
+      if (firstCte.destinatario_nome) destinatarioNome = firstCte.destinatario_nome;
+      if (firstCte.destinatario_cnpj) destinatarioCnpj = firstCte.destinatario_cnpj;
+      if (firstCte.previsao_chegada) previsaoChegada = firstCte.previsao_chegada;
+    }
+  }
+
   // Extra metadata for visualizer
   const dadosExtras = {
     emitente: {
@@ -325,6 +351,19 @@ function processMDFe(parsedObj, xmlContent, originalFilename) {
       uf: emit.enderEmit?.UF || ufOrigem,
       cep: emit.enderEmit?.CEP || ''
     },
+    remetente: {
+      nome: remetenteNome,
+      cnpj: remetenteCnpj
+    },
+    destinatario: {
+      nome: destinatarioNome,
+      cnpj: destinatarioCnpj
+    },
+    cronograma: {
+      dataSaida,
+      previsaoChegada
+    },
+    ufsPercurso,
     veiculo: {
       placa: placaTracao,
       uf: rodo.veicTracao?.UF || '',
@@ -357,12 +396,16 @@ function processMDFe(parsedObj, xmlContent, originalFilename) {
     execute(`
       UPDATE manifestos_mdfe SET
         numero = ?, serie = ?, data_emissao = ?, uf_origem = ?, uf_destino = ?,
-        ufs_percurso = ?, placa_tracao = ?, placa_reboque = ?, peso_bruto = ?,
+        ufs_percurso = ?, remetente_nome = ?, remetente_cnpj = ?, destinatario_nome = ?, destinatario_cnpj = ?,
+        data_saida = ?, previsao_chegada = ?,
+        placa_tracao = ?, placa_reboque = ?, peso_bruto = ?,
         motorista_id = ?, valor_total_carga = ?, caminho_xml = ?, dados_extras = ?
       WHERE id = ?
     `, [
       numero, serie, dataEmissao, ufOrigem, ufDestino,
-      ufsPercurso, placaTracao, placaReboque, pesoBruto,
+      ufsPercurso, remetenteNome, remetenteCnpj, destinatarioNome, destinatarioCnpj,
+      dataSaida, previsaoChegada,
+      placaTracao, placaReboque, pesoBruto,
       driver.id, valorTotalCarga, xmlFilePath, JSON.stringify(dadosExtras),
       mdfeId
     ]);
@@ -371,13 +414,19 @@ function processMDFe(parsedObj, xmlContent, originalFilename) {
     execute(`
       INSERT INTO manifestos_mdfe (
         id, chave_acesso, numero, serie, data_emissao,
-        uf_origem, uf_destino, ufs_percurso, placa_tracao, placa_reboque,
+        uf_origem, uf_destino, ufs_percurso,
+        remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
+        placa_tracao, placa_reboque,
         peso_bruto, motorista_id, valor_total_carga,
         caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       mdfeId, chaveAcesso, numero, serie, dataEmissao,
-      ufOrigem, ufDestino, ufsPercurso, placaTracao, placaReboque,
+      ufOrigem, ufDestino, ufsPercurso,
+      remetenteNome, remetenteCnpj, destinatarioNome, destinatarioCnpj,
+      dataSaida, previsaoChegada,
+      placaTracao, placaReboque,
       pesoBruto, driver.id, valorTotalCarga,
       xmlFilePath, JSON.stringify(dadosExtras)
     ]);
@@ -509,6 +558,36 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
   // Detect trip outside state (e.g. outside AL)
   const interestadual = (ufOrigem !== ufDestino || (ufOrigem === 'AL' && ufDestino !== 'AL')) ? 1 : 0;
 
+  // Extract Companies & Dates
+  const remetenteNome = rem.xNome || 'Remetente Mercadoria';
+  const remetenteCnpj = rem.CNPJ || rem.CPF || '';
+  const destinatarioNome = dest.xNome || 'Destinatário Final';
+  const destinatarioCnpj = dest.CNPJ || dest.CPF || '';
+
+  const dataSaida = ide.dhSaiEnt || ide.dhEmi || dataEmissao;
+  let previsaoChegada = null;
+  if (compl.Entrega?.comData?.dProg) {
+    previsaoChegada = new Date(compl.Entrega.comData.dProg).toISOString();
+  } else if (compl.Entrega?.noPeriodo?.dIni) {
+    previsaoChegada = new Date(compl.Entrega.noPeriodo.dIni).toISOString();
+  } else if (dataSaida) {
+    const d = new Date(dataSaida);
+    d.setHours(d.getHours() + (interestadual ? 36 : 14));
+    previsaoChegada = d.toISOString();
+  }
+
+  let ufsPercurso = '';
+  if (manifestoId) {
+    const mdfeRow = queryOne('SELECT ufs_percurso FROM manifestos_mdfe WHERE id = ?', [manifestoId]);
+    if (mdfeRow && mdfeRow.ufs_percurso) {
+      ufsPercurso = mdfeRow.ufs_percurso;
+    }
+  }
+  if (!ufsPercurso && interestadual) {
+    if (ufOrigem === 'AL' && ufDestino === 'CE') ufsPercurso = 'PE';
+    else if (ufOrigem === 'SP' && ufDestino === 'PR') ufsPercurso = 'SP, PR';
+  }
+
   // Extra metadata for DACTE
   const dadosExtras = {
     emitente: {
@@ -522,15 +601,15 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
       cep: emit.enderEmit?.CEP || ''
     },
     remetente: {
-      nome: rem.xNome || 'Remetente Mercadoria',
-      cnpj_cpf: rem.CNPJ || rem.CPF || '',
+      nome: remetenteNome,
+      cnpj_cpf: remetenteCnpj,
       ie: rem.IE || '',
       municipio: rem.enderReme?.xMun || cidadeOrigem,
       uf: rem.enderReme?.UF || ufOrigem
     },
     destinatario: {
-      nome: dest.xNome || 'Destinatário Final',
-      cnpj_cpf: dest.CNPJ || dest.CPF || '',
+      nome: destinatarioNome,
+      cnpj_cpf: destinatarioCnpj,
       ie: dest.IE || '',
       logradouro: dest.enderDest?.xLgr || '',
       numero: dest.enderDest?.nro || '',
@@ -538,6 +617,11 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
       uf: ufDestino,
       cep: dest.enderDest?.CEP || ''
     },
+    cronograma: {
+      dataSaida,
+      previsaoChegada
+    },
+    ufsPercurso,
     veiculo: {
       placa_tracao: driverInfo.placa_cavalo || 'LQW0A19',
       placa_reboque: driverInfo.placa_carreta || 'MUV0J59'
@@ -592,6 +676,13 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
         uf_origem = ?,
         cidade_destino = ?,
         uf_destino = ?,
+        ufs_percurso = ?,
+        remetente_nome = ?,
+        remetente_cnpj = ?,
+        destinatario_nome = ?,
+        destinatario_cnpj = ?,
+        data_saida = ?,
+        previsao_chegada = ?,
         valor_frete = ?,
         valor_icms = ?,
         valor_impostos_total = ?,
@@ -603,6 +694,8 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
     `, [
       manifestoId, driver.id, numero, serie, dataEmissao,
       cidadeOrigem, ufOrigem, cidadeDestino, ufDestino,
+      ufsPercurso, remetenteNome, remetenteCnpj, destinatarioNome, destinatarioCnpj,
+      dataSaida, previsaoChegada,
       valorFrete, valorIcms, valorImpostosTotal, valorComissao,
       interestadual, xmlFilePath, JSON.stringify(dadosExtras),
       cteId
@@ -613,12 +706,16 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
       INSERT INTO conhecimentos_cte (
         id, manifesto_id, motorista_id, chave_acesso, numero, serie,
         data_emissao, cidade_origem, uf_origem, cidade_destino, uf_destino,
+        ufs_percurso, remetente_nome, remetente_cnpj, destinatario_nome, destinatario_cnpj,
+        data_saida, previsao_chegada,
         valor_frete, valor_icms, valor_impostos_total, valor_comissao_motorista,
         interestadual, caminho_xml, dados_extras
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       cteId, manifestoId, driver.id, chaveAcesso, numero, serie,
       dataEmissao, cidadeOrigem, ufOrigem, cidadeDestino, ufDestino,
+      ufsPercurso, remetenteNome, remetenteCnpj, destinatarioNome, destinatarioCnpj,
+      dataSaida, previsaoChegada,
       valorFrete, valorIcms, valorImpostosTotal, valorComissao,
       interestadual, xmlFilePath, JSON.stringify(dadosExtras)
     ]);
@@ -635,6 +732,11 @@ function processCTe(parsedObj, xmlContent, originalFilename) {
     data_emissao: dataEmissao,
     motorista: driver.nome,
     cpf_motorista: driver.cpf,
+    remetente: remetenteNome,
+    destinatario: destinatarioNome,
+    data_saida: dataSaida,
+    previsao_chegada: previsaoChegada,
+    ufs_percurso: ufsPercurso,
     origem: `${cidadeOrigem}/${ufOrigem}`,
     destino: `${cidadeDestino}/${ufDestino}`,
     valor: valorFrete,

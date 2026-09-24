@@ -390,10 +390,11 @@
                 <th style="text-align: center;">Ações</th>
                 <th>Número</th>
                 <th>Série</th>
-                <th>Data Emissão</th>
+                <th>Cronograma (Saída / Prev. Chegada)</th>
                 <th>Motorista</th>
                 <th>CPF</th>
-                <th>Origem -> Destino</th>
+                <th>Empresas (Remetente ➔ Recebedor)</th>
+                <th>Rota & Estados Percurso</th>
                 <th style="text-align: center;">Interestadual?</th>
                 <th style="text-align: right;">Frete / Carga (R$)</th>
                 <th style="text-align: right;">ICMS (R$)</th>
@@ -402,7 +403,7 @@
             </thead>
             <tbody id="documents-table-body">
               <tr>
-                <td colspan="12" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <td colspan="13" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
                   Carregando dados...
                 </td>
               </tr>
@@ -481,11 +482,10 @@
               <tr>
                 <th>Número</th>
                 <th>Série</th>
-                <th>Data Emissão</th>
+                <th>Cronograma (Saída / Prev. Chegada)</th>
                 <th>Motorista</th>
-                <th>CPF</th>
-                <th>Origem</th>
-                <th>Destino</th>
+                <th>Empresas (Remetente ➔ Recebedor)</th>
+                <th>Rota & Percurso</th>
                 <th style="text-align: right;">Valor Frete (R$)</th>
                 <th style="text-align: right;">ICMS (12%)</th>
                 <th style="text-align: right; color: #34d399;">Comissão 75% (R$)</th>
@@ -514,7 +514,7 @@
         <div>
           <h4 style="font-size: 0.95rem; font-weight: 700; color: #c4b5fd;">Manifestos Eletrônicos de Cargas (MDF-e) - Operações Fora do Estado de Alagoas</h4>
           <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">
-            Exibição obrigatória das viagens interestaduais com detalhamento de placas (tração/reboque), UFs de percurso (ex: PE), valor total de carga averbada e conhecimentos vinculados.
+            Exibição obrigatória das viagens interestaduais com detalhamento de empresas remetentes/recebedoras, cronograma (saída e previsão de chegada), placas (tração/reboque), UFs de percurso (ex: PE), valor total de carga averbada e conhecimentos vinculados.
           </p>
         </div>
       </div>
@@ -532,11 +532,12 @@
               <tr>
                 <th>Nº MDF-e</th>
                 <th>Série</th>
-                <th>Data Emissão</th>
+                <th>Cronograma (Saída / Prev. Chegada)</th>
                 <th>Motorista</th>
+                <th>Empresas (Remetente ➔ Recebedor)</th>
                 <th>Placas (Tração / Reboque)</th>
                 <th>Rota (Origem -> Destino)</th>
-                <th>UFs Percurso</th>
+                <th>Estados do Percurso</th>
                 <th>Qtd CT-e</th>
                 <th style="text-align: right;">Peso Bruto (KG)</th>
                 <th style="text-align: right;">Valor Carga (R$)</th>
@@ -1160,6 +1161,62 @@
             </div>
           </div>
 
+          <!-- Empresas: Remetente e Recebedora / Destinatária -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              Empresas Envolvidas no Serviço de Transporte
+            </div>
+            
+            <!-- Empresa Remetente -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-remetente-nome">Empresa Remetente (Razão Social) *</label>
+                <input type="text" id="manual-trip-remetente-nome" class="form-control" value="CARAJAS MATERIAL DE CONSTRUCAO LTDA" required placeholder="Ex: CARAJAS MATERIAL DE CONSTRUCAO LTDA">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-remetente-cnpj">CNPJ Remetente *</label>
+                <input type="text" id="manual-trip-remetente-cnpj" class="form-control" value="03.656.804/0007-27" required placeholder="00.000.000/0000-00">
+              </div>
+            </div>
+
+            <!-- Empresa Recebedora / Destinatária -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-destinatario-nome">Empresa Recebedora / Destinatária *</label>
+                <input type="text" id="manual-trip-destinatario-nome" class="form-control" value="CARAJAS - FIL JUAZEIRO DO NORTE" required placeholder="Ex: CARAJAS - FIL JUAZEIRO DO NORTE">
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-destinatario-cnpj">CNPJ Recebedora *</label>
+                <input type="text" id="manual-trip-destinatario-cnpj" class="form-control" value="03.656.804/0016-18" required placeholder="00.000.000/0000-00">
+              </div>
+            </div>
+          </div>
+
+          <!-- Cronograma da Viagem (Data Saída e Previsão de Chegada) -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Cronograma do Transporte (Saída & Previsão no Destino)
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="manual-trip-data-saida">Data e Hora de Saída *</label>
+                <input type="datetime-local" id="manual-trip-data-saida" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label for="manual-trip-previsao-chegada">Previsão de Chegada no Destino *</label>
+                <input type="datetime-local" id="manual-trip-previsao-chegada" class="form-control" required>
+              </div>
+            </div>
+          </div>
+
           <!-- Specific Fields: CT-e -->
           <div id="manual-cte-fields" style="display: flex; flex-direction: column; gap: 0.75rem;">
             <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.75rem;">
@@ -1198,7 +1255,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.75rem;">
               <div class="form-group">
                 <label for="manual-trip-placa-tracao">Placa Cavalo (Tração)</label>
                 <input type="text" id="manual-trip-placa-tracao" class="form-control" value="LQW0A19" placeholder="LQW0A19" style="text-transform: uppercase;">
@@ -1208,8 +1265,9 @@
                 <input type="text" id="manual-trip-placa-reboque" class="form-control" value="MUV0J59" placeholder="MUV0J59" style="text-transform: uppercase;">
               </div>
               <div class="form-group">
-                <label for="manual-trip-percurso">UFs Percurso</label>
-                <input type="text" id="manual-trip-percurso" class="form-control" value="PE" placeholder="PE, PB" style="text-transform: uppercase;">
+                <label for="manual-trip-percurso" title="Estados intermediários de percurso">Estados do Percurso (MDF-e)</label>
+                <input type="text" id="manual-trip-percurso" class="form-control" value="PE" placeholder="Ex: PE, PB" style="text-transform: uppercase;">
+                <small style="font-size: 0.65rem; color: #a78bfa; display: block; margin-top: 2px;">Estados por onde o veículo transitará</small>
               </div>
             </div>
           </div>

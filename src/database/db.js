@@ -29,8 +29,21 @@ function initDatabase() {
   applyColumnMigration('conhecimentos_cte', 'valor_impostos_total', 'REAL DEFAULT 0.0');
   applyColumnMigration('conhecimentos_cte', 'valor_comissao_motorista', 'REAL DEFAULT 0.0');
   applyColumnMigration('conhecimentos_cte', 'interestadual', 'INTEGER DEFAULT 0');
+  applyColumnMigration('conhecimentos_cte', 'remetente_nome', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'remetente_cnpj', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'destinatario_nome', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'destinatario_cnpj', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'data_saida', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'previsao_chegada', 'TEXT');
+  applyColumnMigration('conhecimentos_cte', 'ufs_percurso', 'TEXT');
 
   applyColumnMigration('manifestos_mdfe', 'ufs_percurso', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'remetente_nome', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'remetente_cnpj', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'destinatario_nome', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'destinatario_cnpj', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'data_saida', 'TEXT');
+  applyColumnMigration('manifestos_mdfe', 'previsao_chegada', 'TEXT');
   applyColumnMigration('manifestos_mdfe', 'placa_tracao', 'TEXT');
   applyColumnMigration('manifestos_mdfe', 'placa_reboque', 'TEXT');
   applyColumnMigration('manifestos_mdfe', 'peso_bruto', 'REAL DEFAULT 0.0');
