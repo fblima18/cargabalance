@@ -1750,278 +1750,450 @@ function setupEventListeners() {
     const container = document.getElementById('financial-report-content');
     if (!container) return;
 
-    container.innerHTML = `
-      <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
-        <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
-        <p style="font-weight: 600; font-size: 0.95rem;">Consolidando demonstrativo de prestação de contas financeira e fiscal...</p>
-      </div>
-    `;
     openModal('modal-financial-report');
 
-    try {
-      const query = new URLSearchParams(currentFilters).toString();
-      const res = await fetch(`/api/documents?${query}`);
-      const data = await res.json();
-      const docs = data.items || allDocumentsCache || [];
-      const kpis = data.kpis || currentKPIsCache || {};
+    // 1. Renderização instantânea imediata a partir do cache para NUNCA travar a tela
+    let docs = (Array.isArray(allDocumentsCache) && allDocumentsCache.length > 0) ? [...allDocumentsCache] : [];
+    let kpis = currentKPIsCache || null;
 
-      const totalFrete = parseFloat(kpis.totalFrete || 0);
-      const totalComissao75 = parseFloat(kpis.totalComissao75 || (totalFrete * 0.75));
-      const margem25 = Math.max(0, totalFrete - totalComissao75);
-      const totalICMS = parseFloat(kpis.totalICMS || 0);
-
-      // Group drivers for payout distribution
-      const driverMap = {};
-      docs.forEach(d => {
-        const key = d.motorista_cpf || d.motorista_nome || 'Outros';
-        if (!driverMap[key]) {
-          driverMap[key] = {
-            nome: d.motorista_nome || 'Não Informado',
-            cpf: d.motorista_cpf || '-',
-            cnh: d.motorista_cnh || '-',
-            vinculo: d.motorista_tipo_vinculo || 'frota_propria',
-            placas: [d.motorista_placa_cavalo, d.motorista_placa_carreta].filter(Boolean).join(' / ') || '-',
-            pix: d.motorista_chave_pix || 'A Cadastrar',
-            telefone: d.motorista_telefone || '-',
-            qtdDocs: 0,
-            totalFrete: 0,
-            totalComissao75: 0,
-            totalMargem25: 0
-          };
-        }
-        driverMap[key].qtdDocs += 1;
-        const v = parseFloat(d.valor || 0);
-        const c = parseFloat(d.valor_comissao || (d.tipo === 'CT-e' ? (v * 0.75) : 0));
-        driverMap[key].totalFrete += v;
-        driverMap[key].totalComissao75 += c;
-        driverMap[key].totalMargem25 += Math.max(0, v - c);
-      });
-      const driverList = Object.values(driverMap).sort((a, b) => b.totalComissao75 - a.totalComissao75);
-
-      const nowStr = new Date().toLocaleString('pt-BR');
-      const periodText = (currentFilters.startDate || currentFilters.endDate)
-        ? `${currentFilters.startDate || 'Início'} até ${currentFilters.endDate || 'Atual'}`
-        : 'Geral / Todos os Registros Auditados';
-      const auditCode = `AUD-FIN-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const formatDt = (dt) => {
-        if (!dt) return '-';
-        try {
-          const d = new Date(dt);
-          return isNaN(d.getTime()) ? dt : d.toLocaleString('pt-BR');
-        } catch {
-          return dt;
-        }
-      };
-
-      const formatMoney = (val) => Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
+    if (docs.length > 0) {
+      renderFinancialReportContent(container, docs, kpis);
+    } else {
       container.innerHTML = `
-        <div class="fin-report-sheet" id="financial-report-print-area">
-          <!-- Header Oficial -->
-          <div class="fin-report-header">
-            <div>
-              <div class="fin-brand-title">
-                <span style="display: inline-block; width: 12px; height: 12px; background: #2563eb; border-radius: 2px;"></span>
-                CARGA BALANCE &bull; AUDITORIA DE FRETE
-              </div>
-              <div class="fin-brand-subtitle">
-                DEMONSTRATIVO DE PRESTAÇÃO DE CONTAS FINANCEIRA E FISCAL &bull; SETOR FINANCEIRO & CONTÁBIL
-              </div>
-              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.35rem;">
-                CNPJ Emissor: <strong>20.664.328/0001-10</strong> &bull; Transportadora Central de Cargas
-              </div>
-            </div>
-            <div class="fin-report-meta-box">
-              <span class="fin-status-stamp">✓ Auditado SEFAZ</span>
-              <div>Protocolo: <strong>${auditCode}</strong></div>
-              <div>Período: <strong>${periodText}</strong></div>
-              <div>Emissão: <strong>${nowStr}</strong></div>
-            </div>
-          </div>
-
-          <!-- 1. Consolidação Financeira Executiva (Cards) -->
-          <div class="fin-kpi-summary-grid">
-            <div class="fin-kpi-card blue">
-              <div class="fin-kpi-title">Faturamento Total Fretes (CT-e)</div>
-              <div class="fin-kpi-val">${formatMoney(totalFrete)}</div>
-              <div class="fin-kpi-desc">Total bruto de serviços de transporte contratados</div>
-            </div>
-            <div class="fin-kpi-card green">
-              <div class="fin-kpi-title">Comissão Motoristas (75%)</div>
-              <div class="fin-kpi-val">${formatMoney(totalComissao75)}</div>
-              <div class="fin-kpi-desc">Repasse líquido a pagar aos condutores (regra 75%)</div>
-            </div>
-            <div class="fin-kpi-card blue">
-              <div class="fin-kpi-title">Margem Transportadora (25%)</div>
-              <div class="fin-kpi-val">${formatMoney(margem25)}</div>
-              <div class="fin-kpi-desc">Resultado operacional retido pela empresa</div>
-            </div>
-            <div class="fin-kpi-card amber">
-              <div class="fin-kpi-title">Total ICMS Destacado</div>
-              <div class="fin-kpi-val">${formatMoney(totalICMS)}</div>
-              <div class="fin-kpi-desc">Tributos recolhidos nas operações de transporte</div>
-            </div>
-          </div>
-
-          <!-- 2. Programação de Pagamentos aos Motoristas (75%) -->
-          <div class="fin-sec-header green">
-            <span>1. PROGRAMAÇÃO DE PAGAMENTOS AOS CONDUTORES (CONTAS A PAGAR &bull; 75%)</span>
-            <span style="font-size: 0.725rem; font-weight: 500;">${driverList.length} Motoristas com Fretes Auditados</span>
-          </div>
-          <table class="fin-table">
-            <thead>
-              <tr>
-                <th>Motorista</th>
-                <th class="text-center">CPF</th>
-                <th class="text-center">Vínculo</th>
-                <th class="text-center">Placas</th>
-                <th class="text-center">Chave PIX</th>
-                <th class="text-center">Viagens</th>
-                <th class="text-right">Frete Gerado</th>
-                <th class="text-right" style="color: #047857;">Comissão 75% (A Pagar)</th>
-                <th class="text-right">Margem 25%</th>
-                <th class="text-center">Autorização</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${driverList.length === 0 ? `
-                <tr><td colspan="10" class="text-center" style="padding: 1.5rem; color: #64748b;">Nenhum rateio localizado para o período filtrado.</td></tr>
-              ` : driverList.map(d => `
-                <tr>
-                  <td><strong>${escapeHtml(d.nome)}</strong></td>
-                  <td class="text-center">${escapeHtml(d.cpf)}</td>
-                  <td class="text-center"><span style="font-size: 0.7rem; text-transform: uppercase;">${escapeHtml(d.vinculo.replace('_', ' '))}</span></td>
-                  <td class="text-center">${escapeHtml(d.placas)}</td>
-                  <td class="text-center"><code>${escapeHtml(d.pix)}</code></td>
-                  <td class="text-center">${d.qtdDocs}</td>
-                  <td class="text-right">${formatMoney(d.totalFrete)}</td>
-                  <td class="text-right" style="font-weight: 800; color: #047857;">${formatMoney(d.totalComissao75)}</td>
-                  <td class="text-right" style="font-weight: 600;">${formatMoney(d.totalMargem25)}</td>
-                  <td class="text-center"><span style="display: inline-block; padding: 2px 6px; background: #ecfdf5; color: #047857; border-radius: 4px; font-weight: 700; font-size: 0.675rem;">Liberado</span></td>
-                </tr>
-              `).join('')}
-              <tr class="total-row">
-                <td colspan="5"><strong>TOTALIZAÇÃO DOS REPASSES AOS CONDUTORES</strong></td>
-                <td class="text-center"><strong>${driverList.reduce((acc, d) => acc + d.qtdDocs, 0)}</strong></td>
-                <td class="text-right"><strong>${formatMoney(driverList.reduce((acc, d) => acc + d.totalFrete, 0))}</strong></td>
-                <td class="text-right" style="color: #047857;"><strong>${formatMoney(totalComissao75)}</strong></td>
-                <td class="text-right"><strong>${formatMoney(margem25)}</strong></td>
-                <td class="text-center"><strong>APROVADO</strong></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <!-- 3. Relação Analítica de Documentos (CT-e e MDF-e) -->
-          <div class="fin-sec-header blue">
-            <span>2. DEMONSTRATIVO ANALÍTICO DE DOCUMENTOS FISCAIS (CT-e & MDF-e)</span>
-            <span style="font-size: 0.725rem; font-weight: 500;">${docs.length} Documentos SEFAZ Auditados</span>
-          </div>
-          <div style="overflow-x: auto;">
-            <table class="fin-table">
-              <thead>
-                <tr>
-                  <th class="text-center">Tipo</th>
-                  <th class="text-center">Nº / Série</th>
-                  <th class="text-center">Emissão</th>
-                  <th>Remetente (Origem)</th>
-                  <th>Recebedor / Destinatário</th>
-                  <th class="text-center">Rota & Percurso</th>
-                  <th>Cronograma (Saída ➔ Previsão)</th>
-                  <th>Motorista / Veículo</th>
-                  <th class="text-right">Valor Frete/Carga</th>
-                  <th class="text-right">ICMS</th>
-                  <th class="text-right" style="color: #047857;">Comissão 75%</th>
-                  <th class="text-right">Margem 25%</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${docs.length === 0 ? `
-                  <tr><td colspan="12" class="text-center" style="padding: 1.5rem; color: #64748b;">Nenhum documento encontrado para os filtros selecionados.</td></tr>
-                ` : docs.map(doc => {
-                  const val = parseFloat(doc.valor || 0);
-                  const icms = parseFloat(doc.valor_icms || 0);
-                  const com = parseFloat(doc.valor_comissao || (doc.tipo === 'CT-e' ? (val * 0.75) : 0));
-                  const margem = Math.max(0, val - com);
-                  const isCte = doc.tipo === 'CT-e';
-                  const placas = [doc.motorista_placa_cavalo, doc.motorista_placa_carreta].filter(Boolean).join('/') || '-';
-                  return `
-                    <tr>
-                      <td class="text-center ${isCte ? 'fin-badge-cte' : 'fin-badge-mdfe'}"><strong>${escapeHtml(doc.tipo)}</strong></td>
-                      <td class="text-center"><strong>${escapeHtml(String(doc.numero || ''))}</strong><span style="font-size: 0.7rem; color: #64748b;">/${escapeHtml(String(doc.serie || '1'))}</span></td>
-                      <td class="text-center">${doc.data_emissao ? new Date(doc.data_emissao).toLocaleDateString('pt-BR') : '-'}</td>
-                      <td>
-                        <div><strong>${escapeHtml(doc.remetente_nome || 'Não Informado')}</strong></div>
-                        ${doc.remetente_cnpj ? `<div style="font-size: 0.675rem; color: #64748b;">${escapeHtml(doc.remetente_cnpj)}</div>` : ''}
-                      </td>
-                      <td>
-                        <div><strong>${escapeHtml(doc.destinatario_nome || 'Não Informado')}</strong></div>
-                        ${doc.destinatario_cnpj ? `<div style="font-size: 0.675rem; color: #64748b;">${escapeHtml(doc.destinatario_cnpj)}</div>` : ''}
-                      </td>
-                      <td class="text-center">
-                        <div><strong>${escapeHtml(doc.origem || '')} ➔ ${escapeHtml(doc.destino || '')}</strong></div>
-                        ${doc.ufs_percurso ? `<div style="font-size: 0.675rem; color: #2563eb;">Percurso: ${escapeHtml(doc.ufs_percurso)}</div>` : ''}
-                      </td>
-                      <td>
-                        <div style="font-size: 0.725rem;">Saída: <strong>${formatDt(doc.data_saida)}</strong></div>
-                        <div style="font-size: 0.725rem; color: #64748b;">Prev: <strong>${formatDt(doc.previsao_chegada)}</strong></div>
-                      </td>
-                      <td>
-                        <div><strong>${escapeHtml(doc.motorista_nome || '')}</strong></div>
-                        <div style="font-size: 0.675rem; color: #64748b;">Placa: ${escapeHtml(placas)}</div>
-                      </td>
-                      <td class="text-right" style="font-weight: 700;">${formatMoney(val)}</td>
-                      <td class="text-right">${formatMoney(icms)}</td>
-                      <td class="text-right" style="font-weight: 800; color: #047857;">${formatMoney(com)}</td>
-                      <td class="text-right" style="font-weight: 600;">${formatMoney(margem)}</td>
-                    </tr>
-                  `;
-                }).join('')}
-                <tr class="total-row">
-                  <td colspan="8"><strong>TOTAIS GERAIS CONSOLIDADOS (${docs.length} DOCUMENTOS)</strong></td>
-                  <td class="text-right"><strong>${formatMoney(totalFrete)}</strong></td>
-                  <td class="text-right"><strong>${formatMoney(totalICMS)}</strong></td>
-                  <td class="text-right" style="color: #047857;"><strong>${formatMoney(totalComissao75)}</strong></td>
-                  <td class="text-right"><strong>${formatMoney(margem25)}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- 4. Termo de Conformidade e Assinaturas -->
-          <div style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.75rem; color: #475569; line-height: 1.5;">
-            <strong>Declaração de Conformidade & Auditoria:</strong> Declaramos para os devidos fins de prestação de contas contábil e financeira que os valores de frete, retenções fiscais de ICMS e os repasses de comissões aos motoristas (fixados em 75,0% do valor do frete contratado) foram rigorosamente conferidos e auditados com base nos arquivos XML autorizados pela Secretaria da Fazenda (SEFAZ).
-          </div>
-
-          <div class="fin-signatures-container">
-            <div class="fin-sign-col">
-              <div class="fin-sign-line"></div>
-              <div class="fin-sign-role">Auditoria de Fretes & Transporte</div>
-              <div class="fin-sign-dept">Conferência e Validação SEFAZ</div>
-            </div>
-            <div class="fin-sign-col">
-              <div class="fin-sign-line"></div>
-              <div class="fin-sign-role">Gerência Financeira & Contábil</div>
-              <div class="fin-sign-dept">Contas a Pagar / Prestação de Contas</div>
-            </div>
-            <div class="fin-sign-col">
-              <div class="fin-sign-line"></div>
-              <div class="fin-sign-role">Diretoria Executiva / Operações</div>
-              <div class="fin-sign-dept">Aprovação Final da Prestação de Contas</div>
-            </div>
-          </div>
-        </div>
-      `;
-    } catch (err) {
-      console.error('Error generating financial report:', err);
-      container.innerHTML = `
-        <div style="padding: 2rem; text-align: center; color: var(--accent-error);">
-          <h4>Erro ao compor relatório financeiro</h4>
-          <p>${escapeHtml(err.message)}</p>
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+          <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+          <p style="font-weight: 600; font-size: 0.95rem; color: #1e293b;">Carregando informações financeiras e fiscais dos condutores e frotas...</p>
         </div>
       `;
     }
+
+    // 2. Busca dados atualizados da API em segundo plano
+    try {
+      const query = new URLSearchParams(currentFilters || {}).toString();
+      const res = await fetch(`/api/documents?${query}`);
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+        docs = data.items;
+        kpis = data.kpis;
+        renderFinancialReportContent(container, docs, kpis);
+        return;
+      }
+    } catch (err) {
+      console.warn('Consulta filtrada com aviso, utilizando dados consolidados:', err);
+    }
+
+    // 3. Fallback: se os filtros ativos não retornaram itens, busca todos os documentos sem restrição de data
+    if (!docs || docs.length === 0) {
+      try {
+        const resAll = await fetch('/api/documents');
+        const dataAll = await resAll.json();
+        if (dataAll && dataAll.success && Array.isArray(dataAll.items) && dataAll.items.length > 0) {
+          docs = dataAll.items;
+          kpis = dataAll.kpis;
+          renderFinancialReportContent(container, docs, kpis);
+          return;
+        }
+      } catch (errAll) {
+        console.error('Erro na consulta geral de fallback:', errAll);
+      }
+    }
+
+    // Renderização final
+    renderFinancialReportContent(container, docs, kpis);
   };
+
+  /**
+   * Renderiza o relatório completo de prestação de contas com cálculos individuais e gerais
+   */
+  function renderFinancialReportContent(container, docs = [], kpis = null) {
+    if (!container) return;
+
+    const formatMoney = (val) => Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Função de formatação detalhada de data e horário para leitura simples
+    const formatDateTimeDetailed = (dtStr, fallbackStr = null) => {
+      const target = dtStr || fallbackStr;
+      if (!target) return '<span style="color: #94a3b8; font-size: 0.725rem;">Não informado</span>';
+      try {
+        const d = new Date(target);
+        if (isNaN(d.getTime())) return `<span style="font-weight: 600; color: #1e293b;">${escapeHtml(target)}</span>`;
+        const dia = String(d.getDate()).padStart(2, '0');
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const ano = d.getFullYear();
+        const hora = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `
+          <div style="font-weight: 600; color: #1e293b; font-size: 0.775rem;">${dia}/${mes}/${ano}</div>
+          <div style="font-size: 0.7rem; color: #64748b;">às ${hora}:${min}h</div>
+        `;
+      } catch {
+        return `<span style="font-weight: 600; color: #1e293b;">${escapeHtml(target)}</span>`;
+      }
+    };
+
+    const ctes = docs.filter(d => (d.tipo || '').toUpperCase() === 'CT-E' || (d.tipo || '').toUpperCase() === 'CTE');
+    const mdfes = docs.filter(d => (d.tipo || '').toUpperCase() === 'MDF-E' || (d.tipo || '').toUpperCase() === 'MDFE');
+
+    // Cálculos Gerais Consolidados
+    const totalFrete = ctes.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+    const totalComissao75 = ctes.reduce((acc, c) => acc + (parseFloat(c.valor_comissao) || (parseFloat(c.valor || 0) * 0.75)), 0);
+    const totalMargem25 = Math.max(0, totalFrete - totalComissao75);
+    const totalICMS = ctes.reduce((acc, c) => acc + (parseFloat(c.valor_icms) || 0), 0);
+    const totalCarga = mdfes.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+    const interstateCount = docs.filter(d => d.interestadual === 1 || (d.uf_origem && d.uf_destino && d.uf_origem !== d.uf_destino) || (d.uf_destino && d.uf_destino !== 'AL')).length;
+
+    // Agrupamento Individual por Condutor e Frota
+    const driverMap = {};
+    docs.forEach(d => {
+      const cpf = (d.motorista_cpf || '').trim();
+      const nome = (d.motorista_nome || 'Não Informado').trim();
+      const key = cpf || nome || 'Outros';
+
+      if (!driverMap[key]) {
+        // Placas
+        const cavalo = (d.motorista_placa_cavalo || d.placa_tracao || '').trim().toUpperCase();
+        const carreta = (d.motorista_placa_carreta || d.placa_reboque || '').trim().toUpperCase();
+        const placasArr = [cavalo, carreta].filter(Boolean);
+        const placasStr = placasArr.length > 0 ? placasArr.join(' / ') : '-';
+
+        // Vínculo
+        const vinculoRaw = (d.motorista_tipo_vinculo || d.vinculo || 'frota_propria').toLowerCase();
+        let vinculoLabel = 'Frota Própria';
+        let vinculoColor = '#2563eb';
+        let vinculoBg = '#dbeafe';
+
+        if (vinculoRaw.includes('agregado')) {
+          vinculoLabel = 'Agregado';
+          vinculoColor = '#059669';
+          vinculoBg = '#d1fae5';
+        } else if (vinculoRaw.includes('terceirizado')) {
+          vinculoLabel = 'Terceirizado';
+          vinculoColor = '#7c3aed';
+          vinculoBg = '#ede9fe';
+        }
+
+        driverMap[key] = {
+          key,
+          nome,
+          cpf: cpf || '-',
+          cnh: (d.motorista_cnh || '').trim() || '-',
+          vinculoRaw,
+          vinculoLabel,
+          vinculoColor,
+          vinculoBg,
+          placas: placasStr,
+          pix: (d.motorista_chave_pix || '').trim() || 'A Cadastrar',
+          telefone: (d.motorista_telefone || '').trim() || '-',
+          qtdViagens: 0,
+          totalFrete: 0,
+          totalComissao75: 0,
+          totalMargem25: 0
+        };
+      }
+
+      const val = parseFloat(d.valor || 0);
+      const com = parseFloat(d.valor_comissao || (d.tipo === 'CT-e' ? (val * 0.75) : 0));
+
+      driverMap[key].qtdViagens += 1;
+      if ((d.tipo || '').toUpperCase().includes('CT')) {
+        driverMap[key].totalFrete += val;
+        driverMap[key].totalComissao75 += com;
+        driverMap[key].totalMargem25 += Math.max(0, val - com);
+      }
+    });
+
+    const driverList = Object.values(driverMap).sort((a, b) => b.totalComissao75 - a.totalComissao75);
+
+    const nowStr = new Date().toLocaleString('pt-BR');
+    const periodText = (currentFilters.startDate || currentFilters.endDate)
+      ? `${currentFilters.startDate || 'Início'} até ${currentFilters.endDate || 'Atual'}`
+      : 'Histórico Completo de Viagens';
+    const auditCode = `AUD-FIN-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    container.innerHTML = `
+      <div class="fin-report-sheet" id="financial-report-print-area">
+        <!-- Header Oficial Executivo -->
+        <div class="fin-report-header">
+          <div>
+            <div class="fin-brand-title">
+              <span style="display: inline-block; width: 14px; height: 14px; background: #2563eb; border-radius: 3px;"></span>
+              CARGA BALANCE &bull; AUDITORIA DE FRETE
+            </div>
+            <div class="fin-brand-subtitle" style="font-weight: 700; color: #1e293b;">
+              DEMONSTRATIVO DE PRESTAÇÃO DE CONTAS FINANCEIRA E FISCAL &bull; SETOR FINANCEIRO & CONTÁBIL
+            </div>
+            <div style="font-size: 0.75rem; color: #475569; margin-top: 0.35rem;">
+              Transportadora Central de Cargas &bull; CNPJ Emissor: <strong>20.664.328/0001-10</strong> &bull; Maceió / AL
+            </div>
+          </div>
+          <div class="fin-report-meta-box">
+            <span class="fin-status-stamp">✓ Auditado SEFAZ & Liberado</span>
+            <div>Protocolo: <strong>${auditCode}</strong></div>
+            <div>Período: <strong>${escapeHtml(periodText)}</strong></div>
+            <div>Emissão: <strong>${nowStr}</strong></div>
+          </div>
+        </div>
+
+        <!-- 1. RESUMO EXECUTIVO: CÁLCULOS GERAIS CONSOLIDADOS DA OPERAÇÃO -->
+        <div style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+          <h4 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.03em;">
+            1. Totalizadores Gerais Consolidados da Operação
+          </h4>
+          <span style="font-size: 0.75rem; color: #64748b;">${docs.length} documentos fiscais auditados</span>
+        </div>
+
+        <div class="fin-kpi-summary-grid">
+          <div class="fin-kpi-card blue">
+            <div class="fin-kpi-title">Faturamento Total Fretes (CT-e)</div>
+            <div class="fin-kpi-val">${formatMoney(totalFrete)}</div>
+            <div class="fin-kpi-desc">${ctes.length} Conhecimentos CT-e faturados</div>
+          </div>
+          <div class="fin-kpi-card green">
+            <div class="fin-kpi-title">Comissão Motoristas (75%)</div>
+            <div class="fin-kpi-val" style="color: #047857;">${formatMoney(totalComissao75)}</div>
+            <div class="fin-kpi-desc">Repasse líquido contratual aos condutores</div>
+          </div>
+          <div class="fin-kpi-card blue">
+            <div class="fin-kpi-title">Margem Transportadora (25%)</div>
+            <div class="fin-kpi-val" style="color: #1e40af;">${formatMoney(totalMargem25)}</div>
+            <div class="fin-kpi-desc">Receita líquida retida pela empresa</div>
+          </div>
+          <div class="fin-kpi-card amber">
+            <div class="fin-kpi-title">Total ICMS Destacado</div>
+            <div class="fin-kpi-val" style="color: #b45309;">${formatMoney(totalICMS)}</div>
+            <div class="fin-kpi-desc">Tributos recolhidos nas operações fiscais</div>
+          </div>
+        </div>
+
+        <!-- 2. CÁLCULOS INDIVIDUAIS POR MOTORISTA E FROTA (CONTAS A PAGAR 75%) -->
+        <div class="fin-sec-header green" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>2. CÁLCULOS INDIVIDUAIS POR MOTORISTA & FROTA (PROGRAMAÇÃO DE PAGAMENTOS 75%)</span>
+          <span style="font-size: 0.725rem; font-weight: 500;">${driverList.length} Motorista(s) Auditado(s)</span>
+        </div>
+
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <th style="width: 22%;">Motorista / Condutor</th>
+              <th class="text-center" style="width: 13%;">CPF</th>
+              <th class="text-center" style="width: 11%;">Vínculo da Frota</th>
+              <th class="text-center" style="width: 14%;">Placas (Cavalo / Carreta)</th>
+              <th class="text-center" style="width: 13%;">Chave PIX / Contato</th>
+              <th class="text-center" style="width: 7%;">Viagens</th>
+              <th class="text-right" style="width: 10%;">Frete Bruto</th>
+              <th class="text-right" style="color: #047857; width: 10%;">Comissão 75%</th>
+              <th class="text-center" style="width: 8%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${driverList.length === 0 ? `
+              <tr>
+                <td colspan="9" class="text-center" style="padding: 2rem; color: #64748b;">
+                  Nenhum motorista com frete localizado no período selecionado.
+                </td>
+              </tr>
+            ` : driverList.map(d => `
+              <tr>
+                <td>
+                  <strong style="color: #0f172a; font-size: 0.825rem;">${escapeHtml(d.nome)}</strong>
+                  ${d.cnh !== '-' ? `<div style="font-size: 0.7rem; color: #64748b;">CNH: ${escapeHtml(d.cnh)}</div>` : ''}
+                </td>
+                <td class="text-center" style="font-family: monospace; font-size: 0.75rem;">
+                  ${escapeHtml(d.cpf)}
+                </td>
+                <td class="text-center">
+                  <span style="display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 0.675rem; background: ${d.vinculoBg}; color: ${d.vinculoColor};">
+                    ${escapeHtml(d.vinculoLabel)}
+                  </span>
+                </td>
+                <td class="text-center" style="font-family: monospace; font-size: 0.75rem; font-weight: 600;">
+                  ${escapeHtml(d.placas)}
+                </td>
+                <td class="text-center">
+                  <code style="font-size: 0.725rem; font-weight: 700; color: #1e293b;">${escapeHtml(d.pix)}</code>
+                  ${d.telefone !== '-' ? `<div style="font-size: 0.675rem; color: #64748b;">Tel: ${escapeHtml(d.telefone)}</div>` : ''}
+                </td>
+                <td class="text-center" style="font-weight: 700; font-size: 0.8rem;">
+                  ${d.qtdViagens}
+                </td>
+                <td class="text-right" style="font-weight: 600;">
+                  ${formatMoney(d.totalFrete)}
+                </td>
+                <td class="text-right" style="font-weight: 800; color: #047857; font-size: 0.85rem; background: rgba(16, 185, 129, 0.05);">
+                  ${formatMoney(d.totalComissao75)}
+                </td>
+                <td class="text-center">
+                  <span style="display: inline-block; padding: 2px 6px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 4px; font-weight: 700; font-size: 0.675rem;">
+                    Liberado
+                  </span>
+                </td>
+              </tr>
+            `).join('')}
+            <tr class="total-row" style="background: #f1f5f9; font-weight: 800;">
+              <td colspan="5">
+                <strong style="color: #0f172a; text-transform: uppercase;">Total Geral Consolidado dos Condutores</strong>
+              </td>
+              <td class="text-center" style="color: #0f172a;">
+                <strong>${driverList.reduce((acc, d) => acc + d.qtdViagens, 0)}</strong>
+              </td>
+              <td class="text-right" style="color: #0f172a;">
+                <strong>${formatMoney(driverList.reduce((acc, d) => acc + d.totalFrete, 0))}</strong>
+              </td>
+              <td class="text-right" style="color: #047857; font-size: 0.9rem;">
+                <strong>${formatMoney(totalComissao75)}</strong>
+              </td>
+              <td class="text-center" style="color: #047857;">
+                <strong>APROVADO</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 3. DEMONSTRATIVO ANALÍTICO DE VIAGENS: DESTINOS, DATAS, HORÁRIOS & VALORES -->
+        <div class="fin-sec-header blue" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+          <span>3. DETALHAMENTO DAS VIAGENS: DESTINOS, ROTAS, CRONOGRAMA (DATAS E HORÁRIOS) & VALORES</span>
+          <span style="font-size: 0.725rem; font-weight: 500;">${docs.length} Viagem(ns) Realizada(s)</span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="fin-table" style="font-size: 0.75rem;">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 8%;">Doc Fiscal</th>
+                <th style="width: 13%;">Condutor & Frota</th>
+                <th class="text-center" style="width: 10%;">Placas</th>
+                <th style="width: 18%;">Remetente ➔ Recebedor</th>
+                <th style="width: 17%;">Origem ➔ Destino</th>
+                <th style="width: 14%;">Cronograma (Datas & Horários)</th>
+                <th class="text-right" style="width: 9%;">Frete (R$)</th>
+                <th class="text-right" style="width: 8%;">ICMS (R$)</th>
+                <th class="text-right" style="color: #047857; width: 9%;">Comissão 75%</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${docs.length === 0 ? `
+                <tr>
+                  <td colspan="9" class="text-center" style="padding: 2rem; color: #64748b;">
+                    Nenhuma viagem auditada para os parâmetros selecionados.
+                  </td>
+                </tr>
+              ` : docs.map(doc => {
+                const isCte = (doc.tipo || '').toUpperCase().includes('CT');
+                const val = parseFloat(doc.valor || 0);
+                const icms = parseFloat(doc.valor_icms || 0);
+                const com = parseFloat(doc.valor_comissao || (isCte ? (val * 0.75) : 0));
+                const cavalo = (doc.motorista_placa_cavalo || doc.placa_tracao || '').trim().toUpperCase();
+                const carreta = (doc.motorista_placa_carreta || doc.placa_reboque || '').trim().toUpperCase();
+                const placasStr = [cavalo, carreta].filter(Boolean).join(' / ') || '-';
+                const isInterstate = doc.interestadual === 1 || (doc.uf_origem && doc.uf_destino && doc.uf_origem !== doc.uf_destino);
+
+                const vinculoRaw = (doc.motorista_tipo_vinculo || 'frota_propria').toLowerCase();
+                let vinculoText = 'Frota Própria';
+                if (vinculoRaw.includes('agregado')) vinculoText = 'Agregado';
+                else if (vinculoRaw.includes('terceirizado')) vinculoText = 'Terceirizado';
+
+                return `
+                  <tr>
+                    <td class="text-center">
+                      <span class="${isCte ? 'fin-badge-cte' : 'fin-badge-mdfe'}" style="font-weight: 800; font-size: 0.75rem;">
+                        ${escapeHtml(doc.tipo)}
+                      </span>
+                      <div style="font-size: 0.725rem; font-weight: 700; color: #0f172a;">
+                        nº ${escapeHtml(String(doc.numero || ''))}
+                      </div>
+                      <span style="font-size: 0.65rem; color: #64748b;">Série ${escapeHtml(String(doc.serie || '1'))}</span>
+                    </td>
+                    <td>
+                      <div style="font-weight: 700; color: #0f172a;">${escapeHtml(doc.motorista_nome || 'Não Informado')}</div>
+                      <span style="font-size: 0.675rem; color: #475569; text-transform: uppercase;">
+                        ${escapeHtml(vinculoText)}
+                      </span>
+                    </td>
+                    <td class="text-center" style="font-family: monospace; font-size: 0.725rem; font-weight: 600;">
+                      ${escapeHtml(placasStr)}
+                    </td>
+                    <td>
+                      <div style="font-weight: 600; color: #1e293b; font-size: 0.725rem;">
+                        <strong>Rem:</strong> ${escapeHtml(doc.remetente_nome || 'Não informado')}
+                      </div>
+                      <div style="color: #475569; font-size: 0.7rem;">
+                        <strong>Dest:</strong> ${escapeHtml(doc.destinatario_nome || 'Não informado')}
+                      </div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 700; color: #1e293b;">
+                        ${escapeHtml(doc.origem || 'AL')} ➔ ${escapeHtml(doc.destino || 'DEST')}
+                      </div>
+                      ${isInterstate ? `
+                        <span style="display: inline-block; padding: 1px 5px; background: #dbeafe; color: #1d4ed8; border-radius: 3px; font-weight: 700; font-size: 0.625rem; margin-top: 2px;">
+                          Interestadual ${doc.ufs_percurso ? `(${escapeHtml(doc.ufs_percurso)})` : ''}
+                        </span>
+                      ` : `
+                        <span style="display: inline-block; padding: 1px 5px; background: #f1f5f9; color: #475569; border-radius: 3px; font-size: 0.625rem; margin-top: 2px;">
+                          Operação Interna
+                        </span>
+                      `}
+                    </td>
+                    <td>
+                      <div><strong style="color: #64748b; font-size: 0.675rem;">Saída:</strong> ${formatDateTimeDetailed(doc.data_saida, doc.data_emissao)}</div>
+                      <div style="margin-top: 3px;"><strong style="color: #64748b; font-size: 0.675rem;">Prev. Chegada:</strong> ${formatDateTimeDetailed(doc.previsao_chegada, null)}</div>
+                    </td>
+                    <td class="text-right" style="font-weight: 700; color: #0f172a;">
+                      ${formatMoney(val)}
+                    </td>
+                    <td class="text-right" style="color: #64748b;">
+                      ${formatMoney(icms)}
+                    </td>
+                    <td class="text-right" style="font-weight: 800; color: #047857; background: rgba(16, 185, 129, 0.05);">
+                      ${formatMoney(com)}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+              <tr class="total-row" style="background: #f1f5f9; font-weight: 800;">
+                <td colspan="6">
+                  <strong style="color: #0f172a; text-transform: uppercase;">Total de Fretes, ICMS e Repasses das Viagens</strong>
+                </td>
+                <td class="text-right" style="color: #0f172a;">
+                  <strong>${formatMoney(totalFrete)}</strong>
+                </td>
+                <td class="text-right" style="color: #0f172a;">
+                  <strong>${formatMoney(totalICMS)}</strong>
+                </td>
+                <td class="text-right" style="color: #047857; font-size: 0.9rem;">
+                  <strong>${formatMoney(totalComissao75)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 4. TERMO DE CONFORMIDADE FISCAL E PROTOCOLO DE ASSINATURAS -->
+        <div style="margin-top: 1.5rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.75rem; color: #334155; line-height: 1.5;">
+          <strong>Termo de Responsabilidade & Conformidade Contábil:</strong> Declaramos que os valores brutos de frete, os recolhimentos destacados de ICMS e os cálculos individuais e gerais de comissões destinados aos condutores (fixados na regra de 75,0% sobre o frete faturado) foram rigorosamente auditados e conferidos em conformidade com as autorizações fiscais da Secretaria da Fazenda (SEFAZ).
+        </div>
+
+        <div class="fin-signatures-container">
+          <div class="fin-sign-col">
+            <div class="fin-sign-line"></div>
+            <div class="fin-sign-role">Auditoria de Fretes & Transporte</div>
+            <div class="fin-sign-dept">Conferência Fiscal & SEFAZ</div>
+          </div>
+          <div class="fin-sign-col">
+            <div class="fin-sign-line"></div>
+            <div class="fin-sign-role">Gerência Financeira & Contábil</div>
+            <div class="fin-sign-dept">Contas a Pagar / Liberação PIX</div>
+          </div>
+          <div class="fin-sign-col">
+            <div class="fin-sign-line"></div>
+            <div class="fin-sign-role">Diretoria Executiva / Operações</div>
+            <div class="fin-sign-dept">Homologação da Prestação de Contas</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  window.renderFinancialReportContent = renderFinancialReportContent;
 
   // Driver Form Submit (Create / Edit)
   document.getElementById('form-driver').addEventListener('submit', async (e) => {
