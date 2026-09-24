@@ -1673,6 +1673,293 @@ html, body {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* ==========================================================================
+   Functional KPI Cards & Interactive Detail Panel (Numbers & Detailed Charts)
+   ========================================================================== */
+.kpi-card.kpi-clickable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card.kpi-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-card.kpi-card-active {
+  border-width: 2px !important;
+  background: #ffffff;
+}
+
+.kpi-card.kpi-cte.kpi-card-active {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 10px 25px rgba(37, 99, 235, 0.1) !important;
+}
+
+.kpi-card.kpi-commission.kpi-card-active,
+.kpi-card[data-kpi="comissao"].kpi-card-active {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18), 0 10px 25px rgba(16, 185, 129, 0.1) !important;
+}
+
+.kpi-card.kpi-amber.kpi-card-active {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18), 0 10px 25px rgba(245, 158, 11, 0.1) !important;
+}
+
+.kpi-card.kpi-mdfe.kpi-card-active {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18), 0 10px 25px rgba(139, 92, 246, 0.1) !important;
+}
+
+.kpi-action-hint {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.kpi-card:hover .kpi-action-hint {
+  color: #2563eb;
+  transform: translateX(2px);
+}
+
+.kpi-card.kpi-card-active .kpi-action-hint {
+  color: #0f172a;
+}
+
+/* Detail Panel Container */
+.kpi-detail-panel {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  animation: panelSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+@keyframes panelSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.kpi-detail-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.kpi-detail-badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.kpi-detail-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.kpi-detail-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 2px 0;
+}
+
+.kpi-detail-desc {
+  font-size: 0.825rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.kpi-detail-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.kpi-pill-group {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+}
+
+.kpi-pill-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kpi-pill-btn:hover {
+  color: #0f172a;
+}
+
+.kpi-pill-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Stats Grid (Detailed Numbers) */
+.kpi-detail-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.kpi-sub-stat-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.kpi-sub-stat-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.kpi-sub-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.kpi-sub-stat-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: #0f172a;
+}
+
+.kpi-sub-stat-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Charts Grid inside Detail Panel */
+.kpi-detail-charts-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .kpi-detail-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-detail-chart-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.kpi-detail-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpi-chart-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.kpi-chart-card-desc {
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.kpi-detail-canvas-box {
+  position: relative;
+  height: 250px;
+  width: 100%;
+}
+
+/* Table of Highlights */
+.kpi-detail-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+}
+
+.kpi-detail-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 /* Print Styles */
 @media print {
   body * {

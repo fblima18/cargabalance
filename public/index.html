@@ -197,9 +197,10 @@
       </section>
 
       <!-- KPI Metrics Grid -->
+      <!-- KPI Metrics Grid (Etiquetas Funcionais e Clicáveis) -->
       <section class="kpi-grid">
         <!-- 1. Total Faturamento / Frete -->
-        <div class="kpi-card kpi-cte">
+        <div class="kpi-card kpi-cte kpi-clickable" id="card-kpi-frete" onclick="toggleKPIDetail('frete')" title="Clique para ver números e gráficos detalhados de Faturamento & Fretes">
           <div class="kpi-header">
             <span class="kpi-label">Faturamento Total (Fretes)</span>
             <div class="kpi-icon-badge">
@@ -214,10 +215,14 @@
             <span id="kpi-breakdown-cte" class="badge-trend">CT-e: R$ 0,00</span>
             <span id="kpi-breakdown-mdfe" style="color: var(--accent-mdfe); font-weight: 600;">Carga MDF-e: R$ 0,00</span>
           </div>
+          <div class="kpi-action-hint">
+            <span>Ver números & gráficos</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
         </div>
 
         <!-- 2. Comissões dos Motoristas (75%) -->
-        <div class="kpi-card" style="--accent-primary: #10b981;">
+        <div class="kpi-card kpi-commission kpi-clickable" id="card-kpi-comissao" data-kpi="comissao" onclick="toggleKPIDetail('comissao')" title="Clique para ver números e gráficos detalhados de Comissões dos Motoristas (75%)">
           <div class="kpi-header">
             <span class="kpi-label">Comissão Motoristas (75%)</span>
             <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
@@ -231,10 +236,14 @@
           <div class="kpi-footer">
             <span>Saldo acumulado a pagar aos condutores (75% do frete)</span>
           </div>
+          <div class="kpi-action-hint">
+            <span>Ver números & gráficos</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
         </div>
 
         <!-- 3. ICMS e Tributos -->
-        <div class="kpi-card kpi-amber">
+        <div class="kpi-card kpi-amber kpi-clickable" id="card-kpi-icms" onclick="toggleKPIDetail('icms')" title="Clique para ver números e gráficos detalhados de ICMS Destacado & Tributos">
           <div class="kpi-header">
             <span class="kpi-label">Total ICMS Destacado</span>
             <div class="kpi-icon-badge">
@@ -248,10 +257,14 @@
           <div class="kpi-footer">
             <span>Imposto sobre prestação de transporte</span>
           </div>
+          <div class="kpi-action-hint">
+            <span>Ver números & gráficos</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
         </div>
 
         <!-- 4. Viagens & Interestaduais -->
-        <div class="kpi-card kpi-mdfe">
+        <div class="kpi-card kpi-mdfe kpi-clickable" id="card-kpi-documentos" onclick="toggleKPIDetail('documentos')" title="Clique para ver números e gráficos detalhados de Viagens & Documentos (CT-e e MDF-e)">
           <div class="kpi-header">
             <span class="kpi-label">Viagens & Documentos</span>
             <div class="kpi-icon-badge">
@@ -264,6 +277,112 @@
           <div id="kpi-doc-count" class="kpi-value">0</div>
           <div class="kpi-footer">
             <span id="kpi-count-interstate" class="badge-interstate">0 Interestaduais (Fora de AL)</span>
+          </div>
+          <div class="kpi-action-hint">
+            <span>Ver números & gráficos</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- Painel Interativo de Resultados em Números e Gráficos Detalhados -->
+      <section id="kpi-detail-panel" class="kpi-detail-panel" style="display: none;">
+        <!-- Header with Title, Mode Pill Switcher, Action Filter and Close Button -->
+        <div class="kpi-detail-header">
+          <div class="kpi-detail-title-group">
+            <div id="kpi-detail-badge-icon" class="kpi-detail-badge-icon">
+              📊
+            </div>
+            <div>
+              <div class="kpi-detail-eyebrow" id="kpi-detail-eyebrow">AUDITORIA DE FRETES & SEFAZ</div>
+              <h3 id="kpi-detail-title" class="kpi-detail-title">Detalhamento dos Resultados</h3>
+              <p id="kpi-detail-desc" class="kpi-detail-desc">Indicadores em números consolidados e gráficos analíticos.</p>
+            </div>
+          </div>
+
+          <div class="kpi-detail-controls">
+            <!-- Selector pills to change active view directly inside panel -->
+            <div class="kpi-pill-group">
+              <button type="button" class="kpi-pill-btn active" id="pill-kpi-frete" onclick="selectKPIDetail('frete')">
+                💵 Fretes
+              </button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-comissao" onclick="selectKPIDetail('comissao')">
+                🛡️ Comissões (75%)
+              </button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-icms" onclick="selectKPIDetail('icms')">
+                🧾 ICMS
+              </button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-documentos" onclick="selectKPIDetail('documentos')">
+                📄 Documentos
+              </button>
+            </div>
+
+            <!-- Direct Quick Filter Button for the table -->
+            <button type="button" id="btn-kpi-filter-table" class="btn btn-secondary btn-sm" onclick="filterTableByCurrentKPI()" title="Filtrar tabela com base nesta etiqueta">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <span id="btn-kpi-filter-text">Filtrar Tabela</span>
+            </button>
+
+            <!-- Close / Collapse Button -->
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeKPIDetailPanel()" title="Recolher painel de gráficos">
+              ✕ Ocultar
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Grid de Números Detalhados (Estatísticas Avançadas) -->
+        <div id="kpi-detail-stats-grid" class="kpi-detail-stats-grid">
+          <!-- Dynamically populated cards with specific figures -->
+        </div>
+
+        <!-- 2. Grid de Gráficos Detalhados (Canvas Chart.js) -->
+        <div class="kpi-detail-charts-grid">
+          <!-- Chart Card A -->
+          <div class="kpi-detail-chart-card">
+            <div class="kpi-detail-chart-header">
+              <div>
+                <h4 id="kpi-chart-title-a" class="kpi-chart-card-title">Gráfico Principal</h4>
+                <span id="kpi-chart-desc-a" class="kpi-chart-card-desc">Análise gráfica detalhada</span>
+              </div>
+            </div>
+            <div class="kpi-detail-canvas-box">
+              <canvas id="kpi-detail-canvas-a"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart Card B -->
+          <div class="kpi-detail-chart-card">
+            <div class="kpi-detail-chart-header">
+              <div>
+                <h4 id="kpi-chart-title-b" class="kpi-chart-card-title">Distribuição & Segmentação</h4>
+                <span id="kpi-chart-desc-b" class="kpi-chart-card-desc">Composição analítica proporcional</span>
+              </div>
+            </div>
+            <div class="kpi-detail-canvas-box">
+              <canvas id="kpi-detail-canvas-b"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Mini Tabela / Destaques da Etiqueta Selecionada -->
+        <div class="kpi-detail-table-card">
+          <div class="kpi-detail-table-header">
+            <h4 id="kpi-table-title" style="font-size: 0.9rem; font-weight: 700;">Documentos e Registros em Destaque</h4>
+            <span id="kpi-table-subtitle" style="font-size: 0.775rem; color: var(--text-secondary);">Auditados em tempo real</span>
+          </div>
+          <div class="table-wrapper" style="max-height: 220px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.8rem;">
+              <thead>
+                <tr id="kpi-detail-table-head">
+                  <!-- Dynamically rendered headers -->
+                </tr>
+              </thead>
+              <tbody id="kpi-detail-table-body">
+                <!-- Dynamically rendered rows -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

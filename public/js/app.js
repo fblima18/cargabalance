@@ -23,6 +23,10 @@ let chartCategoryInstance = null;
 let chartTripsInstance = null;
 let overviewRevenueChartInstance = null;
 let overviewCategoryChartInstance = null;
+let activeKPIDetail = null;
+let currentKPIsCache = null;
+let kpiDetailChartA = null;
+let kpiDetailChartB = null;
 
 // Global helper to switch active tab
 function switchTab(tabId) {
@@ -190,9 +194,6 @@ async function fetchAndRenderDocuments() {
   }
 }
 
-/**
- * Render dynamic KPI cards
- */
 function renderKPIs(kpis) {
   const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
@@ -211,7 +212,845 @@ function renderKPIs(kpis) {
   document.getElementById('kpi-count-interstate').textContent = `${kpis.interstateCount || 0} Interestaduais (Fora de AL)`;
 
   document.getElementById('results-count').textContent = `${kpis.documentCount || 0} registros encontrados`;
+
+  currentKPIsCache = kpis;
+
+  // Auto-refresh detail panel if open
+  if (activeKPIDetail) {
+    selectKPIDetail(activeKPIDetail, false);
+  }
 }
+
+/**
+ * Toggle KPI Detail Panel
+ */
+function toggleKPIDetail(type) {
+  if (activeKPIDetail === type) {
+    closeKPIDetailPanel();
+  } else {
+    selectKPIDetail(type, true);
+  }
+}
+window.toggleKPIDetail = toggleKPIDetail;
+
+/**
+ * Close KPI Detail Panel
+ */
+function closeKPIDetailPanel() {
+  const panel = document.getElementById('kpi-detail-panel');
+  if (panel) panel.style.display = 'none';
+
+  ['card-kpi-frete', 'card-kpi-comissao', 'card-kpi-icms', 'card-kpi-documentos'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('kpi-card-active');
+  });
+
+  activeKPIDetail = null;
+}
+window.closeKPIDetailPanel = closeKPIDetailPanel;
+
+/**
+ * Select and Render KPI Detail View (Numbers & Charts)
+ */
+function selectKPIDetail(type, shouldScroll = true) {
+  activeKPIDetail = type;
+  const panel = document.getElementById('kpi-detail-panel');
+  if (!panel) return;
+  panel.style.display = 'flex';
+
+  // Highlight active KPI card
+  const cardMap = {
+    frete: 'card-kpi-frete',
+    comissao: 'card-kpi-comissao',
+    icms: 'card-kpi-icms',
+    documentos: 'card-kpi-documentos'
+  };
+
+  Object.entries(cardMap).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (k === type) el.classList.add('kpi-card-active');
+      else el.classList.remove('kpi-card-active');
+    }
+  });
+
+  // Highlight active pill button inside panel
+  const pillMap = {
+    frete: 'pill-kpi-frete',
+    comissao: 'pill-kpi-comissao',
+    icms: 'pill-kpi-icms',
+    documentos: 'pill-kpi-documentos'
+  };
+
+  Object.entries(pillMap).forEach(([k, id]) => {
+    const pill = document.getElementById(id);
+    if (pill) {
+      if (k === type) pill.classList.add('active');
+      else pill.classList.remove('active');
+    }
+  });
+
+  // Configure header texts & icons
+  const badgeIcon = document.getElementById('kpi-detail-badge-icon');
+  const eyebrowEl = document.getElementById('kpi-detail-eyebrow');
+  const titleEl = document.getElementById('kpi-detail-title');
+  const descEl = document.getElementById('kpi-detail-desc');
+  const filterTextEl = document.getElementById('btn-kpi-filter-text');
+
+  if (type === 'frete') {
+    if (badgeIcon) {
+      badgeIcon.textContent = '💵';
+      badgeIcon.style.background = 'rgba(37, 99, 235, 0.12)';
+      badgeIcon.style.color = '#2563eb';
+    }
+    if (eyebrowEl) eyebrowEl.textContent = 'FATURAMENTO TOTAL & FRETE (CT-E / MDF-E)';
+    if (titleEl) titleEl.textContent = 'Detalhamento de Faturamento & Fretes';
+    if (descEl) descEl.textContent = 'Apontamento financeiro de fretes prestados (CT-e) e mercadorias averbadas (MDF-e).';
+    if (filterTextEl) filterTextEl.textContent = 'Filtrar CT-e na Tabela';
+  } else if (type === 'comissao') {
+    if (badgeIcon) {
+      badgeIcon.textContent = '🛡️';
+      badgeIcon.style.background = 'rgba(16, 185, 129, 0.15)';
+      badgeIcon.style.color = '#059669';
+    }
+    if (eyebrowEl) eyebrowEl.textContent = 'COMISSÕES DOS CONDUTORES (75%)';
+    if (titleEl) titleEl.textContent = 'Detalhamento de Repasse aos Motoristas (75%)';
+    if (descEl) descEl.textContent = 'Saldo acumulado destinado aos condutores conforme regra contratual de 75% sobre o frete bruto.';
+    if (filterTextEl) filterTextEl.textContent = 'Ver Motoristas & Comissões';
+  } else if (type === 'icms') {
+    if (badgeIcon) {
+      badgeIcon.textContent = '🧾';
+      badgeIcon.style.background = 'rgba(245, 158, 11, 0.15)';
+      badgeIcon.style.color = '#d97706';
+    }
+    if (eyebrowEl) eyebrowEl.textContent = 'TRIBUTAÇÃO SEFAZ & TRIBUTOS DESTACADOS';
+    if (titleEl) titleEl.textContent = 'Detalhamento Tributário & ICMS Destacado';
+    if (descEl) descEl.textContent = 'Recolhimento fiscal de ICMS nas operações de transporte rodoviário interestadual e interno.';
+    if (filterTextEl) filterTextEl.textContent = 'Filtrar com ICMS Destacado';
+  } else {
+    // documentos
+    if (badgeIcon) {
+      badgeIcon.textContent = '📄';
+      badgeIcon.style.background = 'rgba(139, 92, 246, 0.15)';
+      badgeIcon.style.color = '#7c3aed';
+    }
+    if (eyebrowEl) eyebrowEl.textContent = 'OPERAÇÕES, VIAGENS & DOCUMENTOS FISCAIS';
+    if (titleEl) titleEl.textContent = 'Detalhamento de Viagens & Documentos (CT-e e MDF-e)';
+    if (descEl) descEl.textContent = 'Controle operacional de conhecimentos de carga, manifestos eletrônicos e percursos interestaduais.';
+    if (filterTextEl) filterTextEl.textContent = 'Filtrar Interestaduais';
+  }
+
+  // Calculate detailed metrics
+  const metrics = getKPIDetailMetrics();
+
+  // 1. Render Sub-Stats Grid (Advanced Figures)
+  renderKPIDetailStats(type, metrics);
+
+  // 2. Render Charts
+  renderKPIDetailCharts(type, metrics);
+
+  // 3. Render Highlight Table
+  renderKPIDetailTable(type, metrics);
+
+  if (shouldScroll) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+window.selectKPIDetail = selectKPIDetail;
+
+/**
+ * Compute detailed analytical metrics across all loaded documents
+ */
+function getKPIDetailMetrics() {
+  const docs = allDocumentsCache || [];
+  const ctes = docs.filter((d) => d.tipo === 'CT-e');
+  const mdfes = docs.filter((d) => d.tipo === 'MDF-e');
+
+  const totalFrete = ctes.reduce((acc, c) => acc + (c.valor || 0), 0);
+  const totalCarga = mdfes.reduce((acc, m) => acc + (m.valor || 0), 0);
+  const totalComissao = ctes.reduce((acc, c) => acc + (c.valor_comissao || c.valor * 0.75 || 0), 0);
+  const totalIcms = ctes.reduce((acc, c) => acc + (c.valor_icms || 0), 0);
+  const totalImpostos = ctes.reduce((acc, c) => acc + (c.valor_impostos_total || c.valor_icms || 0), 0);
+
+  // Interstate vs State
+  const interstateCTes = ctes.filter((c) => c.interestadual === 1 || c.uf_origem !== c.uf_destino);
+  const interstateFrete = interstateCTes.reduce((acc, c) => acc + (c.valor || 0), 0);
+  const internalFrete = Math.max(0, totalFrete - interstateFrete);
+
+  const interstateIcms = interstateCTes.reduce((acc, c) => acc + (c.valor_icms || 0), 0);
+  const internalIcms = Math.max(0, totalIcms - interstateIcms);
+
+  // Drivers
+  const driverMap = {};
+  ctes.forEach((c) => {
+    const dId = c.motorista_id || 'unknown';
+    const dNome = c.motorista_nome || 'Não Informado';
+    if (!driverMap[dId]) {
+      driverMap[dId] = { id: dId, nome: dNome, cpf: c.motorista_cpf || '-', frete: 0, comissao: 0, count: 0 };
+    }
+    driverMap[dId].frete += (c.valor || 0);
+    driverMap[dId].comissao += (c.valor_comissao || c.valor * 0.75 || 0);
+    driverMap[dId].count++;
+  });
+  const driverList = Object.values(driverMap).sort((a, b) => b.comissao - a.comissao);
+  const topDriver = driverList[0] || null;
+
+  // Max frete
+  const sortedByFrete = [...ctes].sort((a, b) => (b.valor || 0) - (a.valor || 0));
+  const maxFreteDoc = sortedByFrete[0] || null;
+
+  // Routes
+  const routeMap = {};
+  docs.forEach((d) => {
+    const orig = d.cidade_origem || d.uf_origem || 'AL';
+    const dest = d.cidade_destino || d.uf_destino || 'DEST';
+    const routeKey = `${orig} ➔ ${dest}`;
+    if (!routeMap[routeKey]) routeMap[routeKey] = { key: routeKey, count: 0, frete: 0, carga: 0, icms: 0, comissao: 0 };
+    routeMap[routeKey].count++;
+    if (d.tipo === 'CT-e') {
+      routeMap[routeKey].frete += (d.valor || 0);
+      routeMap[routeKey].comissao += (d.valor_comissao || d.valor * 0.75 || 0);
+      routeMap[routeKey].icms += (d.valor_icms || 0);
+    } else {
+      routeMap[routeKey].carga += (d.valor || 0);
+    }
+  });
+  const routeList = Object.values(routeMap).sort((a, b) => b.count - a.count);
+
+  return {
+    totalFrete,
+    totalCarga,
+    totalComissao,
+    totalIcms,
+    totalImpostos,
+    interstateFrete,
+    internalFrete,
+    interstateIcms,
+    internalIcms,
+    cteCount: ctes.length,
+    mdfeCount: mdfes.length,
+    totalDocs: docs.length,
+    interstateCount: docs.filter((d) => d.interestadual === 1 || d.uf_origem !== d.uf_destino).length,
+    driverList,
+    topDriver,
+    maxFreteDoc,
+    routeList,
+    ctes,
+    mdfes,
+    docs
+  };
+}
+
+/**
+ * Render KPI Detail Numeric Stats Cards
+ */
+function renderKPIDetailStats(type, m) {
+  const container = document.getElementById('kpi-detail-stats-grid');
+  if (!container) return;
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+  let html = '';
+
+  if (type === 'frete') {
+    const avgTicket = m.cteCount > 0 ? m.totalFrete / m.cteCount : 0;
+    const interstatePct = m.totalFrete > 0 ? ((m.interstateFrete / m.totalFrete) * 100).toFixed(1) : 0;
+    const maxVal = m.maxFreteDoc ? m.maxFreteDoc.valor : 0;
+    const maxDocNum = m.maxFreteDoc ? `CT-e nº ${m.maxFreteDoc.numero}` : '-';
+
+    html = `
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
+        <span class="kpi-sub-stat-label">💵 Total Frete Prestado</span>
+        <span class="kpi-sub-stat-val" style="color: #2563eb;">${formatBRL(m.totalFrete)}</span>
+        <span class="kpi-sub-stat-desc">${m.cteCount} Conhecimento(s) CT-e faturados</span>
+      </div>
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
+        <span class="kpi-sub-stat-label">📦 Valor Total da Carga</span>
+        <span class="kpi-sub-stat-val" style="color: #7c3aed;">${formatBRL(m.totalCarga)}</span>
+        <span class="kpi-sub-stat-desc">${m.mdfeCount} Manifesto(s) MDF-e averbados</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📈 Ticket Médio de Frete</span>
+        <span class="kpi-sub-stat-val">${formatBRL(avgTicket)}</span>
+        <span class="kpi-sub-stat-desc">Média ponderada por conhecimento</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🏆 Maior Frete Registrado</span>
+        <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(maxVal)}</span>
+        <span class="kpi-sub-stat-desc">${maxDocNum} (${m.maxFreteDoc ? (m.maxFreteDoc.cidade_destino || m.maxFreteDoc.uf_destino) : '-'})</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🛣️ Faturamento Interestadual</span>
+        <span class="kpi-sub-stat-val">${formatBRL(m.interstateFrete)}</span>
+        <span class="kpi-sub-stat-desc">${interstatePct}% das operações fora de AL</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📊 Total Movimentado</span>
+        <span class="kpi-sub-stat-val">${formatBRL(m.totalFrete + m.totalCarga)}</span>
+        <span class="kpi-sub-stat-desc">Frete líquido + Carga em trânsito</span>
+      </div>
+    `;
+  } else if (type === 'comissao') {
+    const margemEmpresa = Math.max(0, m.totalFrete - m.totalComissao);
+    const avgComissao = m.cteCount > 0 ? m.totalComissao / m.cteCount : 0;
+    const topComissaoVal = m.topDriver ? m.topDriver.comissao : 0;
+    const topNome = m.topDriver ? m.topDriver.nome : 'Nenhum';
+
+    html = `
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #10b981; background: #f0fdf4;">
+        <span class="kpi-sub-stat-label" style="color: #059669;">🛡️ Repasse Motoristas (75%)</span>
+        <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(m.totalComissao)}</span>
+        <span class="kpi-sub-stat-desc">Regra contratual 75% garantida</span>
+      </div>
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #6366f1;">
+        <span class="kpi-sub-stat-label">🏢 Margem Transportadora (25%)</span>
+        <span class="kpi-sub-stat-val" style="color: #4f46e5;">${formatBRL(margemEmpresa)}</span>
+        <span class="kpi-sub-stat-desc">Retenção de custos operacionais</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📊 Média por Viagem</span>
+        <span class="kpi-sub-stat-val">${formatBRL(avgComissao)}</span>
+        <span class="kpi-sub-stat-desc">Comissão média repassada</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🥇 Maior Comissão Individual</span>
+        <span class="kpi-sub-stat-val" style="color: #059669;">${formatBRL(topComissaoVal)}</span>
+        <span class="kpi-sub-stat-desc">${topNome}</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">👥 Motoristas Beneficiados</span>
+        <span class="kpi-sub-stat-val">${m.driverList.length} condutores</span>
+        <span class="kpi-sub-stat-desc">Com saldos apurados em fretes</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">⚙️ Taxa Contratual</span>
+        <span class="kpi-sub-stat-val" style="color: #047857;">75,0%</span>
+        <span class="kpi-sub-stat-desc">Percentual de frota auditado</span>
+      </div>
+    `;
+  } else if (type === 'icms') {
+    const aliquotaMedia = m.totalFrete > 0 ? ((m.totalIcms / m.totalFrete) * 100).toFixed(2) : '0.00';
+    const outrosTributos = Math.max(0, m.totalImpostos - m.totalIcms);
+
+    html = `
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #f59e0b; background: #fffbeb;">
+        <span class="kpi-sub-stat-label" style="color: #b45309;">🧾 Total ICMS Destacado</span>
+        <span class="kpi-sub-stat-val" style="color: #d97706;">${formatBRL(m.totalIcms)}</span>
+        <span class="kpi-sub-stat-desc">Imposto destacado em DACTE</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📐 Base de Cálculo Total</span>
+        <span class="kpi-sub-stat-val">${formatBRL(m.totalFrete)}</span>
+        <span class="kpi-sub-stat-desc">Base tributável nos serviços</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">⚡ Alíquota Média Efetiva</span>
+        <span class="kpi-sub-stat-val" style="color: #d97706;">${aliquotaMedia}%</span>
+        <span class="kpi-sub-stat-desc">Média ponderada das operações</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🛣️ ICMS Interestadual (12%)</span>
+        <span class="kpi-sub-stat-val">${formatBRL(m.interstateIcms)}</span>
+        <span class="kpi-sub-stat-desc">Prestações para fora de AL</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📍 ICMS Interno AL (19%)</span>
+        <span class="kpi-sub-stat-val">${formatBRL(m.internalIcms)}</span>
+        <span class="kpi-sub-stat-desc">Prestações estaduais em AL</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🏛️ Outros Tributos (PIS/COF/IBS)</span>
+        <span class="kpi-sub-stat-val">${formatBRL(outrosTributos)}</span>
+        <span class="kpi-sub-stat-desc">Tributos federais informados</span>
+      </div>
+    `;
+  } else {
+    // documentos
+    const estaduais = Math.max(0, m.totalDocs - m.interstateCount);
+    const estPct = m.totalDocs > 0 ? ((estaduais / m.totalDocs) * 100).toFixed(0) : 0;
+    const interPct = m.totalDocs > 0 ? ((m.interstateCount / m.totalDocs) * 100).toFixed(0) : 0;
+
+    html = `
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
+        <span class="kpi-sub-stat-label">🚛 Total de Viagens / Operações</span>
+        <span class="kpi-sub-stat-val" style="color: #7c3aed;">${m.totalDocs}</span>
+        <span class="kpi-sub-stat-desc">Conhecimentos e manifestos</span>
+      </div>
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
+        <span class="kpi-sub-stat-label">📄 Conhecimentos CT-e</span>
+        <span class="kpi-sub-stat-val" style="color: #2563eb;">${m.cteCount}</span>
+        <span class="kpi-sub-stat-desc">Documentos modelo 57 emitidos</span>
+      </div>
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #06b6d4;">
+        <span class="kpi-sub-stat-label">🚚 Manifestos MDF-e</span>
+        <span class="kpi-sub-stat-val" style="color: #0891b2;">${m.mdfeCount}</span>
+        <span class="kpi-sub-stat-desc">Documentos modelo 58 vinculados</span>
+      </div>
+      <div class="kpi-sub-stat-card" style="border-left: 3px solid #b45309;">
+        <span class="kpi-sub-stat-label">🌐 Interestaduais (Fora de AL)</span>
+        <span class="kpi-sub-stat-val" style="color: #b45309;">${m.interstateCount}</span>
+        <span class="kpi-sub-stat-desc">${interPct}% do volume operacional</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">📍 Operações Internas (AL)</span>
+        <span class="kpi-sub-stat-val">${estaduais}</span>
+        <span class="kpi-sub-stat-desc">${estPct}% do volume dentro de AL</span>
+      </div>
+      <div class="kpi-sub-stat-card">
+        <span class="kpi-sub-stat-label">🛣️ Trajetos & Rotas Atendidas</span>
+        <span class="kpi-sub-stat-val">${m.routeList.length}</span>
+        <span class="kpi-sub-stat-desc">Origens e destinos cadastrados</span>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+/**
+ * Render KPI Detail Charts via Chart.js
+ */
+function renderKPIDetailCharts(type, m) {
+  const canvasA = document.getElementById('kpi-detail-canvas-a');
+  const canvasB = document.getElementById('kpi-detail-canvas-b');
+  const titleA = document.getElementById('kpi-chart-title-a');
+  const descA = document.getElementById('kpi-chart-desc-a');
+  const titleB = document.getElementById('kpi-chart-title-b');
+  const descB = document.getElementById('kpi-chart-desc-b');
+
+  if (!canvasA || !canvasB || typeof Chart === 'undefined') return;
+
+  if (kpiDetailChartA) kpiDetailChartA.destroy();
+  if (kpiDetailChartB) kpiDetailChartB.destroy();
+
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+  if (type === 'frete') {
+    titleA.textContent = '📈 Faturamento por Documento (CT-e)';
+    descA.textContent = 'Valores individuais de cada frete auditado';
+    titleB.textContent = '🍩 Composição por Rota / Destino';
+    descB.textContent = 'Distribuição do frete total por destino';
+
+    // Chart A: CT-e values
+    const ctesToShow = m.ctes.slice(0, 10);
+    const labelsA = ctesToShow.map((c) => `CT-e ${c.numero}`);
+    const dataA = ctesToShow.map((c) => c.valor || 0);
+
+    kpiDetailChartA = new Chart(canvasA, {
+      type: 'bar',
+      data: {
+        labels: labelsA.length > 0 ? labelsA : ['Sem dados'],
+        datasets: [{
+          label: 'Valor do Frete (R$)',
+          data: dataA.length > 0 ? dataA : [0],
+          backgroundColor: 'rgba(37, 99, 235, 0.85)',
+          borderColor: '#2563eb',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: (ctx) => `Frete: ${formatBRL(ctx.raw)}` }
+          }
+        },
+        scales: {
+          x: { ticks: { font: { size: 10, weight: '600' } } },
+          y: { ticks: { callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val) } }
+        }
+      }
+    });
+
+    // Chart B: Frete by Route
+    const routesToShow = m.routeList.slice(0, 5);
+    const labelsB = routesToShow.map((r) => r.key);
+    const dataB = routesToShow.map((r) => r.frete);
+
+    kpiDetailChartB = new Chart(canvasB, {
+      type: 'doughnut',
+      data: {
+        labels: labelsB.length > 0 ? labelsB : ['Sem rotas'],
+        datasets: [{
+          data: dataB.length > 0 ? dataB : [1],
+          backgroundColor: ['#2563eb', '#38bdf8', '#8b5cf6', '#10b981', '#f59e0b']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: '600' }, padding: 8 } },
+          tooltip: {
+            callbacks: { label: (ctx) => `${ctx.label}: ${formatBRL(ctx.raw)}` }
+          }
+        }
+      }
+    });
+
+  } else if (type === 'comissao') {
+    titleA.textContent = '🏆 Ranking de Repasse de Comissão (75%)';
+    descA.textContent = 'Valores a repassar por condutor sobre fretes realizados';
+    titleB.textContent = '🍩 Divisão Contratual do Frete';
+    descB.textContent = '75% Condutor vs 25% Margem Transportadora';
+
+    // Chart A: Driver Commission Ranking
+    const driversToShow = m.driverList.slice(0, 8);
+    const labelsA = driversToShow.map((d) => d.nome.length > 15 ? d.nome.substring(0, 13) + '...' : d.nome);
+    const dataA = driversToShow.map((d) => d.comissao);
+
+    kpiDetailChartA = new Chart(canvasA, {
+      type: 'bar',
+      data: {
+        labels: labelsA.length > 0 ? labelsA : ['Sem motoristas'],
+        datasets: [{
+          label: 'Comissão 75% (R$)',
+          data: dataA.length > 0 ? dataA : [0],
+          backgroundColor: 'rgba(16, 185, 129, 0.85)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `Comissão: ${formatBRL(ctx.raw)}` } }
+        },
+        scales: {
+          x: { ticks: { callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val) } },
+          y: { ticks: { font: { size: 10, weight: '600' } } }
+        }
+      }
+    });
+
+    // Chart B: 75% vs 25% Split
+    const margemEmpresa = Math.max(0, m.totalFrete - m.totalComissao);
+    kpiDetailChartB = new Chart(canvasB, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          `Motoristas (75%): ${formatBRL(m.totalComissao)}`,
+          `Empresa (25%): ${formatBRL(margemEmpresa)}`
+        ],
+        datasets: [{
+          data: [m.totalComissao, margemEmpresa],
+          backgroundColor: ['#10b981', '#6366f1']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: '600' }, padding: 8 } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}` } }
+        }
+      }
+    });
+
+  } else if (type === 'icms') {
+    titleA.textContent = '🏛️ Arrecadação de ICMS por Destino';
+    descA.textContent = 'Imposto destacado conforme estado / cidade de destino';
+    titleB.textContent = '🍩 Tributação: Interestadual vs Interno';
+    descB.textContent = 'Alíquota de 12% (fora de AL) vs 19% (interna AL)';
+
+    // Chart A: ICMS by destination
+    const destMap = {};
+    m.ctes.forEach((c) => {
+      const dest = c.uf_destino || 'AL';
+      destMap[dest] = (destMap[dest] || 0) + (c.valor_icms || 0);
+    });
+    const labelsA = Object.keys(destMap);
+    const dataA = Object.values(destMap);
+
+    kpiDetailChartA = new Chart(canvasA, {
+      type: 'bar',
+      data: {
+        labels: labelsA.length > 0 ? labelsA : ['Sem dados'],
+        datasets: [{
+          label: 'ICMS Destacado (R$)',
+          data: dataA.length > 0 ? dataA : [0],
+          backgroundColor: 'rgba(245, 158, 11, 0.85)',
+          borderColor: '#f59e0b',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `ICMS: ${formatBRL(ctx.raw)}` } }
+        },
+        scales: {
+          y: { ticks: { callback: (val) => 'R$ ' + val } }
+        }
+      }
+    });
+
+    // Chart B: Interestadual vs Interno
+    kpiDetailChartB = new Chart(canvasB, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          `Interestadual 12% (${formatBRL(m.interstateIcms)})`,
+          `Interno AL 19% (${formatBRL(m.internalIcms)})`
+        ],
+        datasets: [{
+          data: [m.interstateIcms, m.internalIcms],
+          backgroundColor: ['#f59e0b', '#ef4444']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: '600' }, padding: 8 } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}` } }
+        }
+      }
+    });
+
+  } else {
+    // documentos
+    titleA.textContent = '🛣️ Volume de Viagens por Trajeto / Rota';
+    descA.textContent = 'Rotas com maior frequência de viagens operadas';
+    titleB.textContent = '🍩 Composição dos Documentos Emitidos';
+    descB.textContent = 'Conhecimentos CT-e vs Manifestos MDF-e';
+
+    // Chart A: Top Routes by Trips
+    const routesToShow = m.routeList.slice(0, 6);
+    const labelsA = routesToShow.map((r) => r.key);
+    const dataA = routesToShow.map((r) => r.count);
+
+    kpiDetailChartA = new Chart(canvasA, {
+      type: 'bar',
+      data: {
+        labels: labelsA.length > 0 ? labelsA : ['Sem viagens'],
+        datasets: [{
+          label: 'Qtd de Viagens',
+          data: dataA.length > 0 ? dataA : [0],
+          backgroundColor: 'rgba(139, 92, 246, 0.85)',
+          borderColor: '#8b5cf6',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    // Chart B: CT-e vs MDF-e
+    kpiDetailChartB = new Chart(canvasB, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          `Conhecimentos CT-e (${m.cteCount})`,
+          `Manifestos MDF-e (${m.mdfeCount})`
+        ],
+        datasets: [{
+          data: [m.cteCount, m.mdfeCount],
+          backgroundColor: ['#2563eb', '#8b5cf6']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: '600' }, padding: 8 } }
+        }
+      }
+    });
+  }
+}
+
+/**
+ * Render KPI Detail Highlights Table
+ */
+function renderKPIDetailTable(type, m) {
+  const headEl = document.getElementById('kpi-detail-table-head');
+  const bodyEl = document.getElementById('kpi-detail-table-body');
+  const titleEl = document.getElementById('kpi-table-title');
+  const subtitleEl = document.getElementById('kpi-table-subtitle');
+
+  if (!headEl || !bodyEl) return;
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+  if (type === 'frete') {
+    titleEl.textContent = 'Maiores Fretes Faturados (CT-e)';
+    subtitleEl.textContent = 'Top documentos com maior valor de serviço prestado';
+    headEl.innerHTML = `
+      <th>Documento</th>
+      <th>Emissão</th>
+      <th>Motorista</th>
+      <th>Rota & Percurso</th>
+      <th style="text-align: right;">Valor Frete (R$)</th>
+      <th style="text-align: right; color: #059669;">Comissão 75% (R$)</th>
+      <th style="text-align: center;">Visualizar</th>
+    `;
+    const list = [...m.ctes].sort((a, b) => (b.valor || 0) - (a.valor || 0)).slice(0, 5);
+    bodyEl.innerHTML = list.map((c) => {
+      const cleanKey = String(c.chave_acesso).replace(/\D/g, '');
+      return `
+        <tr>
+          <td><strong>CT-e nº ${c.numero}</strong></td>
+          <td>${c.data_emissao ? new Date(c.data_emissao).toLocaleDateString('pt-BR') : '-'}</td>
+          <td>${c.motorista_nome || '-'}</td>
+          <td>${c.cidade_origem || c.uf_origem} ➔ ${c.cidade_destino || c.uf_destino}</td>
+          <td style="text-align: right; font-weight: bold; color: #2563eb;">${formatBRL(c.valor)}</td>
+          <td style="text-align: right; font-weight: bold; color: #059669;">${formatBRL(c.valor_comissao)}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-secondary btn-sm" onclick="openDocPreview('${cleanKey}')" title="Ver DACTE">DACTE</button>
+          </td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="7" style="text-align:center;">Nenhum CT-e registrado.</td></tr>';
+
+  } else if (type === 'comissao') {
+    titleEl.textContent = 'Extrato de Comissões por Condutor (75%)';
+    subtitleEl.textContent = 'Detalhamento de saldo a pagar acumulado';
+    headEl.innerHTML = `
+      <th>Condutor</th>
+      <th>CPF</th>
+      <th>Qtd Viagens</th>
+      <th style="text-align: right;">Frete Total (R$)</th>
+      <th style="text-align: right; color: #059669;">Comissão 75% a Pagar</th>
+      <th style="text-align: center;">Ações</th>
+    `;
+    const list = m.driverList.slice(0, 5);
+    bodyEl.innerHTML = list.map((d) => `
+      <tr>
+        <td><strong>${d.nome}</strong></td>
+        <td>${d.cpf}</td>
+        <td>${d.count} frete(s)</td>
+        <td style="text-align: right;">${formatBRL(d.frete)}</td>
+        <td style="text-align: right; font-weight: 800; color: #059669;">${formatBRL(d.comissao)}</td>
+        <td style="text-align: center;">
+          <button class="btn btn-secondary btn-sm" onclick="switchTab('tab-drivers')" title="Ver motorista">Gerenciar</button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;">Nenhum motorista registrado.</td></tr>';
+
+  } else if (type === 'icms') {
+    titleEl.textContent = 'Apuração Fiscal de ICMS por Conhecimento';
+    subtitleEl.textContent = 'Detalhamento de alíquotas e valores destacados';
+    headEl.innerHTML = `
+      <th>CT-e</th>
+      <th>Destino</th>
+      <th>Tipo Operação</th>
+      <th style="text-align: right;">Base de Cálculo</th>
+      <th style="text-align: right; color: #d97706;">ICMS Destacado</th>
+      <th style="text-align: center;">Visualizar</th>
+    `;
+    const list = [...m.ctes].sort((a, b) => (b.valor_icms || 0) - (a.valor_icms || 0)).slice(0, 5);
+    bodyEl.innerHTML = list.map((c) => {
+      const cleanKey = String(c.chave_acesso).replace(/\D/g, '');
+      return `
+        <tr>
+          <td><strong>CT-e nº ${c.numero}</strong></td>
+          <td>${c.cidade_destino || '-'}/${c.uf_destino || '-'}</td>
+          <td>${c.interestadual === 1 ? '<span class="badge-interstate">Interestadual (12%)</span>' : '<span class="badge-trend">Interno (19%)</span>'}</td>
+          <td style="text-align: right;">${formatBRL(c.valor)}</td>
+          <td style="text-align: right; font-weight: bold; color: #d97706;">${formatBRL(c.valor_icms)}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-secondary btn-sm" onclick="openDocPreview('${cleanKey}')" title="Ver DACTE">DACTE</button>
+          </td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;">Nenhum ICMS registrado.</td></tr>';
+
+  } else {
+    // documentos
+    titleEl.textContent = 'Registro de Viagens e Documentos Fiscais';
+    subtitleEl.textContent = 'Rastreabilidade de CT-e e MDF-e com percurso interestadual';
+    headEl.innerHTML = `
+      <th>Tipo</th>
+      <th>Número</th>
+      <th>Cronograma (Saída / Prev.)</th>
+      <th>Condutor</th>
+      <th>Rota & Percurso</th>
+      <th style="text-align: center;">Interestadual?</th>
+      <th style="text-align: center;">Ações</th>
+    `;
+    const list = m.docs.slice(0, 5);
+    const formatDateTime = (str) => {
+      if (!str) return '-';
+      try {
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? str : d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } catch { return str; }
+    };
+    bodyEl.innerHTML = list.map((d) => {
+      const cleanKey = String(d.chave_acesso).replace(/\D/g, '');
+      return `
+        <tr>
+          <td><span class="badge-doc ${d.tipo === 'CT-e' ? 'badge-cte' : 'badge-mdfe'}">${d.tipo}</span></td>
+          <td><strong>nº ${d.numero}</strong></td>
+          <td>${formatDateTime(d.data_saida || d.data_emissao)}</td>
+          <td>${d.motorista_nome || '-'}</td>
+          <td>${d.cidade_origem || d.uf_origem} ➔ ${d.cidade_destino || d.uf_destino} ${d.ufs_percurso ? `(${d.ufs_percurso})` : ''}</td>
+          <td style="text-align: center;">${(d.interestadual === 1 || d.uf_origem !== d.uf_destino) ? '<span class="badge-interstate">Sim</span>' : '<span style="color: #64748b;">Não</span>'}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-secondary btn-sm" onclick="openDocPreview('${cleanKey}')">Visualizar</button>
+          </td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="7" style="text-align:center;">Nenhuma viagem registrada.</td></tr>';
+  }
+}
+
+/**
+ * Filter document table by current active KPI
+ */
+function filterTableByCurrentKPI() {
+  if (!activeKPIDetail) return;
+  const searchInput = document.getElementById('table-search');
+  const searchCategory = document.getElementById('search-category');
+
+  if (activeKPIDetail === 'frete') {
+    if (searchCategory) searchCategory.value = 'cte';
+    if (searchInput) searchInput.value = '';
+    currentFilters.searchType = 'cte';
+    currentFilters.search = '';
+    fetchAndRenderDocuments();
+    showToast('Tabela configurada para Conhecimentos (CT-e)!', 'info');
+  } else if (activeKPIDetail === 'comissao') {
+    if (searchCategory) searchCategory.value = 'driver';
+    currentFilters.searchType = 'driver';
+    fetchAndRenderDocuments();
+    showToast('Tabela ordenada para Comissões de Motoristas (75%)!', 'info');
+  } else if (activeKPIDetail === 'icms') {
+    if (searchCategory) searchCategory.value = 'all';
+    currentFilters.searchType = 'all';
+    fetchAndRenderDocuments();
+    showToast('Exibindo documentos com destaque de ICMS na tabela!', 'info');
+  } else if (activeKPIDetail === 'documentos') {
+    if (searchCategory) searchCategory.value = 'route';
+    currentFilters.searchType = 'route';
+    fetchAndRenderDocuments();
+    showToast('Tabela configurada para análise de rotas e viagens!', 'info');
+  }
+
+  const tableSection = document.querySelector('.table-wrapper');
+  if (tableSection) {
+    tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+window.filterTableByCurrentKPI = filterTableByCurrentKPI;
 
 /**
  * Render Overview Table
