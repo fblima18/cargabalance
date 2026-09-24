@@ -323,7 +323,54 @@
             <h2>Todos os Documentos & Fretes</h2>
             <span id="results-count" class="results-badge">0 registros</span>
           </div>
-          <div class="search-control-group">
+
+          <!-- Barra de Registro de Cadastro & Ações Rápidas -->
+          <div class="registration-action-bar" aria-label="Barra de Registro e Cadastro">
+            <button type="button" class="btn-action-pill primary" onclick="openManualTripModal()" title="Inserir Viagem Manual (CT-e ou MDF-e)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Nova Viagem</span>
+            </button>
+            <button type="button" class="btn-action-pill emerald" onclick="openDriverModal()" title="Cadastrar Novo Motorista">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+              <span>+ Novo Motorista</span>
+            </button>
+            <button type="button" class="btn-action-pill cyan" onclick="openCompleteXmlModal()" title="Completar Informações via XML SEFAZ">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              <span>Completar XML</span>
+            </button>
+            <button type="button" id="overview-btn-seed-attached" class="btn-action-pill amber" title="Importar DACTE Anexo (Rio Largo -> Juazeiro)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <span>DACTE Anexo</span>
+            </button>
+            <button type="button" id="overview-btn-export-excel" class="btn-action-pill success" title="Exportar para Excel (.xlsx)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>Exportar</span>
+            </button>
+          </div>
+
+          <!-- Campo de Pesquisa Compacto -->
+          <div class="search-control-group search-compact">
             <select id="search-category" class="search-type-select" title="Filtrar por Motorista, CT-e, MDF-e ou Rota">
               <option value="all">🔍 Todos</option>
               <option value="driver">👤 Motorista</option>
@@ -331,7 +378,7 @@
               <option value="mdfe">🚛 MDF-e</option>
               <option value="route">🛣️ Rota</option>
             </select>
-            <input type="search" id="table-search" class="search-input-inner" placeholder="Pesquisar motorista, CT-e, MDF-e ou rota...">
+            <input type="search" id="table-search" class="search-input-inner" placeholder="Pesquisar..." title="Digite para pesquisar em tempo real">
           </div>
         </div>
 
@@ -340,17 +387,17 @@
             <thead>
               <tr>
                 <th>Tipo</th>
+                <th style="text-align: center;">Ações</th>
                 <th>Número</th>
                 <th>Série</th>
                 <th>Data Emissão</th>
                 <th>Motorista</th>
                 <th>CPF</th>
                 <th>Origem -> Destino</th>
-                <th>Interstadual?</th>
+                <th style="text-align: center;">Interestadual?</th>
                 <th style="text-align: right;">Frete / Carga (R$)</th>
                 <th style="text-align: right;">ICMS (R$)</th>
                 <th style="text-align: right; color: #34d399;">Comissão (75%)</th>
-                <th style="text-align: center;">Ações</th>
               </tr>
             </thead>
             <tbody id="documents-table-body">
@@ -361,6 +408,60 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- Pré-Visualização dos Gráficos de Resultados da Auditoria -->
+      <section class="overview-charts-section">
+        <div class="overview-charts-header">
+          <div class="overview-charts-title-group">
+            <div class="charts-title-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <h3>Pré-Visualização dos Gráficos & Resultados de Auditoria</h3>
+            </div>
+            <p class="charts-subtitle">
+              Resumo visual consolidado de faturamento, comissões dos motoristas (75%) e distribuição da frota.
+            </p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('tab-analytics')" title="Abrir painel completo de relatórios">
+            <span>Ver Gráficos Completos</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="overview-charts-grid">
+          <!-- Card 1: Faturamento e Comissões 75% dos Motoristas -->
+          <div class="overview-chart-card chart-card-revenue">
+            <div class="overview-chart-card-header">
+              <div>
+                <h4 class="overview-chart-card-title">📊 Faturamento Total e Comissões Destinadas aos Motoristas (75%)</h4>
+                <span class="overview-chart-card-desc">Valores gerados por frete vs repasse de comissão acumulada</span>
+              </div>
+            </div>
+            <div class="overview-chart-canvas-wrapper">
+              <canvas id="overview-chart-revenue"></canvas>
+            </div>
+          </div>
+
+          <!-- Card 2: Distribuição por Tipo de Vínculo -->
+          <div class="overview-chart-card chart-card-category">
+            <div class="overview-chart-card-header">
+              <div>
+                <h4 class="overview-chart-card-title">🍩 Distribuição por Vínculo de Frota</h4>
+                <span class="overview-chart-card-desc">Frota Própria vs Agregados vs Terceirizados</span>
+              </div>
+            </div>
+            <div class="overview-chart-canvas-wrapper doughnut-wrapper">
+              <canvas id="overview-chart-category"></canvas>
+            </div>
+          </div>
         </div>
       </section>
     </main>

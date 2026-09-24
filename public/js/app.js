@@ -21,6 +21,15 @@ let selectedDriverIds = new Set();
 let chartRevenueInstance = null;
 let chartCategoryInstance = null;
 let chartTripsInstance = null;
+let overviewRevenueChartInstance = null;
+let overviewCategoryChartInstance = null;
+
+// Global helper to switch active tab
+function switchTab(tabId) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  if (btn) btn.click();
+}
+window.switchTab = switchTab;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,6 +68,8 @@ function initSidebarToggle() {
       if (chartRevenueInstance) chartRevenueInstance.resize();
       if (chartCategoryInstance) chartCategoryInstance.resize();
       if (chartTripsInstance) chartTripsInstance.resize();
+      if (overviewRevenueChartInstance) overviewRevenueChartInstance.resize();
+      if (overviewCategoryChartInstance) overviewCategoryChartInstance.resize();
     }, 250);
   });
 }
@@ -165,6 +176,7 @@ async function fetchAndRenderDocuments() {
     allDocumentsCache = data.items || [];
     renderKPIs(data.kpis);
     renderTable(allDocumentsCache);
+    renderOverviewChartsPreview();
   } catch (err) {
     console.error('Fetch error:', err);
     tableBody.innerHTML = `
@@ -234,28 +246,6 @@ function renderTable(items) {
             ${doc.tipo}
           </span>
         </td>
-        <td style="font-weight: 700;">${doc.numero}</td>
-        <td>${doc.serie}</td>
-        <td>${formatDate(doc.data_emissao)}</td>
-        <td style="font-weight: 600;">${doc.motorista_nome}</td>
-        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${doc.motorista_cpf}</td>
-        <td>
-          <span style="font-weight: 600;">${doc.destino}</span>
-          ${doc.origem ? `<br><small style="color: var(--text-muted);">${doc.origem}</small>` : ''}
-        </td>
-        <td style="text-align: center;">
-          ${isInterstate 
-            ? `<span class="badge-interstate" title="Viagem fora de Alagoas">SIM (Interestadual)</span>` 
-            : `<span style="color: var(--text-muted); font-size: 0.75rem;">NÃO (Interna)</span>`
-          }
-        </td>
-        <td class="currency-cell">${formatBRL(doc.valor)}</td>
-        <td style="text-align: right; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
-          ${formatBRL(doc.valor_icms)}
-        </td>
-        <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
-          ${isCTe ? formatBRL(doc.valor_comissao) : '-'}
-        </td>
         <td style="text-align: center;">
           <div class="action-buttons" style="justify-content: center;">
             <button class="icon-btn" title="Visualizar DACTE / DAMDFE" onclick="openDocPreview('${cleanKey}')">
@@ -285,6 +275,28 @@ function renderTable(items) {
               </svg>
             </button>
           </div>
+        </td>
+        <td style="font-weight: 700; color: ${isCTe ? '#059669' : '#7c3aed'};">${doc.numero}</td>
+        <td>${doc.serie}</td>
+        <td>${formatDate(doc.data_emissao)}</td>
+        <td style="font-weight: 600;">${doc.motorista_nome}</td>
+        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${doc.motorista_cpf}</td>
+        <td>
+          <span style="font-weight: 600;">${doc.destino}</span>
+          ${doc.origem ? `<br><small style="color: var(--text-muted);">${doc.origem}</small>` : ''}
+        </td>
+        <td style="text-align: center;">
+          ${isInterstate 
+            ? `<span class="badge-interstate" title="Viagem fora de Alagoas">SIM (Interestadual)</span>` 
+            : `<span style="color: var(--text-muted); font-size: 0.75rem;">NÃO (Interna)</span>`
+          }
+        </td>
+        <td class="currency-cell">${formatBRL(doc.valor)}</td>
+        <td style="text-align: right; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
+          ${formatBRL(doc.valor_icms)}
+        </td>
+        <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+          ${isCTe ? formatBRL(doc.valor_comissao) : '-'}
         </td>
       </tr>
     `;
@@ -809,12 +821,27 @@ function setupEventListeners() {
     }
   });
 
-  // Export to Excel button
-  document.getElementById('btn-export-excel').addEventListener('click', () => {
+  // Export to Excel button (Sidebar & Overview)
+  const handleExportExcel = () => {
     const query = new URLSearchParams(currentFilters).toString();
     showToast('Gerando planilha Excel (.xlsx) com comissão de 75%...', 'info');
     window.location.href = `/api/export/excel?${query}`;
-  });
+  };
+
+  const btnExportExcel = document.getElementById('btn-export-excel');
+  if (btnExportExcel) btnExportExcel.addEventListener('click', handleExportExcel);
+
+  const overviewExportExcel = document.getElementById('overview-btn-export-excel');
+  if (overviewExportExcel) overviewExportExcel.addEventListener('click', handleExportExcel);
+
+  // Overview toolbar seed attached listener
+  const overviewSeedAttached = document.getElementById('overview-btn-seed-attached');
+  if (overviewSeedAttached) {
+    overviewSeedAttached.addEventListener('click', () => {
+      const sidebarSeed = document.getElementById('btn-seed-attached');
+      if (sidebarSeed) sidebarSeed.click();
+    });
+  }
 
   // Driver Form Submit (Create / Edit)
   document.getElementById('form-driver').addEventListener('submit', async (e) => {
@@ -1990,6 +2017,149 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
   }
 }
 
+/**
+ * Render Overview Tab Preview Charts (Chart.js)
+ */
+async function renderOverviewChartsPreview() {
+  const ctxRevenue = document.getElementById('overview-chart-revenue');
+  const ctxCategory = document.getElementById('overview-chart-category');
+  if (!ctxRevenue || !ctxCategory) return;
+  if (typeof Chart === 'undefined') return;
+
+  try {
+    const res = await fetch('/api/analytics/drivers');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const topRevenue = data.topRevenue || [];
+    const categoryStats = data.categoryStats || {};
+
+    // 1. Overview Revenue & Commission (Top 6 drivers)
+    if (overviewRevenueChartInstance) {
+      overviewRevenueChartInstance.destroy();
+    }
+
+    const topList = topRevenue.length > 0 ? topRevenue.slice(0, 6) : [];
+    const labels = topList.map(d => d.nome.length > 15 ? d.nome.substring(0, 13) + '...' : d.nome);
+    const dataFrete = topList.map(d => d.total_frete);
+    const dataComissao = topList.map(d => d.total_comissao);
+
+    overviewRevenueChartInstance = new Chart(ctxRevenue, {
+      type: 'bar',
+      data: {
+        labels: labels.length > 0 ? labels : ['Sem dados'],
+        datasets: [
+          {
+            label: 'Faturamento Total (R$)',
+            data: dataFrete.length > 0 ? dataFrete : [0],
+            backgroundColor: 'rgba(79, 70, 229, 0.85)',
+            borderColor: '#4f46e5',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: 'Comissão Motorista 75% (R$)',
+            data: dataComissao.length > 0 ? dataComissao : [0],
+            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+            borderColor: '#059669',
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#475569', font: { size: 11, weight: '500' } },
+            grid: { color: '#f1f5f9' }
+          },
+          y: {
+            ticks: {
+              color: '#475569',
+              font: { weight: '500' },
+              callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val)
+            },
+            grid: { color: '#f1f5f9' }
+          }
+        }
+      }
+    });
+
+    // 2. Overview Category Breakdown
+    if (overviewCategoryChartInstance) {
+      overviewCategoryChartInstance.destroy();
+    }
+
+    const fp = categoryStats.frota_propria || { count: 0, frete: 0, comissao: 0 };
+    const ag = categoryStats.agregado || { count: 0, frete: 0, comissao: 0 };
+    const tc = categoryStats.terceirizado || { count: 0, frete: 0, comissao: 0 };
+
+    overviewCategoryChartInstance = new Chart(ctxCategory, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          `Frota Própria (${fp.count})`,
+          `Agregados (${ag.count})`,
+          `Terceirizados (${tc.count})`
+        ],
+        datasets: [{
+          data: [fp.frete, ag.frete, tc.frete],
+          backgroundColor: [
+            'rgba(37, 99, 235, 0.85)',
+            'rgba(217, 119, 6, 0.85)',
+            'rgba(192, 38, 211, 0.85)'
+          ],
+          borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }, padding: 12 }
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: (ctx) => ` Frete: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
+            }
+          }
+        },
+        cutout: '62%'
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar gráficos na visão geral:', err);
+  }
+}
+
 // Global functions for inline HTML event handlers
 window.openDocPreview = openDocPreview;
 window.openDocDetails = openDocDetails;
@@ -2016,4 +2186,5 @@ window.clearDriverSelections = clearDriverSelections;
 window.batchDeleteSelectedDrivers = batchDeleteSelectedDrivers;
 window.loadDriversAnalytics = loadDriversAnalytics;
 window.renderDriversManagementTable = renderDriversManagementTable;
+window.renderOverviewChartsPreview = renderOverviewChartsPreview;
 
