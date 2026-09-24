@@ -127,6 +127,18 @@
           <span>Repositório de Frete</span>
         </button>
 
+        <!-- 4. Escanear Planilha Excel de Motoristas & Frotas -->
+        <button id="btn-sidebar-scan-excel" class="sidebar-action-btn emerald" onclick="openDriverExcelScannerModal()" title="Escanear Planilha Excel para Cadastro de Condutores & Frotas">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="16" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>Escanear Excel Frotas</span>
+        </button>
+
         <!-- Relatório Financeiro e Fiscal em PDF -->
         <button id="btn-export-pdf" class="sidebar-action-btn primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas ao Setor Financeiro (PDF)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -193,6 +205,7 @@
       <section class="kpi-grid">
         <!-- 1. Total Faturamento / Frete -->
         <div class="kpi-card kpi-cte kpi-clickable" id="card-kpi-frete" onclick="toggleKPIDetail('frete')" title="Clique para ver números e gráficos detalhados de Faturamento & Fretes">
+          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-frete" onclick="event.stopPropagation(); toggleMultiKPISelection('frete')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
           <div class="kpi-header">
             <span class="kpi-label">Faturamento Total (Fretes)</span>
             <div class="kpi-icon-badge">
@@ -215,6 +228,7 @@
 
         <!-- 2. Comissões dos Motoristas (75%) -->
         <div class="kpi-card kpi-commission kpi-clickable" id="card-kpi-comissao" data-kpi="comissao" onclick="toggleKPIDetail('comissao')" title="Clique para ver números e gráficos detalhados de Comissões dos Motoristas (75%)">
+          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-comissao" onclick="event.stopPropagation(); toggleMultiKPISelection('comissao')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
           <div class="kpi-header">
             <span class="kpi-label">Comissão Motoristas (75%)</span>
             <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
@@ -236,6 +250,7 @@
 
         <!-- 3. ICMS e Tributos -->
         <div class="kpi-card kpi-amber kpi-clickable" id="card-kpi-icms" onclick="toggleKPIDetail('icms')" title="Clique para ver números e gráficos detalhados de ICMS Destacado & Tributos">
+          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-icms" onclick="event.stopPropagation(); toggleMultiKPISelection('icms')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
           <div class="kpi-header">
             <span class="kpi-label">Total ICMS Destacado</span>
             <div class="kpi-icon-badge">
@@ -257,6 +272,7 @@
 
         <!-- 4. Viagens & Interestaduais -->
         <div class="kpi-card kpi-mdfe kpi-clickable" id="card-kpi-documentos" onclick="toggleKPIDetail('documentos')" title="Clique para ver números e gráficos detalhados de Viagens & Documentos (CT-e e MDF-e)">
+          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-documentos" onclick="event.stopPropagation(); toggleMultiKPISelection('documentos')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
           <div class="kpi-header">
             <span class="kpi-label">Viagens & Documentos</span>
             <div class="kpi-icon-badge">
@@ -425,6 +441,81 @@
             </button>
           </div>
         </form>
+      </section>
+
+      <!-- Barra de Consulta Multicritério por Múltiplos Ícones (Seleção de 2 ou mais) -->
+      <section class="multi-icon-query-bar" id="multi-icon-query-bar">
+        <div class="multi-icon-query-header">
+          <div class="multi-icon-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>Consulta Multicritério por Ícones (Selecione 2 ou mais para filtrar):</span>
+          </div>
+          <span style="font-size: 0.725rem; color: var(--text-muted);">
+            Clique em múltiplos ícones para combinar condições de busca
+          </span>
+        </div>
+
+        <div class="multi-icon-chips-container">
+          <button type="button" class="multi-icon-chip" data-icon="cte" onclick="toggleQueryIcon('cte')" title="Filtrar Conhecimentos de Transporte (CT-e)">
+            <span class="chip-icon">📄</span>
+            <span class="chip-text">CT-e (Fretes)</span>
+            <span class="chip-count" id="chip-count-cte">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="mdfe" onclick="toggleQueryIcon('mdfe')" title="Filtrar Manifestos de Documentos Fiscais (MDF-e)">
+            <span class="chip-icon">🚛</span>
+            <span class="chip-text">MDF-e (Manifestos)</span>
+            <span class="chip-count" id="chip-count-mdfe">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="frota_propria" onclick="toggleQueryIcon('frota_propria')" title="Filtrar Viagens da Frota Própria">
+            <span class="chip-icon">🏢</span>
+            <span class="chip-text">Frota Própria</span>
+            <span class="chip-count" id="chip-count-frota">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="agregado" onclick="toggleQueryIcon('agregado')" title="Filtrar Viagens de Motoristas Agregados">
+            <span class="chip-icon">🤝</span>
+            <span class="chip-text">Agregados</span>
+            <span class="chip-count" id="chip-count-agregado">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="terceirizado" onclick="toggleQueryIcon('terceirizado')" title="Filtrar Viagens de Condutores Terceirizados">
+            <span class="chip-icon">🌐</span>
+            <span class="chip-text">Terceirizados</span>
+            <span class="chip-count" id="chip-count-terceirizado">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="interestadual" onclick="toggleQueryIcon('interestadual')" title="Filtrar Operações Interestaduais (Fora de AL)">
+            <span class="chip-icon">🛣️</span>
+            <span class="chip-text">Interestaduais</span>
+            <span class="chip-count" id="chip-count-interestadual">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="com_icms" onclick="toggleQueryIcon('com_icms')" title="Filtrar Operações com ICMS Destacado">
+            <span class="chip-icon">⚖️</span>
+            <span class="chip-text">Com ICMS</span>
+            <span class="chip-count" id="chip-count-icms">0</span>
+          </button>
+
+          <button type="button" class="multi-icon-chip" data-icon="carajas" onclick="toggleQueryIcon('carajas')" title="Filtrar Operações CARAJAS MATERIAL DE CONSTRUCAO">
+            <span class="chip-icon">🏷️</span>
+            <span class="chip-text">Carajás</span>
+            <span class="chip-count" id="chip-count-carajas">0</span>
+          </button>
+        </div>
+
+        <div id="multi-icon-active-feedback" class="multi-icon-active-feedback" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔍 <strong>Consulta Ativa:</strong></span>
+            <span id="multi-icon-feedback-text">0 ícones selecionados</span>
+          </div>
+          <button type="button" class="btn-clear-chips" onclick="clearSelectedQueryIcons()">✕ Limpar Ícones</button>
+        </div>
       </section>
 
       <!-- Results Table -->
@@ -664,7 +755,13 @@
             Gerencie condutores, vincule à frota (Própria, Agregada ou Terceirizada), placas e percentual de comissão de frete (75%).
           </p>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="downloadDriverExcelTemplate()" title="Baixar Modelo de Planilha Excel (.xlsx) para preenchimento">
+            📥 Baixar Modelo Excel
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openDriverExcelScannerModal()" style="background: #10b981; border-color: #059669;" title="Escanear e importar planilha Excel de motoristas e frotas">
+            📊 Escanear Planilha Excel
+          </button>
           <button type="button" class="btn btn-primary" onclick="openDriverModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -1367,6 +1464,214 @@
         </span>
         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-freight-repo')">Fechar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Escaneador e Importador de Planilhas Excel de Condutores & Frotas -->
+  <div id="modal-excel-scanner" class="modal-backdrop">
+    <div class="modal-container modal-xl" style="max-width: 1250px; width: 95vw;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass-light); padding-bottom: 0.85rem;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #10b981;">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Escanear Planilha Excel • Cadastro de Condutores & Frotas
+          </h3>
+          <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">
+            Importação em lote com detecção inteligente de cabeçalhos, validação de CPFs, conferência de frota, edição e exclusão de linhas
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="downloadDriverExcelTemplate()" title="Baixar Modelo de Planilha Formatada (.xlsx)">
+            📥 Baixar Modelo (.xlsx)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-excel-scanner')">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem; max-height: calc(85vh - 120px); overflow-y: auto;">
+        <!-- ETAPA 1: DROPZONE / SELEÇÃO DE ARQUIVO -->
+        <div id="excel-scanner-upload-area" class="excel-dropzone" onclick="document.getElementById('excel-file-scanner-input').click()">
+          <input type="file" id="excel-file-scanner-input" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleExcelFileSelected(event)">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</div>
+          <h4 style="margin: 0 0 0.35rem 0; font-size: 1.1rem; color: #ffffff;">Arraste ou clique para selecionar a Planilha de Motoristas</h4>
+          <p style="margin: 0; font-size: 0.825rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+            Formatos suportados: <strong>.xlsx, .xls, .csv</strong>. O scanner reconhece automaticamente colunas de Nome, CPF, Vínculo (Frota Própria/Agregado/Terceirizado), Placas de Tração/Reboque, Comissão e PIX.
+          </p>
+          <div style="margin-top: 1.25rem; display: flex; justify-content: center; gap: 0.75rem;">
+            <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('excel-file-scanner-input').click()">
+              📁 Selecionar Arquivo do Computador
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); downloadDriverExcelTemplate()">
+              📥 Baixar Modelo em Branco (.xlsx)
+            </button>
+          </div>
+        </div>
+
+        <!-- ETAPA 2: REVISÃO, EDIÇÃO E EXCLUSÃO DAS LINHAS DETECTADAS -->
+        <div id="excel-scanner-review-container" style="display: none; flex-direction: column; gap: 1rem;">
+          <!-- Resumo Estatístico do Escaneamento -->
+          <div class="excel-summary-stat-grid">
+            <div class="excel-summary-stat-card">
+              <span class="excel-summary-stat-label">Linhas Detectadas</span>
+              <div id="scan-stat-total" class="excel-summary-stat-val" style="color: #60a5fa;">0</div>
+            </div>
+            <div class="excel-summary-stat-card" style="border-color: rgba(16, 185, 129, 0.4);">
+              <span class="excel-summary-stat-label">Cadastros Válidos</span>
+              <div id="scan-stat-valid" class="excel-summary-stat-val" style="color: #34d399;">0</div>
+            </div>
+            <div class="excel-summary-stat-card" style="border-color: rgba(99, 102, 241, 0.4);">
+              <span class="excel-summary-stat-label">Novos Motoristas</span>
+              <div id="scan-stat-new" class="excel-summary-stat-val" style="color: #818cf8;">0</div>
+            </div>
+            <div class="excel-summary-stat-card" style="border-color: rgba(245, 158, 11, 0.4);">
+              <span class="excel-summary-stat-label">Atualizações de Frota</span>
+              <div id="scan-stat-update" class="excel-summary-stat-val" style="color: #fbbf24;">0</div>
+            </div>
+            <div class="excel-summary-stat-card" style="border-color: rgba(244, 63, 94, 0.4);">
+              <span class="excel-summary-stat-label">Avisos / Atenção</span>
+              <div id="scan-stat-warning" class="excel-summary-stat-val" style="color: #fb7185;">0</div>
+            </div>
+          </div>
+
+          <!-- Barra de Ações e Filtros no Grid Escaneado -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: rgba(0,0,0,0.25); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 280px;">
+              <input type="text" id="scan-table-search" class="form-control" placeholder="Filtrar por nome, CPF ou placa na lista escaneada..." style="height: 36px;" oninput="filterScannedTable()">
+              <select id="scan-table-filter-type" class="form-control" style="width: auto; height: 36px;" onchange="filterScannedTable()">
+                <option value="all">Exibir Todos</option>
+                <option value="valid">Somente Válidos</option>
+                <option value="new">Somente Novos</option>
+                <option value="updates">Somente Atualizações</option>
+                <option value="warnings">Com Alertas/Avisos</option>
+              </select>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button type="button" id="btn-scan-batch-delete" class="btn btn-outline-danger btn-sm" onclick="batchDeleteScannedRows()" style="display: none;">
+                🗑️ Excluir Selecionados (<span id="scan-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="resetExcelScanner()" title="Carregar outra planilha">
+                🔄 Trocar Planilha
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabela de Conferência e Edição Prévia -->
+          <div style="overflow-x: auto; max-height: 420px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+            <table class="data-table" style="font-size: 0.8rem; margin: 0;">
+              <thead style="position: sticky; top: 0; z-index: 2; background: #0f172a;">
+                <tr>
+                  <th style="width: 36px; text-align: center;">
+                    <input type="checkbox" id="scan-select-all" onchange="toggleSelectAllScanned(this.checked)">
+                  </th>
+                  <th style="width: 45px; text-align: center;">Linha</th>
+                  <th>Nome do Condutor</th>
+                  <th>CPF</th>
+                  <th>Vínculo da Frota</th>
+                  <th>Placas (Cavalo / Carreta)</th>
+                  <th style="text-align: center;">Comissão (75%)</th>
+                  <th>Telefone</th>
+                  <th>Chave PIX</th>
+                  <th>Validação / Status</th>
+                  <th style="text-align: center; width: 100px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="excel-scanned-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span id="excel-scanner-file-status" style="font-size: 0.775rem; color: var(--text-muted);">
+            Nenhum arquivo carregado.
+          </span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-excel-scanner')">Fechar</button>
+          <button type="button" id="btn-confirm-excel-import" class="btn btn-primary" onclick="confirmImportScannedDrivers()" style="display: none; background: #10b981; border-color: #059669;">
+            💾 Gravar no Cadastro (<span id="btn-import-count">0</span> Condutores & Frotas)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-Modal: Edição Rápida da Linha Escaneada -->
+  <div id="modal-edit-scanned-row" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>Editar Dados do Motorista Escaneado</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-edit-scanned-row')">✕</button>
+      </div>
+      <form id="form-edit-scanned-row" onsubmit="saveEditedScannedRow(event)">
+        <input type="hidden" id="edit-scanned-temp-id">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div class="form-group">
+            <label for="edit-scanned-nome">Nome Completo *</label>
+            <input type="text" id="edit-scanned-nome" class="form-control" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="edit-scanned-cpf">CPF (11 dígitos) *</label>
+              <input type="text" id="edit-scanned-cpf" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-scanned-cnh">Registro CNH</label>
+              <input type="text" id="edit-scanned-cnh" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-scanned-vinculo">Vínculo com a Frota *</label>
+            <select id="edit-scanned-vinculo" class="form-control">
+              <option value="frota_propria">Frota Própria (Veículo da Empresa)</option>
+              <option value="agregado">Agregado (Parceiro Fixo)</option>
+              <option value="terceirizado">Terceirizado (Prestador Avulso)</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="edit-scanned-cavalo">Placa Cavalo (Tração)</label>
+              <input type="text" id="edit-scanned-cavalo" class="form-control" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label for="edit-scanned-carreta">Placa Carreta (Reboque)</label>
+              <input type="text" id="edit-scanned-carreta" class="form-control" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label for="edit-scanned-comissao">% Comissão</label>
+              <input type="number" id="edit-scanned-comissao" class="form-control" value="75.0" step="0.5">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="edit-scanned-telefone">Telefone / WhatsApp</label>
+              <input type="text" id="edit-scanned-telefone" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit-scanned-pix">Chave PIX (Pagamentos)</label>
+              <input type="text" id="edit-scanned-pix" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-scanned-row')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
     </div>
   </div>
 

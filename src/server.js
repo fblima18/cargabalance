@@ -32,6 +32,11 @@ const {
   calculateFreightQuote,
   seedFreightRepositoryIfNeeded 
 } = require('./services/freightRepositoryService');
+const { 
+  scanDriversExcel, 
+  importScannedDrivers, 
+  generateDriverTemplateExcel 
+} = require('./services/driverExcelService');
 const { queryOne } = require('./database/db');
 
 const app = express();
@@ -119,6 +124,45 @@ app.get('/api/drivers', (req, res) => {
   } catch (err) {
     console.error('[API GET /drivers error]', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 2.7 Driver & Fleet Excel Scanner & Batch Import (Must precede /api/drivers/:id)
+ */
+app.get('/api/drivers/excel-template', async (req, res) => {
+  try {
+    const buffer = await generateDriverTemplateExcel();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Modelo_Cadastro_Condutores_Frotas.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    console.error('[API GET /drivers/excel-template error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/drivers/scan-excel', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ success: false, error: 'Por favor, selecione uma planilha Excel (.xlsx, .xls) ou CSV.' });
+    }
+    const result = await scanDriversExcel(req.file.buffer);
+    res.json(result);
+  } catch (err) {
+    console.error('[API POST /drivers/scan-excel error]', err);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/drivers/import-excel', (req, res) => {
+  try {
+    const { rows } = req.body;
+    const result = importScannedDrivers(rows);
+    res.json(result);
+  } catch (err) {
+    console.error('[API POST /drivers/import-excel error]', err);
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

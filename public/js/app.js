@@ -30,6 +30,23 @@ let kpiDetailChartB = null;
 
 let freightRepoCache = [];
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
+// Excel Scanner & Multi-Icon Query State
+let currentScannedExcelRows = [];
+let selectedScannedRowIds = new Set();
+let selectedQueryIcons = new Set();
+let selectedKPIIcons = new Set();
+
 // Global helper to switch active tab
 function switchTab(tabId) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
@@ -47,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAndRenderDocuments();
   setupEventListeners();
   setupDragAndDrop();
+  setupExcelScannerDropzone();
 });
 
 /**
@@ -183,6 +201,10 @@ async function fetchAndRenderDocuments() {
     allDocumentsCache = data.items || [];
     renderKPIs(data.kpis);
     renderTable(allDocumentsCache);
+    updateMultiIconCounts(allDocumentsCache);
+    if (selectedQueryIcons.size > 0) {
+      applyMultiIconFilter();
+    }
     renderOverviewChartsPreview();
   } catch (err) {
     console.error('Fetch error:', err);
@@ -3508,6 +3530,821 @@ function applyFreightPresetToManualTrip(presetId) {
   showToast(`Parâmetros de frete ${rule.pagador_nome || 'CARAJAS'} carregados para destino ${rule.cidade_destino || 'Maceió'}/${rule.uf_destino || 'AL'}!`, 'success');
 }
 
+// =========================================================================
+// ESCANEAMENTO DE PLANILHAS EXCEL DE CONDUTORES E FROTAS
+// =========================================================================
+
+/**
+ * Configura a dropzone do scanner de Excel
+ */
+function setupExcelScannerDropzone() {
+  const dropzone = document.getElementById('excel-scanner-upload-area');
+  const fileInput = document.getElementById('excel-file-scanner-input');
+  if (!dropzone || !fileInput) return;
+
+  ['dragenter', 'dragover'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt ? dt.files : null;
+    if (files && files.length > 0) {
+      uploadAndScanExcelFile(files[0]);
+    }
+  });
+}
+
+/**
+ * Abre o modal de escaneamento de planilha de motoristas
+ */
+function openDriverExcelScannerModal() {
+  openModal('modal-excel-scanner');
+  if (currentScannedExcelRows.length === 0) {
+    resetExcelScanner();
+  }
+}
+
+/**
+ * Reinicia o estado do scanner para permitir carregar nova planilha
+ */
+function resetExcelScanner() {
+  currentScannedExcelRows = [];
+  selectedScannedRowIds.clear();
+
+  const fileInput = document.getElementById('excel-file-scanner-input');
+  if (fileInput) fileInput.value = '';
+
+  const dropzone = document.getElementById('excel-scanner-upload-area');
+  const reviewContainer = document.getElementById('excel-scanner-review-container');
+  const btnConfirm = document.getElementById('btn-confirm-excel-import');
+  const fileStatus = document.getElementById('excel-scanner-file-status');
+
+  if (dropzone) dropzone.style.display = 'block';
+  if (reviewContainer) reviewContainer.style.display = 'none';
+  if (btnConfirm) btnConfirm.style.display = 'none';
+  if (fileStatus) fileStatus.textContent = 'Nenhum arquivo carregado.';
+}
+
+/**
+ * Faz o download da planilha modelo oficial formatada
+ */
+function downloadDriverExcelTemplate() {
+  showToast('Iniciando download do modelo oficial de planilha de frotas (.xlsx)...', 'info');
+  window.location.href = '/api/drivers/excel-template';
+}
+
+/**
+ * Manipula a seleção manual de arquivo pelo input file
+ */
+function handleExcelFileSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (file) {
+    uploadAndScanExcelFile(file);
+  }
+}
+
+/**
+ * Envia o arquivo Excel ao backend para detecção de cabeçalhos e validação
+ */
+async function uploadAndScanExcelFile(file) {
+  if (!file) return;
+
+  const validExts = ['.xlsx', '.xls', '.csv'];
+  const extMatch = validExts.some(ext => file.name.toLowerCase().endsWith(ext));
+  if (!extMatch) {
+    showToast('Formato inválido. Selecione um arquivo Excel (.xlsx, .xls) ou .csv.', 'error');
+    return;
+  }
+
+  const dropzone = document.getElementById('excel-scanner-upload-area');
+  const reviewContainer = document.getElementById('excel-scanner-review-container');
+  const btnConfirm = document.getElementById('btn-confirm-excel-import');
+  const fileStatus = document.getElementById('excel-scanner-file-status');
+
+  const oldHtml = dropzone ? dropzone.innerHTML : '';
+  if (dropzone) {
+    dropzone.innerHTML = `
+      <div style="padding: 2.5rem 1rem; text-align: center;">
+        <div class="loading-spinner" style="margin: 0 auto 1.25rem;"></div>
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #60a5fa;">Escaneando e analisando planilha...</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+          Lendo linhas de <strong>${escapeHtml(file.name)}</strong>, detectando cabeçalhos e cruzando com o cadastro de frotas...
+        </p>
+      </div>
+    `;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/drivers/scan-excel', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Falha ao escanear planilha.');
+    }
+
+    if (!data.rows || data.rows.length === 0) {
+      throw new Error('Nenhuma linha de motorista foi detectada na planilha. Verifique se o arquivo possui colunas com Nome e CPF.');
+    }
+
+    // Atribui IDs temporários locais para edição e exclusão
+    currentScannedExcelRows = data.rows.map((r, i) => ({
+      ...r,
+      _tempId: r.tempId || `scan_row_${Date.now()}_${i}`,
+      linha: r.rowNumber || r.linha || (i + 1),
+      valido: r.isValid !== undefined ? r.isValid : (r.valido !== undefined ? r.valido : true),
+      status_banco: r.existsInDb ? 'ATUALIZAR' : (r.status_banco || 'NOVO'),
+      avisos: r.warnings || r.avisos || [],
+      pix: r.chave_pix || r.pix || ''
+    }));
+    selectedScannedRowIds.clear();
+
+    if (dropzone) {
+      dropzone.innerHTML = oldHtml;
+      dropzone.style.display = 'none';
+    }
+    if (reviewContainer) {
+      reviewContainer.style.display = 'flex';
+    }
+    if (btnConfirm) {
+      btnConfirm.style.display = 'inline-flex';
+    }
+
+    if (fileStatus) {
+      fileStatus.innerHTML = `Arquivo: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(1)} KB) &bull; ${currentScannedExcelRows.length} condutores escaneados`;
+    }
+
+    updateExcelScannerStats();
+    renderScannedTable();
+
+    showToast(`Planilha escaneada com sucesso! ${currentScannedExcelRows.length} condutores encontrados para conferência.`, 'success');
+  } catch (err) {
+    console.error('Scan Excel Error:', err);
+    if (dropzone) {
+      dropzone.innerHTML = oldHtml;
+      dropzone.style.display = 'block';
+    }
+    showToast(`Erro ao escanear planilha: ${err.message}`, 'error');
+  }
+}
+
+/**
+ * Atualiza os contadores estatísticos do escaneamento
+ */
+function updateExcelScannerStats() {
+  const total = currentScannedExcelRows.length;
+  const valid = currentScannedExcelRows.filter(r => r.valido).length;
+  const novos = currentScannedExcelRows.filter(r => r.status_banco === 'NOVO').length;
+  const updates = currentScannedExcelRows.filter(r => r.status_banco === 'ATUALIZAR').length;
+  const warnings = currentScannedExcelRows.filter(r => (r.avisos && r.avisos.length > 0) || !r.valido).length;
+
+  const elTotal = document.getElementById('scan-stat-total');
+  const elValid = document.getElementById('scan-stat-valid');
+  const elNew = document.getElementById('scan-stat-new');
+  const elUpdate = document.getElementById('scan-stat-update');
+  const elWarning = document.getElementById('scan-stat-warning');
+  const elBtnCount = document.getElementById('btn-import-count');
+
+  if (elTotal) elTotal.textContent = total;
+  if (elValid) elValid.textContent = valid;
+  if (elNew) elNew.textContent = novos;
+  if (elUpdate) elUpdate.textContent = updates;
+  if (elWarning) elWarning.textContent = warnings;
+  if (elBtnCount) elBtnCount.textContent = total;
+}
+
+/**
+ * Filtra a tabela escaneada por texto e tipo
+ */
+function filterScannedTable() {
+  renderScannedTable();
+}
+
+/**
+ * Renderiza a tabela de linhas escaneadas com suporte a edição e exclusão
+ */
+function renderScannedTable() {
+  const tableBody = document.getElementById('excel-scanned-table-body');
+  if (!tableBody) return;
+
+  const searchVal = (document.getElementById('scan-table-search')?.value || '').toLowerCase().trim();
+  const filterType = document.getElementById('scan-table-filter-type')?.value || 'all';
+
+  const filtered = currentScannedExcelRows.filter(r => {
+    // Filtro por texto
+    if (searchVal) {
+      const matchName = (r.nome || '').toLowerCase().includes(searchVal);
+      const matchCpf = (r.cpf || '').toLowerCase().includes(searchVal);
+      const matchCavalo = (r.placa_cavalo || '').toLowerCase().includes(searchVal);
+      const matchCarreta = (r.placa_carreta || '').toLowerCase().includes(searchVal);
+      const matchTel = (r.telefone || '').toLowerCase().includes(searchVal);
+      if (!matchName && !matchCpf && !matchCavalo && !matchCarreta && !matchTel) return false;
+    }
+    // Filtro por tipo de validação
+    if (filterType === 'valid') return r.valido;
+    if (filterType === 'new') return r.status_banco === 'NOVO';
+    if (filterType === 'updates') return r.status_banco === 'ATUALIZAR';
+    if (filterType === 'warnings') return !r.valido || (r.avisos && r.avisos.length > 0);
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+          Nenhum registro encontrado para o filtro aplicado.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tableBody.innerHTML = filtered.map(r => {
+    const isSelected = selectedScannedRowIds.has(r._tempId);
+    const hasWarnings = (r.avisos && r.avisos.length > 0) || !r.valido;
+    const isUpdate = r.status_banco === 'ATUALIZAR';
+
+    // Label do Vínculo
+    let vinculoLabel = 'Frota Própria';
+    let vinculoBadge = 'background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);';
+    if (r.tipo_vinculo === 'agregado') {
+      vinculoLabel = 'Agregado';
+      vinculoBadge = 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);';
+    } else if (r.tipo_vinculo === 'terceirizado') {
+      vinculoLabel = 'Terceirizado';
+      vinculoBadge = 'background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);';
+    }
+
+    // Badge de Validação e Status
+    let statusBadge = '';
+    if (hasWarnings) {
+      const tip = (r.avisos || []).join(' | ');
+      statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="${escapeHtml(tip)}">⚠️ ${escapeHtml(r.avisos ? r.avisos[0] : 'Verificar')}</span>`;
+    } else if (isUpdate) {
+      statusBadge = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);" title="Motorista já cadastrado; seus dados e frota serão atualizados.">🔄 Atualização</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✓ Novo Válido</span>`;
+    }
+
+    const placasStr = [r.placa_cavalo, r.placa_carreta].filter(Boolean).join(' / ') || '<span style="color: var(--text-muted);">-</span>';
+    const comissaoVal = parseFloat(r.percentual_comissao !== undefined ? r.percentual_comissao : 75.0).toFixed(1);
+
+    return `
+      <tr class="${hasWarnings ? 'scanned-row-warning' : ''}" style="${isSelected ? 'background: rgba(37, 99, 235, 0.1);' : ''}">
+        <td style="text-align: center;">
+          <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleScannedRowSelection('${r._tempId}', this.checked)">
+        </td>
+        <td style="text-align: center; color: var(--text-muted); font-size: 0.75rem;">
+          #${r.linha || '-'}
+        </td>
+        <td>
+          <div style="font-weight: 600; color: #ffffff;">${escapeHtml(r.nome)}</div>
+          ${r.cnh ? `<div style="font-size: 0.7rem; color: var(--text-muted);">CNH: ${escapeHtml(r.cnh)}</div>` : ''}
+        </td>
+        <td style="font-family: monospace; font-size: 0.775rem;">
+          ${escapeHtml(r.cpf)}
+        </td>
+        <td>
+          <span class="badge" style="${vinculoBadge}; font-size: 0.7rem;">
+            ${vinculoLabel}
+          </span>
+        </td>
+        <td style="font-family: monospace; font-size: 0.775rem;">
+          ${placasStr}
+        </td>
+        <td style="text-align: center; font-weight: 700; color: #34d399;">
+          ${comissaoVal}%
+        </td>
+        <td style="font-size: 0.75rem;">
+          ${escapeHtml(r.telefone || '-')}
+        </td>
+        <td style="font-size: 0.725rem; font-family: monospace; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${escapeHtml(r.pix || '-')}
+        </td>
+        <td>
+          ${statusBadge}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openEditScannedRow('${r._tempId}')" title="Editar dados desta linha antes de salvar" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; margin-right: 0.25rem;">
+            ✏️
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteScannedRow('${r._tempId}')" title="Excluir da lista" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;">
+            🗑️
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Atualiza botão de exclusão em lote
+  const btnBatchDelete = document.getElementById('btn-scan-batch-delete');
+  const selectedCountEl = document.getElementById('scan-selected-count');
+  if (btnBatchDelete) {
+    btnBatchDelete.style.display = selectedScannedRowIds.size > 0 ? 'inline-flex' : 'none';
+  }
+  if (selectedCountEl) {
+    selectedCountEl.textContent = selectedScannedRowIds.size;
+  }
+
+  const selectAllCb = document.getElementById('scan-select-all');
+  if (selectAllCb) {
+    selectAllCb.checked = filtered.length > 0 && filtered.every(r => selectedScannedRowIds.has(r._tempId));
+  }
+}
+
+/**
+ * Seleciona ou desmarca todas as linhas atualmente filtradas
+ */
+function toggleSelectAllScanned(checked) {
+  const searchVal = (document.getElementById('scan-table-search')?.value || '').toLowerCase().trim();
+  const filterType = document.getElementById('scan-table-filter-type')?.value || 'all';
+
+  const filtered = currentScannedExcelRows.filter(r => {
+    if (searchVal) {
+      const matchName = (r.nome || '').toLowerCase().includes(searchVal);
+      const matchCpf = (r.cpf || '').toLowerCase().includes(searchVal);
+      const matchCavalo = (r.placa_cavalo || '').toLowerCase().includes(searchVal);
+      const matchCarreta = (r.placa_carreta || '').toLowerCase().includes(searchVal);
+      if (!matchName && !matchCpf && !matchCavalo && !matchCarreta) return false;
+    }
+    if (filterType === 'valid') return r.valido;
+    if (filterType === 'new') return r.status_banco === 'NOVO';
+    if (filterType === 'updates') return r.status_banco === 'ATUALIZAR';
+    if (filterType === 'warnings') return !r.valido || (r.avisos && r.avisos.length > 0);
+    return true;
+  });
+
+  filtered.forEach(r => {
+    if (checked) selectedScannedRowIds.add(r._tempId);
+    else selectedScannedRowIds.delete(r._tempId);
+  });
+
+  renderScannedTable();
+}
+
+/**
+ * Alterna a seleção individual de uma linha escaneada
+ */
+function toggleScannedRowSelection(tempId, checked) {
+  if (checked) selectedScannedRowIds.add(tempId);
+  else selectedScannedRowIds.delete(tempId);
+
+  const btnBatchDelete = document.getElementById('btn-scan-batch-delete');
+  const selectedCountEl = document.getElementById('scan-selected-count');
+  if (btnBatchDelete) {
+    btnBatchDelete.style.display = selectedScannedRowIds.size > 0 ? 'inline-flex' : 'none';
+  }
+  if (selectedCountEl) {
+    selectedCountEl.textContent = selectedScannedRowIds.size;
+  }
+}
+
+/**
+ * Exclui uma única linha escaneada
+ */
+function deleteScannedRow(tempId) {
+  const target = currentScannedExcelRows.find(r => r._tempId === tempId);
+  const name = target ? target.nome : 'Linha';
+
+  currentScannedExcelRows = currentScannedExcelRows.filter(r => r._tempId !== tempId);
+  selectedScannedRowIds.delete(tempId);
+
+  updateExcelScannerStats();
+  renderScannedTable();
+  showToast(`Registro de "${name}" removido da importação.`, 'info');
+}
+
+/**
+ * Exclui em lote todas as linhas selecionadas com checkbox
+ */
+function batchDeleteScannedRows() {
+  if (selectedScannedRowIds.size === 0) return;
+
+  const count = selectedScannedRowIds.size;
+  if (!confirm(`Deseja realmente excluir as ${count} linha(s) selecionada(s) da planilha escaneada?`)) {
+    return;
+  }
+
+  currentScannedExcelRows = currentScannedExcelRows.filter(r => !selectedScannedRowIds.has(r._tempId));
+  selectedScannedRowIds.clear();
+
+  updateExcelScannerStats();
+  renderScannedTable();
+  showToast(`${count} registro(s) excluído(s) da importação.`, 'info');
+}
+
+/**
+ * Abre o sub-modal de edição para uma linha escaneada
+ */
+function openEditScannedRow(tempId) {
+  const row = currentScannedExcelRows.find(r => r._tempId === tempId);
+  if (!row) return;
+
+  document.getElementById('edit-scanned-temp-id').value = row._tempId;
+  document.getElementById('edit-scanned-nome').value = row.nome || '';
+  document.getElementById('edit-scanned-cpf').value = row.cpf || '';
+  document.getElementById('edit-scanned-cnh').value = row.cnh || '';
+  document.getElementById('edit-scanned-vinculo').value = row.tipo_vinculo || 'frota_propria';
+  document.getElementById('edit-scanned-cavalo').value = row.placa_cavalo || '';
+  document.getElementById('edit-scanned-carreta').value = row.placa_carreta || '';
+  document.getElementById('edit-scanned-comissao').value = row.percentual_comissao !== undefined ? row.percentual_comissao : 75.0;
+  document.getElementById('edit-scanned-telefone').value = row.telefone || '';
+  document.getElementById('edit-scanned-pix').value = row.pix || '';
+
+  openModal('modal-edit-scanned-row');
+}
+
+/**
+ * Salva as alterações feitas na linha escaneada
+ */
+function saveEditedScannedRow(event) {
+  event.preventDefault();
+  const tempId = document.getElementById('edit-scanned-temp-id').value;
+  const row = currentScannedExcelRows.find(r => r._tempId === tempId);
+  if (!row) return;
+
+  const rawCpf = document.getElementById('edit-scanned-cpf').value.trim();
+  const cleanCpf = rawCpf.replace(/\D/g, '');
+
+  if (cleanCpf.length !== 11) {
+    showToast('CPF inválido. O CPF deve conter exatamente 11 dígitos.', 'error');
+    return;
+  }
+
+  // Formata CPF 000.000.000-00
+  const formattedCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+  row.nome = document.getElementById('edit-scanned-nome').value.trim();
+  row.cpf = formattedCpf;
+  row.cnh = document.getElementById('edit-scanned-cnh').value.trim();
+  row.tipo_vinculo = document.getElementById('edit-scanned-vinculo').value;
+  row.placa_cavalo = document.getElementById('edit-scanned-cavalo').value.trim().toUpperCase();
+  row.placa_carreta = document.getElementById('edit-scanned-carreta').value.trim().toUpperCase();
+  row.percentual_comissao = parseFloat(document.getElementById('edit-scanned-comissao').value) || 75.0;
+  row.telefone = document.getElementById('edit-scanned-telefone').value.trim();
+  row.pix = document.getElementById('edit-scanned-pix').value.trim();
+  row.valido = true;
+
+  // Atualiza avisos
+  row.avisos = [];
+  if (!row.placa_cavalo) {
+    row.avisos.push('Sem placa de cavalo informada');
+  }
+
+  closeModal('modal-edit-scanned-row');
+  updateExcelScannerStats();
+  renderScannedTable();
+  showToast(`Dados de "${row.nome}" atualizados com sucesso!`, 'success');
+}
+
+/**
+ * Confirma a importação de todas as linhas revisadas para o banco de dados SQLite
+ */
+async function confirmImportScannedDrivers() {
+  if (currentScannedExcelRows.length === 0) {
+    showToast('Não há condutores para importar.', 'warning');
+    return;
+  }
+
+  const btnConfirm = document.getElementById('btn-confirm-excel-import');
+  if (btnConfirm) {
+    btnConfirm.disabled = true;
+    btnConfirm.innerHTML = `<span class="loading-spinner" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 5px;"></span> Gravando...`;
+  }
+
+  try {
+    const res = await fetch('/api/drivers/import-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: currentScannedExcelRows })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Falha ao gravar condutores no banco.');
+    }
+
+    const importedCount = (data.createdCount !== undefined && data.updatedCount !== undefined)
+      ? (data.createdCount + data.updatedCount)
+      : (data.imported || data.totalProcessed || currentScannedExcelRows.length);
+    showToast(data.message || `Sucesso! ${importedCount} condutores e frotas gravados/atualizados no cadastro.`, 'success');
+    closeModal('modal-excel-scanner');
+    resetExcelScanner();
+
+    // Recarrega lista de motoristas na interface
+    await loadDrivers();
+    if (typeof loadDriversManagement === 'function') {
+      loadDriversManagement();
+    }
+  } catch (err) {
+    console.error('Import Scanned Drivers Error:', err);
+    showToast(`Erro ao gravar condutores: ${err.message}`, 'error');
+  } finally {
+    if (btnConfirm) {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = `💾 Gravar no Cadastro (<span id="btn-import-count">${currentScannedExcelRows.length}</span> Condutores & Frotas)`;
+    }
+  }
+}
+
+// =========================================================================
+// CONSULTA MULTICRITÉRIO POR MÚLTIPLOS ÍCONES (2 OU MAIS SELECIONADOS)
+// =========================================================================
+
+/**
+ * Alterna a seleção de um ícone de consulta multicritério
+ */
+function toggleQueryIcon(iconKey) {
+  if (selectedQueryIcons.has(iconKey)) {
+    selectedQueryIcons.delete(iconKey);
+  } else {
+    selectedQueryIcons.add(iconKey);
+  }
+
+  // Atualiza estado ativo do chip no DOM
+  const chip = document.querySelector(`.multi-icon-chip[data-icon="${iconKey}"]`);
+  if (chip) {
+    if (selectedQueryIcons.has(iconKey)) chip.classList.add('active');
+    else chip.classList.remove('active');
+  }
+
+  applyMultiIconFilter();
+}
+
+/**
+ * Limpa todos os ícones de consulta selecionados
+ */
+function clearSelectedQueryIcons() {
+  selectedQueryIcons.clear();
+  document.querySelectorAll('.multi-icon-chip').forEach(c => c.classList.remove('active'));
+  applyMultiIconFilter();
+}
+
+/**
+ * Atualiza os contadores numéricos de cada chip de ícone
+ */
+function updateMultiIconCounts(docs) {
+  if (!docs) return;
+
+  const countCte = docs.filter(d => d.tipo === 'CT-e').length;
+  const countMdfe = docs.filter(d => d.tipo === 'MDF-e').length;
+  const countFrota = docs.filter(d => (d.motorista_tipo_vinculo || '').toLowerCase() === 'frota_propria').length;
+  const countAgregado = docs.filter(d => (d.motorista_tipo_vinculo || '').toLowerCase() === 'agregado').length;
+  const countTerc = docs.filter(d => (d.motorista_tipo_vinculo || '').toLowerCase() === 'terceirizado').length;
+  const countInter = docs.filter(d => d.interestadual === 1 || (d.uf_origem && d.uf_destino && d.uf_origem !== d.uf_destino) || (d.uf_destino && d.uf_destino !== 'AL')).length;
+  const countIcms = docs.filter(d => parseFloat(d.valor_icms || 0) > 0).length;
+  const countCarajas = docs.filter(d => ((d.tomador_nome || '') + ' ' + (d.remetente_nome || '') + ' ' + (d.destinatario_nome || '')).toUpperCase().includes('CARAJAS')).length;
+
+  const setEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setEl('chip-count-cte', countCte);
+  setEl('chip-count-mdfe', countMdfe);
+  setEl('chip-count-frota', countFrota);
+  setEl('chip-count-agregado', countAgregado);
+  setEl('chip-count-terceirizado', countTerc);
+  setEl('chip-count-interestadual', countInter);
+  setEl('chip-count-icms', countIcms);
+  setEl('chip-count-carajas', countCarajas);
+}
+
+/**
+ * Aplica o filtro de múltiplos ícones (interseção de todos os critérios selecionados)
+ */
+function applyMultiIconFilter() {
+  const feedbackBar = document.getElementById('multi-icon-active-feedback');
+  const feedbackText = document.getElementById('multi-icon-feedback-text');
+
+  if (selectedQueryIcons.size === 0) {
+    if (feedbackBar) feedbackBar.style.display = 'none';
+    renderTable(allDocumentsCache);
+    if (currentKPIsCache) renderKPIs(currentKPIsCache);
+    return;
+  }
+
+  const iconLabels = {
+    cte: 'CT-e (Fretes)',
+    mdfe: 'MDF-e (Manifestos)',
+    frota_propria: 'Frota Própria',
+    agregado: 'Agregados',
+    terceirizado: 'Terceirizados',
+    interestadual: 'Interestaduais',
+    com_icms: 'Com ICMS',
+    carajas: 'Carajás'
+  };
+
+  const selectedList = Array.from(selectedQueryIcons);
+  const labelsText = selectedList.map(k => iconLabels[k] || k).join(' + ');
+
+  // Filtra registros combinando todos os critérios selecionados
+  const filtered = allDocumentsCache.filter(doc => {
+    for (const icon of selectedList) {
+      if (icon === 'cte' && doc.tipo !== 'CT-e') return false;
+      if (icon === 'mdfe' && doc.tipo !== 'MDF-e') return false;
+      if (icon === 'frota_propria' && (doc.motorista_tipo_vinculo || '').toLowerCase() !== 'frota_propria') return false;
+      if (icon === 'agregado' && (doc.motorista_tipo_vinculo || '').toLowerCase() !== 'agregado') return false;
+      if (icon === 'terceirizado' && (doc.motorista_tipo_vinculo || '').toLowerCase() !== 'terceirizado') return false;
+      if (icon === 'interestadual') {
+        const isInter = doc.interestadual === 1 || (doc.uf_origem && doc.uf_destino && doc.uf_origem !== doc.uf_destino) || (doc.uf_destino && doc.uf_destino !== 'AL');
+        if (!isInter) return false;
+      }
+      if (icon === 'com_icms') {
+        if (parseFloat(doc.valor_icms || 0) <= 0) return false;
+      }
+      if (icon === 'carajas') {
+        const fullStr = ((doc.tomador_nome || '') + ' ' + (doc.remetente_nome || '') + ' ' + (doc.destinatario_nome || '')).toUpperCase();
+        if (!fullStr.includes('CARAJAS')) return false;
+      }
+    }
+    return true;
+  });
+
+  if (feedbackBar) feedbackBar.style.display = 'flex';
+  if (feedbackText) {
+    feedbackText.innerHTML = `<strong>${selectedList.length} critério(s) selecionado(s):</strong> [${labelsText}] &bull; <span style="color: #60a5fa; font-weight: 700;">${filtered.length} registro(s) encontrado(s)</span>`;
+  }
+
+  renderTable(filtered);
+
+  // Recalcula os KPIs para o conjunto filtrado
+  const filteredCtes = filtered.filter(d => d.tipo === 'CT-e');
+  const filteredMdfes = filtered.filter(d => d.tipo === 'MDF-e');
+  const totalFrete = filteredCtes.reduce((acc, c) => acc + (c.valor || 0), 0);
+  const totalCarga = filteredMdfes.reduce((acc, m) => acc + (m.valor || 0), 0);
+  const totalComissao = filteredCtes.reduce((acc, c) => acc + (c.valor_comissao || c.valor * 0.75 || 0), 0);
+  const totalICMS = filteredCtes.reduce((acc, c) => acc + (c.valor_icms || 0), 0);
+  const countInter = filtered.filter(d => d.interestadual === 1 || (d.uf_origem && d.uf_destino && d.uf_origem !== d.uf_destino) || (d.uf_destino && d.uf_destino !== 'AL')).length;
+
+  renderKPIs({
+    totalFrete,
+    totalAmount: totalFrete,
+    totalCarga,
+    totalComissao75: totalComissao,
+    totalICMS,
+    documentCount: filtered.length,
+    interstateCount: countInter
+  });
+}
+
+// =========================================================================
+// CONSULTA COMBINADA POR MÚLTIPLOS CARDS DE KPI (2 OU MAIS CARDS)
+// =========================================================================
+
+/**
+ * Alterna a seleção de um KPI card para consulta combinada
+ */
+function toggleMultiKPISelection(kpiName) {
+  if (selectedKPIIcons.has(kpiName)) {
+    selectedKPIIcons.delete(kpiName);
+  } else {
+    selectedKPIIcons.add(kpiName);
+  }
+
+  // Atualiza estados visuais dos botões e dos cards
+  ['frete', 'comissao', 'icms', 'documentos'].forEach(k => {
+    const card = document.getElementById(`card-kpi-${k}`);
+    const toggleBtn = document.getElementById(`kpi-toggle-${k}`);
+    const isSel = selectedKPIIcons.has(k);
+
+    if (card) {
+      if (isSel) card.classList.add('kpi-multi-selected');
+      else card.classList.remove('kpi-multi-selected');
+    }
+    if (toggleBtn) {
+      if (isSel) {
+        toggleBtn.textContent = '✓ Ativo';
+        toggleBtn.classList.add('active');
+      } else {
+        toggleBtn.textContent = '+ Consulta';
+        toggleBtn.classList.remove('active');
+      }
+    }
+  });
+
+  if (selectedKPIIcons.size >= 2) {
+    renderMultiKPIConsolidation();
+  } else if (selectedKPIIcons.size === 1) {
+    const single = Array.from(selectedKPIIcons)[0];
+    selectKPIDetail(single, true);
+  } else {
+    closeKPIDetailPanel();
+  }
+}
+
+/**
+ * Renderiza o painel analítico consolidando os KPIs selecionados simultaneamente
+ */
+function renderMultiKPIConsolidation() {
+  const panel = document.getElementById('kpi-detail-panel');
+  if (!panel) return;
+  panel.style.display = 'flex';
+
+  activeKPIDetail = 'multi_consolidation';
+
+  const eyebrowEl = document.getElementById('kpi-detail-eyebrow');
+  const titleEl = document.getElementById('kpi-detail-title');
+  const descEl = document.getElementById('kpi-detail-desc');
+  const badgeIcon = document.getElementById('kpi-detail-badge-icon');
+
+  if (badgeIcon) {
+    badgeIcon.textContent = '⚡';
+    badgeIcon.style.background = 'rgba(99, 102, 241, 0.2)';
+    badgeIcon.style.color = '#818cf8';
+  }
+
+  const kpiNamesMap = {
+    frete: 'Faturamento / Fretes',
+    comissao: 'Comissões 75%',
+    icms: 'ICMS Destacado',
+    documentos: 'Viagens & Documentos'
+  };
+
+  const selectedArr = Array.from(selectedKPIIcons);
+  const titlesList = selectedArr.map(k => kpiNamesMap[k] || k).join(' + ');
+
+  if (eyebrowEl) eyebrowEl.textContent = `CONSULTA MULTI-CRITÉRIO CONSOLIDADA (${selectedArr.length} ÍCONES SELECIONADOS)`;
+  if (titleEl) titleEl.textContent = `Análise Cruzada e Comparativa de Indicadores`;
+  if (descEl) descEl.textContent = `Visualização simultânea consolidada entre: ${titlesList}.`;
+
+  const m = getKPIDetailMetrics();
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
+  // Renderiza cartões comparativos
+  const statsContainer = document.getElementById('kpi-detail-stats-grid');
+  if (statsContainer) {
+    let cardsHtml = '';
+
+    if (selectedKPIIcons.has('frete')) {
+      cardsHtml += `
+        <div class="kpi-sub-stat-card" style="border-left: 3px solid #2563eb;">
+          <span class="kpi-sub-stat-label">💵 Faturamento Total Frete</span>
+          <span class="kpi-sub-stat-val" style="color: #60a5fa;">${formatBRL(m.totalFrete)}</span>
+          <span class="kpi-sub-stat-desc">${m.cteCount} CT-e(s) emitidos</span>
+        </div>
+      `;
+    }
+    if (selectedKPIIcons.has('comissao')) {
+      const margemEmpresa = Math.max(0, m.totalFrete - m.totalComissao);
+      cardsHtml += `
+        <div class="kpi-sub-stat-card" style="border-left: 3px solid #10b981;">
+          <span class="kpi-sub-stat-label">🛡️ Comissão Motoristas (75%)</span>
+          <span class="kpi-sub-stat-val" style="color: #34d399;">${formatBRL(m.totalComissao)}</span>
+          <span class="kpi-sub-stat-desc">Margem Empresa (25%): ${formatBRL(margemEmpresa)}</span>
+        </div>
+      `;
+    }
+    if (selectedKPIIcons.has('icms')) {
+      const cargaTrib = m.totalFrete > 0 ? ((m.totalIcms / m.totalFrete) * 100).toFixed(1) : '0.0';
+      cardsHtml += `
+        <div class="kpi-sub-stat-card" style="border-left: 3px solid #f59e0b;">
+          <span class="kpi-sub-stat-label">🧾 Total ICMS Destacado</span>
+          <span class="kpi-sub-stat-val" style="color: #fbbf24;">${formatBRL(m.totalIcms)}</span>
+          <span class="kpi-sub-stat-desc">Carga Efetiva: ${cargaTrib}% s/ Frete</span>
+        </div>
+      `;
+    }
+    if (selectedKPIIcons.has('documentos')) {
+      const avgFrete = m.cteCount > 0 ? m.totalFrete / m.cteCount : 0;
+      cardsHtml += `
+        <div class="kpi-sub-stat-card" style="border-left: 3px solid #8b5cf6;">
+          <span class="kpi-sub-stat-label">📄 Viagens & Operações</span>
+          <span class="kpi-sub-stat-val" style="color: #c084fc;">${m.totalDocs} docs</span>
+          <span class="kpi-sub-stat-desc">Ticket Médio: ${formatBRL(avgFrete)}</span>
+        </div>
+      `;
+    }
+
+    statsContainer.innerHTML = cardsHtml;
+  }
+
+  // Renderiza gráficos e tabela analítica
+  renderKPIDetailCharts('frete', m);
+  renderKPIDetailTable('frete', m);
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  showToast(`Consulta combinada ativa para: ${titlesList}`, 'info');
+}
+
 // Global functions for inline HTML event handlers
 window.openDocPreview = openDocPreview;
 window.openDocDetails = openDocDetails;
@@ -3541,4 +4378,24 @@ window.runFreightCalculation = runFreightCalculation;
 window.applySimulatedFreightToTrip = applySimulatedFreightToTrip;
 window.useCurrentRepoInTrip = useCurrentRepoInTrip;
 window.applyFreightPresetToManualTrip = applyFreightPresetToManualTrip;
+
+// Funções do Scanner de Excel e Consulta por Múltiplos Ícones
+window.openDriverExcelScannerModal = openDriverExcelScannerModal;
+window.downloadDriverExcelTemplate = downloadDriverExcelTemplate;
+window.handleExcelFileSelected = handleExcelFileSelected;
+window.filterScannedTable = filterScannedTable;
+window.toggleSelectAllScanned = toggleSelectAllScanned;
+window.toggleScannedRowSelection = toggleScannedRowSelection;
+window.batchDeleteScannedRows = batchDeleteScannedRows;
+window.deleteScannedRow = deleteScannedRow;
+window.openEditScannedRow = openEditScannedRow;
+window.saveEditedScannedRow = saveEditedScannedRow;
+window.confirmImportScannedDrivers = confirmImportScannedDrivers;
+window.resetExcelScanner = resetExcelScanner;
+window.toggleQueryIcon = toggleQueryIcon;
+window.clearSelectedQueryIcons = clearSelectedQueryIcons;
+window.applyMultiIconFilter = applyMultiIconFilter;
+window.toggleMultiKPISelection = toggleMultiKPISelection;
+window.renderMultiKPIConsolidation = renderMultiKPIConsolidation;
+
 

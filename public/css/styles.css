@@ -2229,3 +2229,207 @@ html, body {
   }
 }
 
+/* ==========================================================================
+   Barra de Consulta por Múltiplos Ícones (Seleção de 2 ou mais)
+   ========================================================================== */
+.multi-icon-query-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.multi-icon-query-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.multi-icon-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.multi-icon-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.multi-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.multi-icon-chip:hover {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.multi-icon-chip.active {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.45);
+}
+
+.multi-icon-chip.active .chip-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.chip-icon {
+  font-size: 1rem;
+}
+
+.chip-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 1px 7px;
+  border-radius: 9999px;
+  color: var(--text-muted);
+}
+
+.multi-icon-active-feedback {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.775rem;
+  color: #60a5fa;
+}
+
+.btn-clear-chips {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.btn-clear-chips:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* KPI Cards Multi-Select Mode */
+.kpi-multi-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  z-index: 2;
+}
+
+.kpi-multi-toggle:hover {
+  background: rgba(37, 99, 235, 0.25);
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+
+.kpi-card.kpi-multi-selected {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.kpi-card.kpi-multi-selected .kpi-multi-toggle {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Excel Scanner Dropzone & Review Table */
+.excel-dropzone {
+  border: 2px dashed rgba(59, 130, 246, 0.45);
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: var(--radius-md);
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.excel-dropzone:hover, .excel-dropzone.dragover {
+  border-color: #3b82f6;
+  background: rgba(37, 99, 235, 0.12);
+  transform: scale(1.005);
+}
+
+.excel-summary-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.excel-summary-stat-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  text-align: center;
+}
+
+.excel-summary-stat-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.excel-summary-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.scanned-row-warning {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+.scanned-row-error {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+
