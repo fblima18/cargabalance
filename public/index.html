@@ -1068,7 +1068,7 @@
 
       <!-- Upload Dropzone Section -->
       <section class="upload-card">
-        <div id="nfe-dropzone" class="dropzone-area" style="border: 2px dashed #3b82f6; background: #eff6ff; padding: 2rem 1.5rem;">
+        <div id="nfe-dropzone" class="dropzone-area" style="border: 2px dashed #3b82f6; background: #eff6ff; padding: 2rem 1.5rem; cursor: pointer;" onclick="if(event.target.tagName !== 'BUTTON' && event.target.tagName !== 'INPUT') document.getElementById('nfe-file-input').click()" ondragenter="handleNFeDragEnter(event)" ondragover="handleNFeDragOver(event)" ondragleave="handleNFeDragLeave(event)" ondrop="handleNFeDrop(event)">
           <div class="dropzone-icon" style="background: rgba(59, 130, 246, 0.15); color: #2563eb;">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1087,7 +1087,7 @@
               <span style="display: inline-flex; align-items: center; gap: 4px;"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Totalizadores de peso, volume e valor para CT-e</span>
             </div>
           </div>
-          <input type="file" id="nfe-file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;">
+          <input type="file" id="nfe-file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;" onchange="handleNFeFileInputChange(event)">
           <button type="button" class="btn btn-primary" onclick="document.getElementById('nfe-file-input').click()" style="margin-top: 0.5rem;">
             Selecionar Arquivos XML de NF-e
           </button>

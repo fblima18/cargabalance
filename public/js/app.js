@@ -217,6 +217,11 @@ function switchTab(tabId) {
   const normalizedId = tabId.startsWith('tab-') ? tabId : `tab-${tabId}`;
   const btn = document.querySelector(`.tab-btn[data-tab="${normalizedId}"]`) || document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   if (btn) btn.click();
+  if (normalizedId === 'tab-nfe-processor') {
+    setTimeout(() => {
+      if (typeof setupNFeDropzone === 'function') setupNFeDropzone();
+    }, 50);
+  }
 }
 window.switchTab = switchTab;
 
@@ -232,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
   setupExcelScannerDropzone();
   setupNFeDropzone();
+  loadBranchesList(); // Preload company branches for fast PF routing
   initCommandPalette();
 });
 
@@ -295,6 +301,8 @@ function initTabs() {
         loadCTEs();
       } else if (targetId === 'tab-overview') {
         fetchAndRenderDocuments();
+      } else if (targetId === 'tab-nfe-processor') {
+        setupNFeDropzone();
       }
     });
   });
@@ -5125,6 +5133,682 @@ window.renderMultiKPIConsolidation = renderMultiKPIConsolidation;
    LEITOR DE NF-E (XML) & ROTEADOR AUTOMÁTICO DE CARGAS PARA CT-E
    ========================================================================== */
 
+// Fallback Default Branches for Immediate Offline / Client-side Resolution
+const DEFAULT_COMPANY_BRANCHES = [
+  { id: 'carajas-matriz-cd-al', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - MATRIZ / CD RIO LARGO', cnpj: '03.656.804/0001-31', inscricao_estadual: '240.012.345', cidade: 'Rio Largo', uf: 'AL', logradouro: 'Rodovia BR-104, Km 90, s/n', bairro: 'Mata do Rolo', cep: '57100-000', telefone: '(82) 3215-9000' },
+  { id: 'carajas-filial-maceio-mangabeiras', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - MACEIO MANGABEIRAS', cnpj: '03.656.804/0002-12', inscricao_estadual: '240.098.765', cidade: 'Maceió', uf: 'AL', logradouro: 'Av. Comendador Gustavo Paiva, 2990', bairro: 'Mangabeiras', cep: '57038-000', telefone: '(82) 3215-9010' },
+  { id: 'carajas-filial-arapiraca', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - ARAPIRACA', cnpj: '03.656.804/0003-01', inscricao_estadual: '241.112.233', cidade: 'Arapiraca', uf: 'AL', logradouro: 'Rodovia AL-220, s/n', bairro: 'Planalto', cep: '57308-000', telefone: '(82) 3521-8800' },
+  { id: 'carajas-filial-cabedelo', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - JOAO PESSOA / CABEDELO', cnpj: '03.656.804/0004-84', inscricao_estadual: '161.456.789', cidade: 'Cabedelo', uf: 'PB', logradouro: 'Rodovia BR-230, Km 10', bairro: 'Intermares', cep: '58102-000', telefone: '(83) 3044-7700' },
+  { id: 'carajas-filial-campina-grande', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - CAMPINA GRANDE', cnpj: '03.656.804/0005-65', inscricao_estadual: '162.789.012', cidade: 'Campina Grande', uf: 'PB', logradouro: 'Av. Argemiro de Figueiredo, 1500', bairro: 'Itararé', cep: '58411-020', telefone: '(83) 3333-5500' },
+  { id: 'carajas-filial-natal', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - NATAL', cnpj: '03.656.804/0006-46', inscricao_estadual: '200.345.678', cidade: 'Natal', uf: 'RN', logradouro: 'Av. Engenheiro Roberto Freire, 3000', bairro: 'Capim Macio', cep: '59082-000', telefone: '(84) 3642-1200' },
+  { id: 'carajas-filial-juazeiro', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - JUAZEIRO DO NORTE', cnpj: '03.656.804/0007-27', inscricao_estadual: '06.876.543-1', cidade: 'Juazeiro do Norte', uf: 'CE', logradouro: 'Av. Padre Cícero, 2555', bairro: 'Triângulo', cep: '63041-140', telefone: '(88) 3571-3300' },
+  { id: 'carajas-filial-fortaleza', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - FORTALEZA', cnpj: '03.656.804/0008-08', inscricao_estadual: '06.998.877-2', cidade: 'Fortaleza', uf: 'CE', logradouro: 'Av. Washington Soares, 3000', bairro: 'Edson Queiroz', cep: '60811-341', telefone: '(85) 3241-9900' },
+  { id: 'carajas-filial-teresina', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - TERESINA', cnpj: '03.656.804/0009-99', inscricao_estadual: '19.456.123-4', cidade: 'Teresina', uf: 'PI', logradouro: 'Av. João XXIII, 1800', bairro: 'São Cristóvão', cep: '64051-000', telefone: '(86) 3216-4400' },
+  { id: 'carajas-filial-mossoro', empresa_grupo: 'CARAJAS', nome_filial: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - MOSSORO', cnpj: '03.656.804/0010-22', inscricao_estadual: '201.234.567', cidade: 'Mossoró', uf: 'RN', logradouro: 'Av. Presidente Dutra, 800', bairro: 'Alto de São Manoel', cep: '59628-000', telefone: '(84) 3315-7000' }
+];
+
+function formatCPFClient(raw) {
+  if (!raw) return '-';
+  const digits = String(raw).replace(/\D/g, '').padStart(11, '0').slice(-11);
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+}
+
+function formatCNPJClient(raw) {
+  if (!raw) return '-';
+  const digits = String(raw).replace(/\D/g, '').padStart(14, '0').slice(-14);
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
+}
+
+function findBranchForDestinationClient(cidade, uf) {
+  const all = (cachedCompanyBranches && cachedCompanyBranches.length > 0)
+    ? cachedCompanyBranches
+    : DEFAULT_COMPANY_BRANCHES;
+
+  const targetCityNorm = (cidade || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+  const targetUfNorm = String(uf || '').trim().toUpperCase();
+
+  // 1. Match exato Cidade e UF
+  let matched = all.find(b => 
+    String(b.uf).toUpperCase() === targetUfNorm &&
+    (b.cidade || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase() === targetCityNorm
+  );
+
+  // 2. Hub metropolitano ou polo regional no mesmo estado
+  if (!matched && targetUfNorm) {
+    if (targetUfNorm === 'AL') {
+      if (['RIO LARGO', 'SATUBA', 'MARECHAL DEODORO', 'SANTA LUZIA DO NORTE'].includes(targetCityNorm)) {
+        matched = all.find(b => (b.cidade || '').toUpperCase().includes('RIO LARGO')) || 
+                  all.find(b => (b.cidade || '').toUpperCase().includes('MACEIO'));
+      } else if (['PALMEIRA DOS INDIOS', 'CRAIBAS', 'GIRAU DO PONCIANO', 'IGACI'].includes(targetCityNorm)) {
+        matched = all.find(b => (b.cidade || '').toUpperCase().includes('ARAPIRACA'));
+      }
+    } else if (targetUfNorm === 'PB') {
+      if (['JOAO PESSOA', 'SANTA RITA', 'BAYEUX'].includes(targetCityNorm)) {
+        matched = all.find(b => (b.cidade || '').toUpperCase().includes('CABEDELO'));
+      }
+    }
+  }
+
+  // 3. Match por UF
+  if (!matched && targetUfNorm) {
+    matched = all.find(b => String(b.uf).toUpperCase() === targetUfNorm);
+  }
+
+  // 4. Fallback Matriz/CD
+  if (!matched) {
+    matched = all.find(b => b.id === 'carajas-matriz-cd-al') || all[0];
+  }
+
+  return matched;
+}
+
+/**
+ * Leitura Assíncrona de Arquivo como Texto com Codificação Específica
+ */
+function readFileAsText(file, encoding = 'UTF-8') {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result || '');
+    reader.onerror = () => reject(new Error(`Falha ao ler o arquivo ${file.name}: ${reader.error?.message || 'Erro de leitura'}`));
+    reader.readAsText(file, encoding);
+  });
+}
+
+/**
+ * Busca de Elementos XML Ignorando Namespaces (SEFAZ xmlns="http://www.portalfiscal.inf.br/nfe")
+ */
+function getXmlElementsByLocalName(parent, localName) {
+  if (!parent) return [];
+  const target = localName.toLowerCase();
+
+  // 1. Tentar getElementsByTagNameNS('*', localName)
+  if (typeof parent.getElementsByTagNameNS === 'function') {
+    try {
+      const list = parent.getElementsByTagNameNS('*', localName);
+      if (list && list.length > 0) return Array.from(list);
+    } catch (e) {}
+  }
+
+  // 2. Tentar getElementsByTagName padrão
+  if (typeof parent.getElementsByTagName === 'function') {
+    const list = parent.getElementsByTagName(localName);
+    if (list && list.length > 0) return Array.from(list);
+  }
+
+  // 3. Fallback: Varredura recursiva manual ignorando prefixos de namespace (ex: nfe:tag ou tag)
+  const results = [];
+  function walk(node) {
+    if (!node) return;
+    if (node.nodeType === 1) { // ELEMENT_NODE
+      const tag = (node.localName || node.nodeName.split(':').pop() || '').toLowerCase();
+      if (tag === target) results.push(node);
+    }
+    for (let i = 0; i < node.childNodes.length; i++) {
+      walk(node.childNodes[i]);
+    }
+  }
+  walk(parent);
+  return results;
+}
+
+/**
+ * Extração Segura de Texto de Tag XML Ignorando Namespaces
+ */
+function getXmlTagText(parent, localName, defaultValue = '') {
+  const nodes = getXmlElementsByLocalName(parent, localName);
+  if (nodes.length > 0 && nodes[0].textContent !== null && nodes[0].textContent !== undefined) {
+    return nodes[0].textContent.trim();
+  }
+  return defaultValue;
+}
+
+/**
+ * Parser de NF-e no Navegador via DOMParser (Compatível com <nfeProc> e bloco <NFe>)
+ */
+function parseSingleNFeXMLClient(xmlDoc, fileName = 'nfe.xml') {
+  // Localizar elemento <infNFe> independentemente do namespace ou envelopamento
+  const infNFeNodes = getXmlElementsByLocalName(xmlDoc, 'infNFe');
+  const infNFe = infNFeNodes.length > 0 ? infNFeNodes[0] : (getXmlElementsByLocalName(xmlDoc, 'NFe')[0] || xmlDoc.documentElement);
+
+  if (!infNFe) {
+    throw new Error(`O arquivo '${fileName}' não é um XML de NF-e válido (tag <infNFe> não encontrada).`);
+  }
+
+  // 1. Chave de Acesso (44 dígitos)
+  let chaveAcesso = '';
+  const idAttr = infNFe.getAttribute('Id') || infNFe.getAttribute('id') || '';
+  if (idAttr) {
+    chaveAcesso = idAttr.replace(/\D/g, '').slice(-44);
+  }
+  if (!chaveAcesso) {
+    const chNFeNodes = getXmlElementsByLocalName(xmlDoc, 'chNFe');
+    if (chNFeNodes.length > 0) {
+      chaveAcesso = chNFeNodes[0].textContent.replace(/\D/g, '').slice(-44);
+    }
+  }
+
+  // 2. Identificação (<ide>)
+  const ideNode = getXmlElementsByLocalName(infNFe, 'ide')[0] || infNFe;
+  const numero = getXmlTagText(ideNode, 'nNF') || '0';
+  const serie = getXmlTagText(ideNode, 'serie') || '1';
+  const dataEmissaoRaw = getXmlTagText(ideNode, 'dhEmi') || getXmlTagText(ideNode, 'dEmi') || new Date().toISOString();
+  const natOp = getXmlTagText(ideNode, 'natOp') || 'Venda de mercadoria';
+
+  // 3. Emitente (<emit>)
+  const emitNode = getXmlElementsByLocalName(infNFe, 'emit')[0];
+  const emitCNPJ = emitNode ? (getXmlTagText(emitNode, 'CNPJ') || getXmlTagText(emitNode, 'CPF')) : '03656804000131';
+  const emitNome = emitNode ? getXmlTagText(emitNode, 'xNome') : 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - MATRIZ';
+  const emitFantasia = emitNode ? getXmlTagText(emitNode, 'xFant') : '';
+  const emitIE = emitNode ? getXmlTagText(emitNode, 'IE') : '240.012.345';
+  const enderEmitNode = emitNode ? getXmlElementsByLocalName(emitNode, 'enderEmit')[0] : null;
+  const emitCidade = enderEmitNode ? getXmlTagText(enderEmitNode, 'xMun') : 'Rio Largo';
+  const emitUF = enderEmitNode ? getXmlTagText(enderEmitNode, 'UF') : 'AL';
+
+  // 4. Destinatário (<dest>)
+  const destNode = getXmlElementsByLocalName(infNFe, 'dest')[0];
+  if (!destNode) {
+    throw new Error(`NF-e sem bloco <dest> de destinatário.`);
+  }
+
+  const destCPF = getXmlTagText(destNode, 'CPF');
+  const destCNPJ = getXmlTagText(destNode, 'CNPJ');
+  const isPF = Boolean(destCPF && !destCNPJ);
+  const destDoc = isPF ? destCPF : (destCNPJ || '');
+  const destNome = getXmlTagText(destNode, 'xNome') || (isPF ? 'CLIENTE CONSUMIDOR FINAL' : 'EMPRESA COMPRADORA');
+  const destIE = getXmlTagText(destNode, 'IE') || 'ISENTO';
+
+  const enderDestNode = getXmlElementsByLocalName(destNode, 'enderDest')[0];
+  const destLogradouro = enderDestNode ? getXmlTagText(enderDestNode, 'xLgr') : '';
+  const destNumero = enderDestNode ? getXmlTagText(enderDestNode, 'nro') : '';
+  const destComplemento = enderDestNode ? getXmlTagText(enderDestNode, 'xCpl') : '';
+  const destBairro = enderDestNode ? getXmlTagText(enderDestNode, 'xBairro') : '';
+  const destCidade = enderDestNode ? getXmlTagText(enderDestNode, 'xMun') : 'Maceió';
+  const destUF = enderDestNode ? getXmlTagText(enderDestNode, 'UF') : 'AL';
+  const destCEP = enderDestNode ? getXmlTagText(enderDestNode, 'CEP') : '';
+
+  // 5. Totais (<total> -> <ICMSTot>)
+  const parseNum = (val) => {
+    if (!val) return 0;
+    const clean = String(val).trim().replace(',', '.');
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const icmsTotNode = getXmlElementsByLocalName(infNFe, 'ICMSTot')[0] || infNFe;
+  const valorTotalNF = parseNum(getXmlTagText(icmsTotNode, 'vNF'));
+  const valorTotalProdutos = parseNum(getXmlTagText(icmsTotNode, 'vProd'));
+  const valorFrete = parseNum(getXmlTagText(icmsTotNode, 'vFrete'));
+
+  // 6. Transporte e Volumes (<transp>)
+  const transpNode = getXmlElementsByLocalName(infNFe, 'transp')[0];
+  let volumesTotal = 0;
+  let pesoBrutoTotal = 0;
+  let pesoLiquidoTotal = 0;
+  let especieVolume = 'VOLUMES';
+
+  if (transpNode) {
+    const volNodes = getXmlElementsByLocalName(transpNode, 'vol');
+    if (volNodes.length > 0) {
+      volNodes.forEach(vol => {
+        volumesTotal += parseNum(getXmlTagText(vol, 'qVol'));
+        pesoBrutoTotal += parseNum(getXmlTagText(vol, 'pesoB'));
+        pesoLiquidoTotal += parseNum(getXmlTagText(vol, 'pesoL'));
+        const esp = getXmlTagText(vol, 'esp');
+        if (esp) especieVolume = esp;
+      });
+    }
+  }
+
+  // Fallback para peso se ausente
+  if (pesoBrutoTotal <= 0 && valorTotalNF > 0) {
+    pesoBrutoTotal = Math.round((valorTotalNF * 0.45) * 100) / 100;
+  }
+  if (volumesTotal <= 0) {
+    volumesTotal = 1;
+  }
+
+  // 7. Produtos / Itens (<det>)
+  const detNodes = getXmlElementsByLocalName(infNFe, 'det');
+  const itens = [];
+  const prodNomes = [];
+
+  detNodes.forEach((det, idx) => {
+    const prodNode = getXmlElementsByLocalName(det, 'prod')[0];
+    if (prodNode) {
+      const cProd = getXmlTagText(prodNode, 'cProd') || `ITEM-${idx + 1}`;
+      const xProd = getXmlTagText(prodNode, 'xProd');
+      const ncm = getXmlTagText(prodNode, 'NCM');
+      const cfop = getXmlTagText(prodNode, 'CFOP');
+      const uCom = getXmlTagText(prodNode, 'uCom') || 'UN';
+      const qCom = parseNum(getXmlTagText(prodNode, 'qCom'));
+      const vUnCom = parseNum(getXmlTagText(prodNode, 'vUnCom'));
+      const vProd = parseNum(getXmlTagText(prodNode, 'vProd'));
+
+      itens.push({
+        numero_item: idx + 1,
+        codigo_produto: cProd,
+        descricao: xProd,
+        ncm: ncm,
+        cfop: cfop,
+        unidade: uCom,
+        quantidade: qCom,
+        valor_unitario: vUnCom,
+        valor_total: vProd
+      });
+
+      if (xProd) prodNomes.push(xProd);
+    }
+  });
+
+  return {
+    arquivo_origem: fileName,
+    chave_acesso: chaveAcesso,
+    numero: numero,
+    numero_nfe: numero,
+    serie: serie,
+    data_emissao: dataEmissaoRaw,
+    natureza_operacao: natOp,
+
+    emitente: {
+      documento: emitCNPJ,
+      cnpj_cpf: emitCNPJ,
+      nome: emitNome,
+      nome_fantasia: emitFantasia,
+      ie: emitIE,
+      inscricao_estadual: emitIE,
+      cidade: emitCidade,
+      uf: emitUF
+    },
+
+    destinatario: {
+      is_pj: !isPF,
+      tipo_documento: isPF ? 'CPF' : 'CNPJ',
+      tipo_pessoa: isPF ? 'PF' : 'PJ',
+      is_pf: isPF,
+      documento: destDoc,
+      documento_formatado: isPF ? formatCPFClient(destDoc) : formatCNPJClient(destDoc),
+      nome: destNome,
+      ie: destIE,
+      inscricao_estadual: destIE,
+      endereco: {
+        logradouro: destLogradouro,
+        numero: destNumero,
+        complemento: destComplemento,
+        bairro: destBairro,
+        cidade: destCidade,
+        uf: destUF,
+        cep: destCEP
+      }
+    },
+
+    valores: {
+      valor_total_nfe: valorTotalNF,
+      valor_produtos: valorTotalProdutos,
+      valor_frete: valorFrete
+    },
+
+    carga: {
+      volumes: volumesTotal,
+      peso_bruto: pesoBrutoTotal,
+      peso_liquido: pesoLiquidoTotal,
+      especie: especieVolume
+    },
+
+    transporte: {
+      quantidade_volumes: volumesTotal,
+      peso_bruto: pesoBrutoTotal,
+      peso_liquido: pesoLiquidoTotal
+    },
+
+    totais: {
+      valor_total_nfe: valorTotalNF,
+      valor_produtos: valorTotalProdutos,
+      valor_frete: valorFrete,
+      quantidade_volumes: volumesTotal,
+      peso_bruto_kg: pesoBrutoTotal,
+      peso_liquido_kg: pesoLiquidoTotal,
+      especie: especieVolume
+    },
+
+    itens: itens,
+    produtos_resumo: prodNomes.slice(0, 5).join(', ')
+  };
+}
+
+/**
+ * Agrupar Lista de NF-es por Rota/Destino e Aplicar Regras de Encaminhamento Fiscal
+ */
+function groupNFeListByDestination(nfeList) {
+  const groupMap = {};
+
+  nfeList.forEach((nfe) => {
+    const dest = nfe.destinatario;
+    const end = dest.endereco || {};
+    const cidade = end.cidade || 'Maceió';
+    const uf = end.uf || 'AL';
+    const routeKey = `${(cidade || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase()}_${uf.toUpperCase()}`;
+
+    if (!groupMap[routeKey]) {
+      const branch = findBranchForDestinationClient(cidade, uf);
+
+      groupMap[routeKey] = {
+        grupo_id: `cte-group-${routeKey.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        destino_cidade: cidade,
+        cidade: cidade,
+        destino_uf: uf,
+        uf: uf,
+        rota_label: `${cidade} / ${uf}`,
+        is_interestadual: uf.toUpperCase() !== 'AL',
+
+        filial_vinculada: branch ? {
+          id: branch.id,
+          nome_filial: branch.nome_filial || branch.razao_social,
+          cnpj: branch.cnpj,
+          inscricao_estadual: branch.inscricao_estadual,
+          cidade: branch.cidade,
+          uf: branch.uf,
+          logradouro: branch.logradouro,
+          bairro: branch.bairro,
+          cep: branch.cep,
+          telefone: branch.telefone
+        } : null,
+
+        nfes: [],
+        chaves_nfe: [],
+        somatorio_valor_carga: 0,
+        somatorio_peso_bruto: 0,
+        somatorio_peso_liquido: 0,
+        somatorio_volumes: 0,
+        qtd_nfes_pf: 0,
+        qtd_nfes_pj: 0,
+        produtos_set: new Set()
+      };
+    }
+
+    const g = groupMap[routeKey];
+    g.nfes.push(nfe);
+    if (nfe.chave_acesso) g.chaves_nfe.push(nfe.chave_acesso);
+
+    const valNota = nfe.valores.valor_total_nfe || 0;
+    const pesoB = nfe.carga.peso_bruto || 0;
+    const pesoL = nfe.carga.peso_liquido || 0;
+    const vols = nfe.carga.volumes || 1;
+
+    g.somatorio_valor_carga += valNota;
+    g.somatorio_peso_bruto += pesoB;
+    g.somatorio_peso_liquido += pesoL;
+    g.somatorio_volumes += vols;
+
+    if (nfe.destinatario.is_pf || nfe.destinatario.tipo_documento === 'CPF') {
+      g.qtd_nfes_pf++;
+    } else {
+      g.qtd_nfes_pj++;
+    }
+
+    if (nfe.itens && nfe.itens.length > 0) {
+      nfe.itens.forEach(it => {
+        if (it.descricao) {
+          const firstWord = it.descricao.split(' ')[0].trim().toUpperCase();
+          if (firstWord.length > 2) g.produtos_set.add(firstWord);
+        }
+      });
+    }
+  });
+
+  return Object.values(groupMap).map(g => {
+    let regra = 'PJ_DIRETO';
+    if (g.qtd_nfes_pf > 0 && g.qtd_nfes_pj === 0) {
+      regra = 'PF_PARA_FILIAL';
+    } else if (g.qtd_nfes_pf > 0 && g.qtd_nfes_pj > 0) {
+      regra = 'MISTO';
+    }
+
+    let destFiscal;
+    if (regra === 'PF_PARA_FILIAL' || regra === 'MISTO') {
+      const b = g.filial_vinculada;
+      destFiscal = {
+        razao_social: b ? (b.nome_filial || b.razao_social) : 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - FILIAL',
+        cnpj: b ? b.cnpj : '03.656.804/0002-12',
+        inscricao_estadual: b ? b.inscricao_estadual : '240.098.765',
+        cidade: b ? b.cidade : g.destino_cidade,
+        uf: b ? b.uf : g.destino_uf,
+        endereco: b ? `${b.logradouro}, ${b.bairro || 'Centro'}` : 'Av. Filial Regional',
+        tipo: 'FILIAL_CORPORATIVA'
+      };
+    } else {
+      const firstPJ = g.nfes.find(n => !n.destinatario.is_pf) || g.nfes[0];
+      const d = firstPJ.destinatario;
+      const end = d.endereco || {};
+      destFiscal = {
+        razao_social: d.nome,
+        cnpj: d.documento_formatado || d.documento,
+        inscricao_estadual: d.inscricao_estadual || d.ie || 'ISENTO',
+        cidade: end.cidade || g.destino_cidade,
+        uf: end.uf || g.destino_uf,
+        endereco: `${end.logradouro || ''} ${end.numero || ''}`.trim() || 'Endereço Comercial PJ',
+        tipo: 'PJ_DIRETO'
+      };
+    }
+
+    const prods = Array.from(g.produtos_set).slice(0, 5);
+    const resumoMercadoria = prods.length > 0 
+      ? `CARGA FRACIONADA CONTENDO ${prods.join(', ')}`
+      : 'CARGA FRACIONADA DE MATERIAIS DE CONSTRUCAO';
+
+    const pesoBrutoVal = parseFloat(g.somatorio_peso_bruto.toFixed(3));
+    const pesoLiqVal = parseFloat(g.somatorio_peso_liquido.toFixed(3));
+    const valorCargaVal = parseFloat(g.somatorio_valor_carga.toFixed(2));
+
+    return {
+      grupo_id: g.grupo_id,
+      destino_cidade: g.destino_cidade,
+      cidade: g.destino_cidade,
+      destino_uf: g.destino_uf,
+      uf: g.destino_uf,
+      rota_label: g.rota_label,
+      is_interestadual: g.is_interestadual,
+      regra_aplicada: regra,
+      filial_vinculada: g.filial_vinculada,
+      destinatario_fiscal_consolidado: destFiscal,
+      destinatario_fiscal_cte: destFiscal,
+      qtd_nfes: g.nfes.length,
+      qtd_nfes_pf: g.qtd_nfes_pf,
+      qtd_nfes_pj: g.qtd_nfes_pj,
+      somatorio_peso_bruto: pesoBrutoVal,
+      peso_bruto_total: pesoBrutoVal,
+      somatorio_peso_liquido: pesoLiqVal,
+      peso_liquido_total: pesoLiqVal,
+      somatorio_valor_carga: valorCargaVal,
+      valor_total_carga: valorCargaVal,
+      valor_total_mercadorias: valorCargaVal,
+      somatorio_volumes: g.somatorio_volumes,
+      volumes_total: g.somatorio_volumes,
+      volumes_totais: g.somatorio_volumes,
+      resumo_mercadoria: resumoMercadoria,
+      produto_predominante: resumoMercadoria,
+      chaves_nfe: g.chaves_nfe,
+      remetente: {
+        nome: 'CARAJAS MATERIAL DE CONSTRUCAO LTDA - MATRIZ / CD',
+        documento: '03.656.804/0001-31',
+        cidade: 'Rio Largo',
+        uf: 'AL'
+      },
+      nfes: g.nfes
+    };
+  });
+}
+
+/**
+ * Processamento Assíncrono de Múltiplos Arquivos XML de NF-e no Cliente
+ */
+async function processNFeFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const files = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.xml'));
+
+  if (files.length === 0) {
+    showToast('Nenhum arquivo XML (.xml) selecionado.', 'warning');
+    return;
+  }
+
+  const container = document.getElementById('nfe-groups-container');
+  if (container) {
+    container.innerHTML = `
+      <div style="background: #ffffff; border-radius: var(--radius-lg); padding: 3rem; text-align: center; border: 1px solid var(--border-glass);">
+        <div class="loading-spinner" style="width: 44px; height: 44px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; margin: 0 auto 1.25rem auto; animation: spin 1s linear infinite;"></div>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">Processando Lote de ${files.length} Arquivo(s) XML de NF-e...</h4>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Fazendo leitura das tags fiscais, agrupamento por destino e roteamento de tomador (PF vs PJ)...</p>
+      </div>
+    `;
+  }
+
+  const parser = new DOMParser();
+  const parsedNfes = [];
+  const errors = [];
+
+  for (const file of files) {
+    try {
+      let xmlText = await readFileAsText(file, 'UTF-8');
+
+      // Se a declaração do XML indicar explicitamente ISO-8859-1 ou windows-1252, reler com a codificação correta
+      if (/encoding=["'](ISO-8859-1|windows-1252)["']/i.test(xmlText)) {
+        xmlText = await readFileAsText(file, 'ISO-8859-1');
+      }
+
+      let xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      let parserErr = xmlDoc.querySelector('parsererror') || xmlDoc.getElementsByTagName('parsererror')[0];
+
+      // Fallback para ISO-8859-1 se houver erro de parser no UTF-8
+      if (parserErr) {
+        try {
+          xmlText = await readFileAsText(file, 'ISO-8859-1');
+          xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+          parserErr = xmlDoc.querySelector('parsererror') || xmlDoc.getElementsByTagName('parsererror')[0];
+        } catch (e2) {}
+      }
+
+      if (parserErr) {
+        throw new Error(`XML inválido ou malformado: ${parserErr.textContent.slice(0, 100)}`);
+      }
+
+      const parsed = parseSingleNFeXMLClient(xmlDoc, file.name);
+      parsedNfes.push(parsed);
+    } catch (err) {
+      console.error(`[NF-e Parser Error] Falha ao processar arquivo '${file.name}':`, err);
+      errors.push({ filename: file.name, error: err.message });
+      showToast(`Erro ao ler ${file.name}: ${err.message}`, 'error');
+    }
+  }
+
+  if (parsedNfes.length === 0) {
+    showToast(`Nenhum dos ${files.length} arquivos pôde ser processado. Verifique os alertas no console.`, 'error');
+    clearNFeProcessor();
+    return;
+  }
+
+  // Agrupamento por rota/destino
+  const grupos = groupNFeListByDestination(parsedNfes);
+
+  // Totais globais dos KPIs
+  const totalNfes = parsedNfes.length;
+  const totalGrupos = grupos.length;
+  const totalPeso = grupos.reduce((acc, g) => acc + g.somatorio_peso_bruto, 0);
+  const totalValor = grupos.reduce((acc, g) => acc + g.somatorio_valor_carga, 0);
+  const totalVolumes = grupos.reduce((acc, g) => acc + g.somatorio_volumes, 0);
+  const totalPf = parsedNfes.filter(n => !n.destinatario.is_pj).length;
+  const totalPj = parsedNfes.filter(n => n.destinatario.is_pj).length;
+
+  const batchResult = {
+    success: true,
+    total_nfe_lidas: totalNfes,
+    total_grupos_cte: totalGrupos,
+    total_pf: totalPf,
+    total_pj: totalPj,
+    valor_total_todas_cargas: parseFloat(totalValor.toFixed(2)),
+    peso_bruto_total_todas_cargas: parseFloat(totalPeso.toFixed(3)),
+    volumes_totais_todas_cargas: totalVolumes,
+    grupos_cte: grupos,
+    errors: errors,
+    kpis: {
+      totalNfes,
+      totalGrupos,
+      totalPeso: parseFloat(totalPeso.toFixed(3)),
+      totalValor: parseFloat(totalValor.toFixed(2)),
+      totalVolumes,
+      totalPf,
+      totalPj
+    }
+  };
+
+  currentNFeBatchData = batchResult;
+  renderNFeBatchView(batchResult);
+
+  if (errors.length > 0) {
+    showToast(`${parsedNfes.length} NF-e(s) lidas com sucesso. ${errors.length} arquivo(s) apresentaram erros (verifique o console).`, 'warning');
+  } else {
+    showToast(`Lote processado com sucesso! ${parsedNfes.length} NF-e(s) agrupadas em ${totalGrupos} lote(s) de CT-e.`, 'success');
+  }
+
+  // Habilitar botão de exportação
+  const btnExport = document.getElementById('btn-nfe-export-excel');
+  if (btnExport) btnExport.disabled = false;
+}
+
+/**
+ * Handlers de Eventos de Drag & Drop e Input File
+ */
+function handleNFeDragEnter(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dropzone = document.getElementById('nfe-dropzone');
+  if (dropzone) {
+    dropzone.style.borderColor = '#1d4ed8';
+    dropzone.style.backgroundColor = '#dbeafe';
+  }
+}
+
+function handleNFeDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'copy';
+  }
+  const dropzone = document.getElementById('nfe-dropzone');
+  if (dropzone) {
+    dropzone.style.borderColor = '#1d4ed8';
+    dropzone.style.backgroundColor = '#dbeafe';
+  }
+}
+
+function handleNFeDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dropzone = document.getElementById('nfe-dropzone');
+  if (dropzone) {
+    dropzone.style.borderColor = '#3b82f6';
+    dropzone.style.backgroundColor = '#eff6ff';
+  }
+}
+
+async function handleNFeDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dropzone = document.getElementById('nfe-dropzone');
+  if (dropzone) {
+    dropzone.style.borderColor = '#3b82f6';
+    dropzone.style.backgroundColor = '#eff6ff';
+  }
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    await processNFeFiles(e.dataTransfer.files);
+  }
+}
+
+async function handleNFeFileInputChange(e) {
+  if (e.target && e.target.files && e.target.files.length > 0) {
+    await processNFeFiles(e.target.files);
+    e.target.value = ''; // Reset para permitir re-seleção
+  }
+}
+
 /**
  * Configurar Área de Dropzone e Input de Arquivos XML de NF-e
  */
@@ -5134,85 +5818,28 @@ function setupNFeDropzone() {
   if (!dropzone || !fileInput) return;
 
   ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.borderColor = '#1d4ed8';
-      dropzone.style.backgroundColor = '#dbeafe';
-    });
+    dropzone.addEventListener(eventName, handleNFeDragOver);
   });
 
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.borderColor = '#3b82f6';
-      dropzone.style.backgroundColor = '#eff6ff';
-    });
+  ['dragleave'].forEach(eventName => {
+    dropzone.addEventListener(eventName, handleNFeDragLeave);
   });
 
-  dropzone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    if (dt && dt.files && dt.files.length > 0) {
-      uploadNFeBatch(dt.files);
-    }
-  });
+  dropzone.addEventListener('drop', handleNFeDrop);
 
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files && fileInput.files.length > 0) {
-      uploadNFeBatch(fileInput.files);
-      fileInput.value = ''; // Reset to allow re-upload
-    }
-  });
+  fileInput.addEventListener('change', handleNFeFileInputChange);
 }
 
-/**
- * Enviar Lote de Arquivos XML de NF-e para a API de Processamento
- */
-async function uploadNFeBatch(fileList) {
-  const files = Array.from(fileList);
-  const xmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.xml'));
+// Window Exports
+window.handleNFeDragEnter = handleNFeDragEnter;
+window.handleNFeDragOver = handleNFeDragOver;
+window.handleNFeDragLeave = handleNFeDragLeave;
+window.handleNFeDrop = handleNFeDrop;
+window.handleNFeFileInputChange = handleNFeFileInputChange;
+window.setupNFeDropzone = setupNFeDropzone;
+window.processNFeFiles = processNFeFiles;
+window.uploadNFeBatch = processNFeFiles;
 
-  if (xmlFiles.length === 0) {
-    showToast('Nenhum arquivo .xml selecionado.', 'warning');
-    return;
-  }
-
-  const container = document.getElementById('nfe-groups-container');
-  if (container) {
-    container.innerHTML = `
-      <div style="background: #ffffff; border-radius: var(--radius-lg); padding: 3rem; text-align: center; border: 1px solid var(--border-glass);">
-        <div class="loading-spinner" style="width: 44px; height: 44px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; margin: 0 auto 1.25rem auto; animation: spin 1s linear infinite;"></div>
-        <h4 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">Processando Lote de ${xmlFiles.length} Arquivo(s) XML de NF-e...</h4>
-        <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Fazendo leitura das tags fiscais, agrupamento por destino e roteamento de tomador (PF vs PJ)...</p>
-      </div>
-    `;
-  }
-
-  const formData = new FormData();
-  xmlFiles.forEach(file => {
-    formData.append('nfe_files', file);
-  });
-
-  try {
-    const res = await fetch('/api/nfe/upload', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.error || 'Falha ao processar arquivos XML de NF-e.');
-    }
-
-    renderNFeBatchView(data.data);
-    showToast(`Lote processado com sucesso! ${data.data.total_nfe_lidas} NF-es agrupadas em ${data.data.total_grupos_cte} lote(s) de CT-e.`, 'success');
-  } catch (err) {
-    console.error('Erro no upload de NF-es:', err);
-    showToast('Erro ao processar lote de NF-e: ' + err.message, 'error');
-    clearNFeProcessor();
-  }
-}
 
 /**
  * Carregar Lote de Demonstração (Maceió, Arapiraca e Juazeiro do Norte)
@@ -6003,7 +6630,13 @@ function openNFeDetailsModal(groupIndex, nfeIndex) {
 
 // Funções do Leitor de NF-e e Roteador de Cargas para CT-e
 window.setupNFeDropzone = setupNFeDropzone;
-window.uploadNFeBatch = uploadNFeBatch;
+window.processNFeFiles = processNFeFiles;
+window.uploadNFeBatch = processNFeFiles;
+window.handleNFeFileInputChange = handleNFeFileInputChange;
+window.handleNFeDragEnter = handleNFeDragEnter;
+window.handleNFeDragOver = handleNFeDragOver;
+window.handleNFeDragLeave = handleNFeDragLeave;
+window.handleNFeDrop = handleNFeDrop;
 window.loadNFeSampleBatch = loadNFeSampleBatch;
 window.clearNFeProcessor = clearNFeProcessor;
 window.renderNFeBatchView = renderNFeBatchView;
