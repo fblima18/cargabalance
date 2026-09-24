@@ -28,6 +28,8 @@ let currentKPIsCache = null;
 let kpiDetailChartA = null;
 let kpiDetailChartB = null;
 
+let freightRepoCache = [];
+
 // Global helper to switch active tab
 function switchTab(tabId) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
@@ -41,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initSidebarToggle();
   loadDrivers();
+  loadFreightRepositoryPresets();
   fetchAndRenderDocuments();
   setupEventListeners();
   setupDragAndDrop();
@@ -3335,6 +3338,176 @@ async function renderOverviewChartsPreview() {
   }
 }
 
+// =========================================================================
+// REPOSITÓRIO DE PARÂMETROS DE FRETE, DESTINOS & TRIBUTAÇÃO (CARAJAS)
+// =========================================================================
+
+/**
+ * Load freight repository presets into dropdown
+ */
+async function loadFreightRepositoryPresets() {
+  try {
+    const res = await fetch('/api/freight-repository');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.items)) {
+      freightRepoCache = data.items;
+      const select = document.getElementById('manual-freight-preset');
+      if (select && data.items.length > 0) {
+        select.innerHTML = `
+          <option value="">Selecione para preencher automaticamente...</option>
+          ${data.items.map(item => `
+            <option value="${escapeHtml(item.id)}">
+              🏢 ${escapeHtml(item.pagador_nome || 'CARAJAS')} - ${escapeHtml(item.codigo_tabela || 'TABELA')} (${escapeHtml(item.tipo_pagamento || 'FOB')}) [Frete: R$ ${Number(item.frete_valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | ICMS: ${item.aliquota_icms}% | ${escapeHtml(item.uf_destino || 'AL')}]
+            </option>
+          `).join('')}
+        `;
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar repositório de frete:', err);
+  }
+}
+
+/**
+ * Open Freight Repository Modal
+ */
+async function openFreightRepoModal() {
+  await loadFreightRepositoryPresets();
+  runFreightCalculation();
+  openModal('modal-freight-repo');
+}
+
+/**
+ * Run real-time calculation in Freight Simulator
+ */
+function runFreightCalculation() {
+  const freteInput = document.getElementById('calc-frete-valor');
+  const icmsInput = document.getElementById('calc-aliquota-icms');
+  const cbsInput = document.getElementById('calc-aliquota-cbs');
+  const ibsInput = document.getElementById('calc-aliquota-ibs');
+
+  const frete = parseFloat(freteInput?.value) || 0;
+  const aliqIcms = parseFloat(icmsInput?.value) || 0;
+  const aliqCbs = parseFloat(cbsInput?.value) || 0;
+  const aliqIbs = parseFloat(ibsInput?.value) || 0;
+
+  const valIcms = frete * (aliqIcms / 100);
+  const baseTributos = Math.max(0, frete - valIcms);
+  const valCbs = baseTributos * (aliqCbs / 100);
+  const valIbs = baseTributos * (aliqIbs / 100);
+  const totalCbsIbs = valCbs + valIbs;
+
+  const comissao75 = frete * 0.75;
+  const margem25 = Math.max(0, frete - comissao75);
+
+  const formatBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const elIcms = document.getElementById('sim-res-icms');
+  const elCbsIbs = document.getElementById('sim-res-cbs-ibs');
+  const elCom75 = document.getElementById('sim-res-comissao75');
+  const elMargem25 = document.getElementById('sim-res-margem25');
+
+  if (elIcms) elIcms.textContent = formatBRL(valIcms);
+  if (elCbsIbs) elCbsIbs.textContent = `${formatBRL(totalCbsIbs)} (${formatBRL(valCbs)} CBS + ${formatBRL(valIbs)} IBS)`;
+  if (elCom75) elCom75.textContent = formatBRL(comissao75);
+  if (elMargem25) elMargem25.textContent = formatBRL(margem25);
+}
+
+/**
+ * Apply simulated freight parameters into Manual Trip form
+ */
+function applySimulatedFreightToTrip() {
+  const frete = parseFloat(document.getElementById('calc-frete-valor')?.value) || 850.00;
+  const aliqIcms = parseFloat(document.getElementById('calc-aliquota-icms')?.value) || 21.5;
+
+  const tripFrete = document.getElementById('manual-trip-frete');
+  const tripAliq = document.getElementById('manual-trip-aliquota');
+
+  if (tripFrete) tripFrete.value = frete.toFixed(2);
+  if (tripAliq) tripAliq.value = aliqIcms.toFixed(1);
+
+  updateManualCommissionPreview();
+  closeModal('modal-freight-repo');
+  openManualTripModal();
+  showToast(`Frete de R$ ${frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} e ICMS ${aliqIcms}% aplicados com sucesso!`, 'success');
+}
+
+/**
+ * Direct shortcut: Use Carajas reference rate card in New Trip
+ */
+function useCurrentRepoInTrip() {
+  applyFreightPresetToManualTrip('carajas-frete-infor-001');
+  closeModal('modal-freight-repo');
+  openManualTripModal();
+  showToast('Parâmetros CARAJAS (Frete R$ 850, ICMS 21,5%, 30,6t) carregados na viagem!', 'success');
+}
+
+/**
+ * Apply selected preset to Manual Trip modal fields
+ */
+function applyFreightPresetToManualTrip(presetId) {
+  if (!presetId) return;
+
+  const rule = freightRepoCache.find(r => r.id === presetId) || {
+    pagador_nome: 'CARAJAS MATERIAL DE CONSTRUCAO',
+    pagador_cnpj: '03.656.804/0001-31',
+    cidade_origem: 'Maceió',
+    uf_origem: 'AL',
+    cidade_destino: 'Maceió',
+    uf_destino: 'AL',
+    frete_valor: 850.00,
+    aliquota_icms: 21.50,
+    peso_real_kg: 30604.92,
+    valor_mercadoria: 20553.44,
+    nfs_agrupadas: 20
+  };
+
+  // Populate remetente / pagador
+  const remNome = document.getElementById('manual-trip-remetente-nome');
+  const remCnpj = document.getElementById('manual-trip-remetente-cnpj');
+  if (remNome) remNome.value = rule.pagador_nome || 'CARAJAS MATERIAL DE CONSTRUCAO LTDA';
+  if (remCnpj) remCnpj.value = rule.pagador_cnpj || '03.656.804/0001-31';
+
+  // Populate destinatario
+  const destNome = document.getElementById('manual-trip-destinatario-nome');
+  const destCnpj = document.getElementById('manual-trip-destinatario-cnpj');
+  if (destNome) destNome.value = rule.pagador_nome || 'CARAJAS MATERIAL DE CONSTRUCAO LTDA';
+  if (destCnpj) destCnpj.value = rule.pagador_cnpj || '03.656.804/0001-31';
+
+  // Populate Origem e Destino
+  const cidOrig = document.getElementById('manual-trip-cidade-origem');
+  const ufOrig = document.getElementById('manual-trip-uf-origem');
+  const cidDest = document.getElementById('manual-trip-cidade-destino');
+  const ufDest = document.getElementById('manual-trip-uf-destino');
+
+  if (cidOrig) cidOrig.value = rule.cidade_origem || 'Maceió';
+  if (ufOrig) ufOrig.value = rule.uf_origem || 'AL';
+  if (cidDest) cidDest.value = rule.cidade_destino || 'Maceió';
+  if (ufDest) ufDest.value = rule.uf_destino || 'AL';
+
+  // Populate Frete e Alíquota ICMS
+  const tripFrete = document.getElementById('manual-trip-frete');
+  const tripAliq = document.getElementById('manual-trip-aliquota');
+  if (tripFrete) tripFrete.value = parseFloat(rule.frete_valor || 850.00).toFixed(2);
+  if (tripAliq) tripAliq.value = parseFloat(rule.aliquota_icms || 21.50).toFixed(1);
+
+  // Populate MDF-e fields
+  const tripCarga = document.getElementById('manual-trip-carga');
+  const tripPeso = document.getElementById('manual-trip-peso');
+  if (tripCarga) tripCarga.value = parseFloat(rule.valor_mercadoria || 20553.44).toFixed(2);
+  if (tripPeso) tripPeso.value = parseFloat(rule.peso_real_kg || 30604.92).toFixed(1);
+
+  // Update commission preview (75% / 25%)
+  updateManualCommissionPreview();
+
+  const hint = document.getElementById('manual-freight-preset-hint');
+  if (hint) {
+    hint.innerHTML = `<span style="color: #34d399; font-weight: 600;">✓ Parâmetros Carajás Ativos:</span> Frete R$ 850,00 | ICMS 21,5% (R$ 182,75) | CBS/IBS R$ 6,42 | Condutor 75% (R$ 637,50) | Carga: 30,6t (20 NFs)`;
+  }
+
+  showToast(`Parâmetros de frete ${rule.pagador_nome || 'CARAJAS'} carregados para destino ${rule.cidade_destino || 'Maceió'}/${rule.uf_destino || 'AL'}!`, 'success');
+}
+
 // Global functions for inline HTML event handlers
 window.openDocPreview = openDocPreview;
 window.openDocDetails = openDocDetails;
@@ -3362,4 +3535,10 @@ window.batchDeleteSelectedDrivers = batchDeleteSelectedDrivers;
 window.loadDriversAnalytics = loadDriversAnalytics;
 window.renderDriversManagementTable = renderDriversManagementTable;
 window.renderOverviewChartsPreview = renderOverviewChartsPreview;
+window.loadFreightRepositoryPresets = loadFreightRepositoryPresets;
+window.openFreightRepoModal = openFreightRepoModal;
+window.runFreightCalculation = runFreightCalculation;
+window.applySimulatedFreightToTrip = applySimulatedFreightToTrip;
+window.useCurrentRepoInTrip = useCurrentRepoInTrip;
+window.applyFreightPresetToManualTrip = applyFreightPresetToManualTrip;
 

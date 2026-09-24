@@ -117,6 +117,16 @@
           <span>Novo Motorista</span>
         </button>
 
+        <!-- 3. Repositório de Fretes & Destinos (CARAJAS) -->
+        <button id="btn-sidebar-freight-repo" class="sidebar-action-btn amber" onclick="openFreightRepoModal()" title="Repositório de Fretes & Destinos (CARAJAS / Regras Fiscais)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          <span>Repositório de Frete</span>
+        </button>
+
         <!-- Relatório Financeiro e Fiscal em PDF -->
         <button id="btn-export-pdf" class="sidebar-action-btn primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas ao Setor Financeiro (PDF)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1183,6 +1193,183 @@
     </div>
   </div>
 
+  <!-- Modal: Repositório de Frete & Destinos (CARAJAS & Parâmetros Fiscais) -->
+  <div id="modal-freight-repo" class="modal-backdrop">
+    <div class="modal-container modal-xl" style="max-width: 1200px; width: 95vw;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass-light); padding-bottom: 0.85rem;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #f59e0b;">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+            Repositório de Parâmetros de Frete, Destinos & Tributação
+          </h3>
+          <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">
+            Base de conhecimento de fretes gravados, alíquotas fiscais (ICMS 21,5%, CBS 0,9%, IBS 0,1%) e auxílio para preenchimento de campos de destino
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="useCurrentRepoInTrip()">
+            ⚡ Usar na Nova Viagem
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-freight-repo')">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem; max-height: calc(85vh - 110px); overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
+        <!-- Seção 1: Ficha da Tabela Gravada (CARAJAS MATERIAL DE CONSTRUCAO) -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="background: #f59e0b; color: #000; font-weight: 800; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">TABELA REFERÊNCIA GRAVADA</span>
+              <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #ffffff;">
+                03.656.804/0001-31 &bull; CARAJAS MATERIAL DE CONSTRUCAO
+              </h4>
+            </div>
+            <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 600;">
+              Tabela: <strong>FRETE INFOR (CPLR/PALR)</strong> &bull; Pagamento: <strong style="color: #ef4444;">FOB CARTEIRA</strong>
+            </div>
+          </div>
+
+          <!-- Grid de Informações Operacionais & Fiscais -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1rem;">
+            <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; display: block;">Mercadoria / NFs</span>
+              <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-top: 2px;">Cód: 001 &bull; Esp: 01</div>
+              <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 2px;">NF 3 1259697 (20 NFs agrupadas)</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; display: block;">Peso & Volumes</span>
+              <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-top: 2px;">30.604,924 Kg (30,6 t)</div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">2.217 volumes &bull; 0,0000 m³</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; display: block;">Valor da Mercadoria</span>
+              <div style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-top: 2px;">R$ 20.553,44</div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">CFOP Pag: C &bull; CFOP Dest: C</div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.12); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(16, 185, 129, 0.35);">
+              <span style="font-size: 0.7rem; color: #34d399; text-transform: uppercase; font-weight: 700; display: block;">Valor a Receber (Frete)</span>
+              <div style="font-size: 1.25rem; font-weight: 800; color: #10b981; margin-top: 2px;">R$ 850,00</div>
+              <div style="font-size: 0.75rem; color: #a7f3d0; margin-top: 2px;">Frete Valor: R$ 850,00</div>
+            </div>
+          </div>
+
+          <!-- Quadro Tributário & Reforma Tributária (ICMS, CBS, IBS) -->
+          <div style="background: rgba(0,0,0,0.4); border-radius: var(--radius-sm); padding: 1rem; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.65rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;">
+              <span>⚖️</span> Memória de Cálculo Tributária (ICMS + CBS/IBS Reforma Tributária)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; text-align: center;">
+              <div style="background: rgba(245, 158, 11, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.25);">
+                <div style="font-size: 0.7rem; color: #fbbf24; font-weight: 600;">ALÍQUOTA ICMS</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #f59e0b; margin: 2px 0;">21,5000%</div>
+                <div style="font-size: 0.75rem; color: #ffffff;">ICMS: <strong>R$ 182,75</strong></div>
+              </div>
+
+              <div style="background: rgba(99, 102, 241, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.25);">
+                <div style="font-size: 0.7rem; color: #a5b4fc; font-weight: 600;">ALÍQUOTA CBS</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #818cf8; margin: 2px 0;">0,9000%</div>
+                <div style="font-size: 0.75rem; color: #ffffff;">CBS: <strong>R$ 5,78</strong></div>
+              </div>
+
+              <div style="background: rgba(56, 189, 248, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                <div style="font-size: 0.7rem; color: #7dd3fc; font-weight: 600;">IBS ESTADUAL</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #38bdf8; margin: 2px 0;">0,1000%</div>
+                <div style="font-size: 0.75rem; color: #ffffff;">IBS Est: <strong>R$ 0,64</strong></div>
+              </div>
+
+              <div style="background: rgba(148, 163, 184, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(148, 163, 184, 0.25);">
+                <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">BASE IBS/CBS</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #cbd5e1; margin: 2px 0;">R$ 642,59</div>
+                <div style="font-size: 0.75rem; color: #64748b;">Líquido de ICMS</div>
+              </div>
+
+              <div style="background: rgba(16, 185, 129, 0.08); padding: 0.6rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                <div style="font-size: 0.7rem; color: #34d399; font-weight: 600;">COMISSÃO CONDUTOR (75%)</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #10b981; margin: 2px 0;">R$ 637,50</div>
+                <div style="font-size: 0.75rem; color: #a7f3d0;">Margem (25%): <strong>R$ 212,50</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Composição das Taxas Acessórias do Frete -->
+          <div style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(0,0,0,0.2); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm);">
+            <strong>Taxas Adicionais Rastreadas:</strong> Frete Peso (R$ 0,00) &bull; Despacho (R$ 0,00) &bull; Pedágio (R$ 0,00) &bull; GRIS (R$ 0,00) &bull; TAS (R$ 0,00) &bull; TDA (R$ 0,00) &bull; TDE (R$ 0,00) &bull; TAR (R$ 0,00) &bull; TRT (R$ 0,00) &bull; CAT (R$ 0,00) &bull; Agendamento (R$ 0,00) &bull; Paletização (R$ 0,00) &bull; Capatazia (R$ 0,00).
+          </div>
+        </div>
+
+        <!-- Seção 2: Simulador & Calculadora por Destino -->
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🧮</span> Simulador Rápido de Frete, Tributos & Rateio 75%
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary);">
+              Digite novos valores para simular qualquer destino e carregar na viagem
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 0.75rem; align-items: flex-end;">
+            <div class="form-group">
+              <label for="calc-frete-valor" style="font-size: 0.75rem; font-weight: 600; color: #fff;">Valor do Frete (R$)</label>
+              <input type="number" id="calc-frete-valor" class="form-control" value="850.00" step="0.01" oninput="runFreightCalculation()">
+            </div>
+            <div class="form-group">
+              <label for="calc-aliquota-icms" style="font-size: 0.75rem; font-weight: 600; color: #fbbf24;">Alíquota ICMS (%)</label>
+              <input type="number" id="calc-aliquota-icms" class="form-control" value="21.5" step="0.1" oninput="runFreightCalculation()">
+            </div>
+            <div class="form-group">
+              <label for="calc-aliquota-cbs" style="font-size: 0.75rem; font-weight: 600; color: #a5b4fc;">Alíquota CBS (%)</label>
+              <input type="number" id="calc-aliquota-cbs" class="form-control" value="0.9" step="0.05" oninput="runFreightCalculation()">
+            </div>
+            <div class="form-group">
+              <label for="calc-aliquota-ibs" style="font-size: 0.75rem; font-weight: 600; color: #38bdf8;">IBS Estadual (%)</label>
+              <input type="number" id="calc-aliquota-ibs" class="form-control" value="0.1" step="0.05" oninput="runFreightCalculation()">
+            </div>
+            <div class="form-group">
+              <button type="button" class="btn btn-primary" onclick="applySimulatedFreightToTrip()" style="width: 100%; height: 38px; justify-content: center;">
+                Aplicar na Viagem
+              </button>
+            </div>
+          </div>
+
+          <!-- Resultados do Simulador -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1rem; text-align: center;">
+            <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 4px;">
+              <span style="font-size: 0.7rem; color: #fbbf24; font-weight: 600;">ICMS CALCULADO</span>
+              <div id="sim-res-icms" style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">R$ 182,75</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 4px;">
+              <span style="font-size: 0.7rem; color: #38bdf8; font-weight: 600;">CBS + IBS ESTADUAL</span>
+              <div id="sim-res-cbs-ibs" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">R$ 6,42</div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.15); padding: 0.65rem; border-radius: 4px;">
+              <span style="font-size: 0.7rem; color: #34d399; font-weight: 700;">COMISSÃO MOTORISTA (75%)</span>
+              <div id="sim-res-comissao75" style="font-size: 1.15rem; font-weight: 800; color: #10b981;">R$ 637,50</div>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.15); padding: 0.65rem; border-radius: 4px;">
+              <span style="font-size: 0.7rem; color: #60a5fa; font-weight: 700;">MARGEM EMPRESA (25%)</span>
+              <div id="sim-res-margem25" style="font-size: 1.15rem; font-weight: 800; color: #3b82f6;">R$ 212,50</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">
+          Registro permanente gravado na tabela <code>repositorio_fretes</code> (Banco de Dados SQLite).
+        </span>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-freight-repo')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: DACTE / DAMDFE SEFAZ Viewer -->
   <div id="modal-dacte" class="modal-backdrop">
     <div class="modal-container modal-lg">
@@ -1248,6 +1435,26 @@
             </button>
           </div>
           <input type="hidden" id="manual-trip-tipo" value="CT-e">
+
+          <!-- Preset do Repositório de Frete & Destino -->
+          <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md); padding: 0.75rem 0.85rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="manual-freight-preset" style="margin: 0; font-size: 0.75rem; font-weight: 700; color: #60a5fa; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Carregar do Repositório de Frete & Destino
+              </label>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openFreightRepoModal()" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
+                Ver Tabela Completa
+              </button>
+            </div>
+            <select id="manual-freight-preset" class="form-control" onchange="applyFreightPresetToManualTrip(this.value)">
+              <option value="">Selecione para preencher automaticamente...</option>
+              <option value="carajas-frete-infor-001">🏢 CARAJAS MATERIAL DE CONSTRUCAO - FRETE INFOR (FOB CARTEIRA) [Frete: R$ 850,00 | ICMS: 21,5% | 30,6t]</option>
+            </select>
+            <div id="manual-freight-preset-hint" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">
+              Dica: Preenche automaticamente Remetente, CNPJ, Frete R$ 850,00, ICMS 21,5% (R$ 182,75), CBS 0,9%, IBS 0,1% e Repasse de 75% aos motoristas.
+            </div>
+          </div>
 
           <!-- Document Number & Series & Date -->
           <div style="display: grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap: 0.75rem;">

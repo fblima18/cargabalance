@@ -23,6 +23,15 @@ const {
 const { generateExcelReport } = require('./services/excelExporter');
 const { seedSampleData } = require('./services/sampleGenerator');
 const { seedAttachedDacteAndDamdfe } = require('./services/seedAttachedDacte');
+const { 
+  getAllFreightRules, 
+  getFreightRuleById, 
+  createFreightRule, 
+  updateFreightRule, 
+  deleteFreightRule, 
+  calculateFreightQuote,
+  seedFreightRepositoryIfNeeded 
+} = require('./services/freightRepositoryService');
 const { queryOne } = require('./database/db');
 
 const app = express();
@@ -463,6 +472,65 @@ app.post('/api/seed', (req, res) => {
   }
 });
 
+/**
+ * 10. Freight Rate & Destination Repository Engine (CARAJAS & Parâmetros Fiscais)
+ */
+app.get('/api/freight-repository', (req, res) => {
+  try {
+    const rules = getAllFreightRules(req.query.search || '');
+    res.json({ success: true, count: rules.length, items: rules });
+  } catch (err) {
+    console.error('[API /freight-repository error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/freight-repository/:id', (req, res) => {
+  try {
+    const rule = getFreightRuleById(req.params.id);
+    if (!rule) return res.status(404).json({ success: false, error: 'Tabela de frete não encontrada' });
+    res.json({ success: true, item: rule });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/freight-repository', (req, res) => {
+  try {
+    const created = createFreightRule(req.body);
+    res.json({ success: true, item: created });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/freight-repository/:id', (req, res) => {
+  try {
+    const updated = updateFreightRule(req.params.id, req.body);
+    res.json({ success: true, item: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/freight-repository/:id', (req, res) => {
+  try {
+    const result = deleteFreightRule(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/freight-repository/calculate', (req, res) => {
+  try {
+    const calculation = calculateFreightQuote(req.body);
+    res.json({ success: true, calculation });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Serve frontend for any other route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
@@ -470,9 +538,11 @@ app.get('*', (req, res) => {
 
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
+  seedFreightRepositoryIfNeeded();
   console.log(`========================================================`);
   console.log(`🚀 CARGA BALANCE - Auditoria de frete`);
   console.log(`📍 Acesso Local:    http://localhost:${PORT}`);
   console.log(`📍 Acesso na Rede:  http://0.0.0.0:${PORT}`);
   console.log(`========================================================`);
 });
+
