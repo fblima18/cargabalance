@@ -227,7 +227,16 @@ window.switchTab = switchTab;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
+  initAppTheme();
   initDateDefaults();
+  loadFiltersFromUrl();
+  const savedKpiVisible = localStorage.getItem('cargabalance_kpi_visible');
+  if (savedKpiVisible === 'false') {
+    const container = document.getElementById('main-kpi-grid');
+    const toggleText = document.getElementById('kpi-toggle-text');
+    if (container) container.style.display = 'none';
+    if (toggleText) toggleText.textContent = 'Mostrar Indicadores';
+  }
   initTabs();
   initSidebarToggle();
   loadDrivers();
@@ -379,8 +388,10 @@ async function fetchAndRenderDocuments() {
     renderTable(allDocumentsCache);
     updateSortIndicators();
     updateMultiIconCounts(allDocumentsCache);
+    renderActiveFilterChips();
+    updateUrlParams();
     if (selectedQueryIcons.size > 0) {
-      applyMultiIconFilter();
+      applyMultiCriteriaChipsFilter();
     }
     renderOverviewChartsPreview();
   } catch (err) {
@@ -1255,25 +1266,166 @@ function filterTableByCurrentKPI() {
 window.filterTableByCurrentKPI = filterTableByCurrentKPI;
 
 /**
- * Render Overview Table
+ * Table Pagination State & Helper Methods
+ */
+let tablePagination = {
+  currentPage: 1,
+  itemsPerPage: 10
+};
+
+function maskCPF(cpf) {
+  if (!cpf) return '-';
+  const digits = String(cpf).replace(/\D/g, '');
+  if (digits.length === 11) {
+    return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
+  }
+  return cpf;
+}
+window.maskCPF = maskCPF;
+
+function renderPaginationControls(totalItems) {
+  const paginationBar = document.getElementById('table-pagination-bar');
+  const paginationInfo = document.getElementById('pagination-info');
+  const pageNumbersContainer = document.getElementById('pagination-page-numbers');
+  const btnPrev = document.getElementById('btn-page-prev');
+  const btnNext = document.getElementById('btn-page-next');
+  const selectLimit = document.getElementById('items-per-page-select');
+
+  if (!paginationBar) return;
+
+  if (totalItems === 0) {
+    paginationBar.style.display = 'none';
+    return;
+  }
+
+  paginationBar.style.display = 'flex';
+  if (selectLimit) selectLimit.value = String(tablePagination.itemsPerPage);
+
+  const totalPages = Math.ceil(totalItems / tablePagination.itemsPerPage) || 1;
+  const startItem = (tablePagination.currentPage - 1) * tablePagination.itemsPerPage + 1;
+  const endItem = Math.min(tablePagination.currentPage * tablePagination.itemsPerPage, totalItems);
+
+  if (paginationInfo) {
+    paginationInfo.textContent = `Mostrando ${startItem}–${endItem} de ${totalItems} registros (Página ${tablePagination.currentPage} de ${totalPages})`;
+  }
+
+  if (btnPrev) {
+    btnPrev.disabled = tablePagination.currentPage <= 1;
+  }
+  if (btnNext) {
+    btnNext.disabled = tablePagination.currentPage >= totalPages;
+  }
+
+  if (pageNumbersContainer) {
+    let pagesHtml = '';
+    const maxVisibleButtons = 5;
+    let startPage = Math.max(1, tablePagination.currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
+    if (endPage - startPage < maxVisibleButtons - 1) {
+      startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+    }
+
+    if (startPage > 1) {
+      pagesHtml += `<button type="button" class="page-btn" onclick="goToPage(1)">1</button>`;
+      if (startPage > 2) {
+        pagesHtml += `<span style="padding: 4px; color: var(--text-muted);">…</span>`;
+      }
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      pagesHtml += `<button type="button" class="page-btn ${p === tablePagination.currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pagesHtml += `<span style="padding: 4px; color: var(--text-muted);">…</span>`;
+      }
+      pagesHtml += `<button type="button" class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    pageNumbersContainer.innerHTML = pagesHtml;
+  }
+}
+
+function goToPage(p) {
+  tablePagination.currentPage = p;
+  renderTable(allDocumentsCache);
+}
+window.goToPage = goToPage;
+
+function goToPreviousPage() {
+  if (tablePagination.currentPage > 1) {
+    tablePagination.currentPage--;
+    renderTable(allDocumentsCache);
+  }
+}
+window.goToPreviousPage = goToPreviousPage;
+
+function goToNextPage() {
+  const totalPages = Math.ceil(allDocumentsCache.length / tablePagination.itemsPerPage) || 1;
+  if (tablePagination.currentPage < totalPages) {
+    tablePagination.currentPage++;
+    renderTable(allDocumentsCache);
+  }
+}
+window.goToNextPage = goToNextPage;
+
+function changeItemsPerPage(newLimit) {
+  tablePagination.itemsPerPage = parseInt(newLimit, 10) || 10;
+  tablePagination.currentPage = 1;
+  renderTable(allDocumentsCache);
+}
+window.changeItemsPerPage = changeItemsPerPage;
+
+/**
+ * Render Overview Table with 9 grouped columns, high contrast and Drawer integration
  */
 function renderTable(items) {
   const tableBody = document.getElementById('documents-table-body');
-  if (!items || items.length === 0) {
+  if (!tableBody) return;
+
+  const total = items ? items.length : 0;
+
+  // Contador correto no singular/plural
+  const resultsCountEl = document.getElementById('results-count');
+  if (resultsCountEl) {
+    resultsCountEl.textContent = total === 1 ? '1 registro encontrado' : `${total.toLocaleString('pt-BR')} registros encontrados`;
+  }
+
+  if (!items || total === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="13" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          Nenhum documento encontrado para os filtros selecionados.
+        <td colspan="9" style="text-align: center; padding: 3.5rem 1rem;">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.65rem;">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <strong style="font-size: 1rem; color: var(--text-primary);">Nenhum documento encontrado</strong>
+            <span style="font-size: 0.825rem; color: var(--text-muted); max-width: 380px;">Importe seus arquivos XML da SEFAZ ou altere os filtros acima para auditar os conhecimentos de frete e manifestos.</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="toggleUploadZone()" style="margin-top: 0.4rem;">
+              Importar XML agora
+            </button>
+          </div>
         </td>
       </tr>
     `;
+    renderPaginationControls(0);
     return;
   }
 
   const sortedItems = [...items].sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
 
+  const totalPages = Math.ceil(total / tablePagination.itemsPerPage) || 1;
+  if (tablePagination.currentPage > totalPages) tablePagination.currentPage = totalPages;
+  if (tablePagination.currentPage < 1) tablePagination.currentPage = 1;
+
+  const startIndex = (tablePagination.currentPage - 1) * tablePagination.itemsPerPage;
+  const pageItems = sortedItems.slice(startIndex, startIndex + tablePagination.itemsPerPage);
+
   const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-  const formatDate = (str) => str ? new Date(str).toLocaleDateString('pt-BR') : '-';
   const formatDateTime = (str) => {
     if (!str) return '-';
     try {
@@ -1286,43 +1438,130 @@ function renderTable(items) {
     }
   };
 
-  tableBody.innerHTML = sortedItems.map((doc) => {
+  tableBody.innerHTML = pageItems.map((doc) => {
     const isCTe = doc.tipo === 'CT-e';
     const badgeClass = isCTe ? 'badge-cte' : 'badge-mdfe';
-    const cleanKey = String(doc.chave_acesso).replace(/\D/g, '');
+    const cleanKey = String(doc.chave_acesso || '').replace(/\D/g, '');
     const isInterstate = doc.interestadual === 1 || doc.uf_origem !== doc.uf_destino;
 
+    // Detectar cronograma invertido (chegada anterior à saída)
+    const tsSaida = parseSafeTimestamp(doc.data_saida || doc.data_emissao);
+    const tsChegada = parseSafeTimestamp(doc.previsao_chegada);
+    const isInverted = tsSaida > 0 && tsChegada > 0 && tsChegada < tsSaida;
+
+    const maskedCpf = maskCPF(doc.motorista_cpf);
+
     return `
-      <tr>
+      <tr class="${isInverted ? 'table-row-warning' : ''}" onclick="openDocumentDrawer('${cleanKey}', event)" style="cursor: pointer;" title="Clique para ver os detalhes completos desta viagem no painel lateral">
+        <!-- 1. Tipo -->
         <td>
           <span class="badge-doc ${badgeClass}">
             <span class="dot-indicator"></span>
             ${doc.tipo}
           </span>
         </td>
+
+        <!-- 2. Número / Série -->
+        <td>
+          <div class="tabular-num font-mono" style="font-weight: 700; color: ${isCTe ? '#059669' : '#7c3aed'}; font-size: 0.85rem;">
+            nº ${escapeHtml(doc.numero)}
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">
+            Série ${escapeHtml(doc.serie || '1')}
+          </div>
+        </td>
+
+        <!-- 3. Cronograma (Saída / Chegada) -->
+        <td>
+          <div class="cell-schedule ${isInverted ? 'schedule-warning' : ''}">
+            <div style="color: #0284c7; font-weight: 600; display: flex; align-items: center; gap: 4px; font-size: 0.775rem;" title="Data e Hora de Saída">
+              ${getIconSvg('plane-takeoff', { size: 13, color: '#0284c7' })}
+              <span class="tabular-num">${formatDateTime(doc.data_saida || doc.data_emissao)}</span>
+            </div>
+            <div style="color: #d97706; font-weight: 600; margin-top: 2px; display: flex; align-items: center; gap: 4px; font-size: 0.775rem;" title="Previsão de Chegada">
+              ${getIconSvg('plane-landing', { size: 13, color: '#d97706' })}
+              <span class="tabular-num">${formatDateTime(doc.previsao_chegada)}</span>
+            </div>
+            ${isInverted ? `<span class="badge-schedule-warning" title="Alerta: A data/hora de chegada informada é anterior ao horário de saída.">⚠️ Invertido</span>` : ''}
+          </div>
+        </td>
+
+        <!-- 4. Motorista & CPF -->
+        <td>
+          <div class="cell-driver">
+            <span class="driver-name" title="${escapeHtml(doc.motorista_nome || 'Condutor não informado')}">
+              ${escapeHtml(doc.motorista_nome || 'Condutor não informado')}
+            </span>
+            <span class="driver-cpf font-mono tabular-num">
+              ${maskedCpf}
+            </span>
+            ${doc.motorista_tipo_vinculo ? `
+              <span class="driver-badge" style="display: inline-block; font-size: 0.65rem; padding: 1px 4px; border-radius: 3px; background: rgba(79, 70, 229, 0.1); color: var(--primary-indigo); font-weight: 600; margin-top: 1px;">
+                ${doc.motorista_tipo_vinculo === 'frota_propria' ? 'Próprio' : doc.motorista_tipo_vinculo === 'agregado' ? 'Agregado' : 'Terceiro'}
+              </span>
+            ` : ''}
+          </div>
+        </td>
+
+        <!-- 5. Empresas (Remetente ➔ Destinatário) -->
+        <td>
+          <div class="cell-companies">
+            <div class="company-row remetente" title="Remetente: ${escapeHtml(doc.remetente_nome || 'Não informado')} (CNPJ: ${escapeHtml(doc.remetente_cnpj || '-')})">
+              <span class="company-tag rem">Rem:</span>
+              <span class="company-name">${escapeHtml(doc.remetente_nome || 'Remetente não informado')}</span>
+            </div>
+            <div class="company-row destinatario" title="Destinatário: ${escapeHtml(doc.destinatario_nome || 'Não informado')} (CNPJ: ${escapeHtml(doc.destinatario_cnpj || '-')})">
+              <span class="company-tag dest">Dest:</span>
+              <span class="company-name">${escapeHtml(doc.destinatario_nome || 'Destinatário não informado')}</span>
+            </div>
+          </div>
+        </td>
+
+        <!-- 6. Rota & Percurso -->
+        <td>
+          <div class="cell-route">
+            <span class="route-main" title="${escapeHtml(doc.origem || 'AL')} ➔ ${escapeHtml(doc.destino || 'AL')}">
+              ${escapeHtml(doc.origem || doc.cidade_origem || 'AL')} ➔ ${escapeHtml(doc.destino || doc.cidade_destino || 'AL')}
+            </span>
+            ${(doc.ufs_percurso || isInterstate) ? `
+              <span class="badge-interstate" title="${doc.ufs_percurso ? 'UFs de Percurso: ' + escapeHtml(doc.ufs_percurso) : 'Operação interestadual'}">
+                ${doc.ufs_percurso ? 'Percurso: ' + escapeHtml(doc.ufs_percurso) : 'Interestadual'}
+              </span>
+            ` : ''}
+          </div>
+        </td>
+
+        <!-- 7. Frete (R$) -->
+        <td style="text-align: right;">
+          <span class="tabular-num font-mono" style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">
+            ${formatBRL(doc.valor)}
+          </span>
+        </td>
+
+        <!-- 8. Comissão (75%) -->
+        <td style="text-align: right;">
+          <span class="tabular-num font-mono" style="font-weight: 700; color: var(--kpi-green-text); font-size: 0.85rem;">
+            ${isCTe ? formatBRL(doc.valor_comissao) : '<span style="color: var(--text-muted); font-weight: 400;">-</span>'}
+          </span>
+        </td>
+
+        <!-- 9. Ações -->
         <td style="text-align: center;">
-          <div class="action-buttons" style="justify-content: center;">
-            <button class="icon-btn" title="Visualizar DACTE / DAMDFE" onclick="openDocPreview('${cleanKey}')">
+          <div class="action-buttons" style="justify-content: center;" onclick="event.stopPropagation()">
+            <button type="button" class="icon-btn" title="Visualizar DACTE / DAMDFE" onclick="openDocPreview('${cleanKey}')" aria-label="Visualizar documento fiscal auxiliar">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
-            <button class="icon-btn" title="Baixar XML Original" onclick="downloadOriginalXML('${cleanKey}')">
+            <button type="button" class="icon-btn" title="Baixar XML Original da SEFAZ" onclick="downloadOriginalXML('${cleanKey}')" aria-label="Baixar arquivo XML SEFAZ">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </button>
-            <button class="icon-btn" title="Ver Metadados" onclick="openDocDetails('${cleanKey}')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="16" x2="12" y2="12"/>
-                <line x1="12" y1="8" x2="12.01" y2="8"/>
-              </svg>
-            </button>
-            <button class="icon-btn danger" title="Excluir Viagem" onclick="confirmDeleteTrip('${doc.tipo}', '${doc.id}', '${doc.numero}')">
+            <button type="button" class="icon-btn danger" title="Excluir Viagem" onclick="requestDeleteTrip('${doc.tipo}', '${doc.id}', '${doc.numero}')" aria-label="Excluir viagem">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -1330,56 +1569,13 @@ function renderTable(items) {
             </button>
           </div>
         </td>
-        <td style="font-weight: 700; color: ${isCTe ? '#059669' : '#7c3aed'};">${doc.numero}</td>
-        <td>${doc.serie}</td>
-        <td>
-          <div style="font-size: 0.775rem; line-height: 1.35; white-space: nowrap;">
-            <div style="color: #38bdf8; font-weight: 600; display: flex; align-items: center; gap: 5px;" title="Data e Hora de Saída">
-              ${getIconSvg('plane-takeoff', { size: 14, color: '#38bdf8' })} ${formatDateTime(doc.data_saida || doc.data_emissao)}
-            </div>
-            <div style="color: #fbbf24; font-weight: 600; margin-top: 2px; display: flex; align-items: center; gap: 5px;" title="Previsão de Chegada no Destino Final">
-              ${getIconSvg('plane-landing', { size: 14, color: '#fbbf24' })} ${formatDateTime(doc.previsao_chegada)}
-            </div>
-          </div>
-        </td>
-        <td style="font-weight: 600;">${doc.motorista_nome}</td>
-        <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.775rem;">${doc.motorista_cpf}</td>
-        <td>
-          <div style="font-size: 0.775rem; line-height: 1.35; max-width: 250px;">
-            <div style="font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;" title="Remetente: ${doc.remetente_nome || 'Remetente não informado'} (${doc.remetente_cnpj || ''})">
-              ${getIconSvg('arrow-up-right', { size: 13, color: '#94a3b8' })} <span style="color: #94a3b8; font-weight: 500;">Rem:</span> ${doc.remetente_nome || 'Empresa Remetente'}
-            </div>
-            <div style="font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; display: flex; align-items: center; gap: 4px;" title="Recebedora/Destinatária: ${doc.destinatario_nome || 'Destinatário não informado'} (${doc.destinatario_cnpj || ''})">
-              ${getIconSvg('arrow-down-left', { size: 13, color: '#38bdf8' })} <span style="color: #94a3b8; font-weight: 500;">Rec:</span> ${doc.destinatario_nome || 'Empresa Recebedora'}
-            </div>
-            ${(doc.remetente_cnpj || doc.destinatario_cnpj) ? `<div style="font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px;">CNPJ: ${doc.remetente_cnpj || '-'} ➔ ${doc.destinatario_cnpj || '-'}</div>` : ''}
-          </div>
-        </td>
-        <td>
-          <span style="font-weight: 600;">${doc.destino}</span>
-          ${doc.origem ? `<br><small style="color: var(--text-muted);">${doc.origem}</small>` : ''}
-          ${(doc.ufs_percurso || (!isCTe && isInterstate))
-            ? `<div style="margin-top: 4px;"><span class="badge-interstate" style="background: rgba(139, 92, 246, 0.18); border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Estados que o veículo fará no trajeto">${getIconSvg('route', { size: 12, color: '#c4b5fd' })} Percurso: ${doc.ufs_percurso || 'PE'}</span></div>`
-            : ''
-          }
-        </td>
-        <td style="text-align: center;">
-          ${isInterstate 
-            ? `<span class="badge-interstate" title="Viagem fora de Alagoas">SIM (Interestadual)</span>` 
-            : `<span style="color: var(--text-muted); font-size: 0.75rem;">NÃO (Interna)</span>`
-          }
-        </td>
-        <td class="currency-cell">${formatBRL(doc.valor)}</td>
-        <td style="text-align: right; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
-          ${formatBRL(doc.valor_icms)}
-        </td>
-        <td style="text-align: right; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
-          ${isCTe ? formatBRL(doc.valor_comissao) : '-'}
-        </td>
       </tr>
     `;
   }).join('');
+
+  renderPaginationControls(total);
 }
+window.renderTable = renderTable;
 
 /**
  * Load TAB 2: Conhecimentos (CT-e) & 75% Commission
@@ -2988,6 +3184,20 @@ async function handleBatchUpload(files) {
  */
 function displayUploadResults(data) {
   const summary = data.summary || {};
+
+  // Atualiza banner de resumo inline
+  const inlineBanner = document.getElementById('upload-summary-inline-banner');
+  const inlineChips = document.getElementById('upload-summary-chips');
+  if (inlineBanner && inlineChips) {
+    inlineChips.innerHTML = `
+      <span class="badge-doc badge-cte" style="font-size: 0.75rem;">${summary.successCount || 0} Importados</span>
+      <span class="badge-doc" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.75rem;">${summary.duplicateCount || 0} Duplicados</span>
+      ${summary.errorCount > 0 ? `<span class="badge-doc" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 0.75rem;">${summary.errorCount} com Erro</span>` : ''}
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-upload-results')" style="font-size: 0.72rem; padding: 2px 8px; margin-left: 6px;">Ver Detalhes</button>
+    `;
+    inlineBanner.style.display = 'flex';
+  }
+
   const badgesContainer = document.getElementById('upload-summary-badges');
   badgesContainer.innerHTML = `
     <span class="badge-doc badge-cte" style="font-size: 0.85rem;">
@@ -3583,12 +3793,29 @@ function confirmSendToFinance() {
 }
 
 /**
- * Delete a Trip (CT-e or MDF-e)
+ * Custom Delete Confirmation Modal Logic (No Native window.confirm)
  */
-async function confirmDeleteTrip(type, id, numero) {
-  if (!confirm(`Deseja realmente excluir esta viagem (${type} nº ${numero})? Esta ação não pode ser desfeita.`)) {
-    return;
+let pendingDeleteTarget = null;
+
+function requestDeleteTrip(type, id, numero) {
+  pendingDeleteTarget = { type, id, numero };
+  const titleEl = document.getElementById('confirm-delete-title');
+  const descEl = document.getElementById('confirm-delete-desc');
+  if (titleEl) {
+    titleEl.textContent = `Excluir ${type} nº ${numero}?`;
   }
+  if (descEl) {
+    descEl.textContent = `Deseja realmente excluir este documento fiscal (${type} nº ${numero})? Todos os cálculos de comissão dos motoristas e faturamento serão recalculados em tempo real. Esta ação não poderá ser desfeita.`;
+  }
+  openModal('modal-confirm-delete');
+}
+window.requestDeleteTrip = requestDeleteTrip;
+
+async function executeConfirmedDelete() {
+  if (!pendingDeleteTarget) return;
+  const { type, id, numero } = pendingDeleteTarget;
+  closeModal('modal-confirm-delete');
+  pendingDeleteTarget = null;
 
   try {
     const encodedType = encodeURIComponent(type || 'any');
@@ -3598,7 +3825,8 @@ async function confirmDeleteTrip(type, id, numero) {
       throw new Error(data.error || 'Erro ao excluir viagem.');
     }
 
-    showToast(data.message || 'Viagem excluída com sucesso!', 'success');
+    showToast(`${type} nº ${numero} excluído com sucesso!`, 'success');
+    closeDocumentDrawer();
     await loadDrivers();
     await fetchAndRenderDocuments();
     if (typeof loadCTEs === 'function') await loadCTEs();
@@ -3610,6 +3838,12 @@ async function confirmDeleteTrip(type, id, numero) {
     showToast(`Erro ao excluir: ${err.message}`, 'error');
   }
 }
+window.executeConfirmedDelete = executeConfirmedDelete;
+
+async function confirmDeleteTrip(type, id, numero) {
+  requestDeleteTrip(type, id, numero);
+}
+window.confirmDeleteTrip = confirmDeleteTrip;
 
 /**
  * Load TAB: Drivers Analytics & Charts
@@ -3949,6 +4183,7 @@ function renderAnalyticsCharts(topRevenue, categoryStats, topTrips) {
 
 /**
  * Render Overview Tab Preview Charts (Chart.js)
+ * Synchronized 100% with the active filtered dataset (allDocumentsCache)
  */
 async function renderOverviewChartsPreview() {
   const ctxRevenue = document.getElementById('overview-chart-revenue');
@@ -3956,138 +4191,170 @@ async function renderOverviewChartsPreview() {
   if (!ctxRevenue || !ctxCategory) return;
   if (typeof Chart === 'undefined') return;
 
-  try {
-    const res = await fetch('/api/analytics/drivers');
-    const data = await res.json();
-    if (!data.success) return;
+  const docs = allDocumentsCache || [];
 
-    const topRevenue = data.topRevenue || [];
-    const categoryStats = data.categoryStats || {};
-
-    // 1. Overview Revenue & Commission (Top 6 drivers)
-    if (overviewRevenueChartInstance) {
-      overviewRevenueChartInstance.destroy();
+  // Agrupamento por condutor diretamente do cache ativo
+  const driverMap = new Map();
+  docs.forEach(doc => {
+    const name = doc.motorista_nome || 'Sem Condutor';
+    if (!driverMap.has(name)) {
+      driverMap.set(name, { nome: name, total_frete: 0, total_comissao: 0, count: 0 });
     }
+    const d = driverMap.get(name);
+    d.total_frete += parseFloat(doc.valor || 0);
+    if (doc.tipo === 'CT-e') {
+      d.total_comissao += parseFloat(doc.valor_comissao || (doc.valor * 0.75) || 0);
+    }
+    d.count += 1;
+  });
 
-    const topList = topRevenue.length > 0 ? topRevenue.slice(0, 6) : [];
-    const labels = topList.map(d => d.nome.length > 15 ? d.nome.substring(0, 13) + '...' : d.nome);
-    const dataFrete = topList.map(d => d.total_frete);
-    const dataComissao = topList.map(d => d.total_comissao);
+  const activeDrivers = Array.from(driverMap.values())
+    .filter(d => d.total_frete > 0)
+    .sort((a, b) => b.total_frete - a.total_frete)
+    .slice(0, 6);
 
-    overviewRevenueChartInstance = new Chart(ctxRevenue, {
-      type: 'bar',
-      data: {
-        labels: labels.length > 0 ? labels : ['Sem dados'],
-        datasets: [
-          {
-            label: 'Faturamento Total (R$)',
-            data: dataFrete.length > 0 ? dataFrete : [0],
-            backgroundColor: 'rgba(79, 70, 229, 0.85)',
-            borderColor: '#4f46e5',
-            borderWidth: 1,
-            borderRadius: 6
-          },
-          {
-            label: 'Comissão Motorista 75% (R$)',
-            data: dataComissao.length > 0 ? dataComissao : [0],
-            backgroundColor: 'rgba(5, 150, 105, 0.85)',
-            borderColor: '#059669',
-            borderWidth: 1,
-            borderRadius: 6
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
-          },
-          tooltip: {
-            backgroundColor: '#0f172a',
-            titleColor: '#ffffff',
-            bodyColor: '#e2e8f0',
-            borderColor: '#334155',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
-            }
-          }
+  // Totais por categoria de vínculo
+  const fp = { count: 0, frete: 0, comissao: 0 };
+  const ag = { count: 0, frete: 0, comissao: 0 };
+  const tc = { count: 0, frete: 0, comissao: 0 };
+
+  docs.forEach(doc => {
+    const v = (doc.motorista_tipo_vinculo || '').toLowerCase();
+    const frete = parseFloat(doc.valor || 0);
+    const comissao = doc.tipo === 'CT-e' ? parseFloat(doc.valor_comissao || (doc.valor * 0.75) || 0) : 0;
+    if (v === 'frota_propria') {
+      fp.count++;
+      fp.frete += frete;
+      fp.comissao += comissao;
+    } else if (v === 'agregado') {
+      ag.count++;
+      ag.frete += frete;
+      ag.comissao += comissao;
+    } else {
+      tc.count++;
+      tc.frete += frete;
+      tc.comissao += comissao;
+    }
+  });
+
+  // 1. Gráfico de Faturamento e Comissão
+  if (overviewRevenueChartInstance) {
+    overviewRevenueChartInstance.destroy();
+  }
+
+  const labels = activeDrivers.map(d => d.nome.length > 15 ? d.nome.substring(0, 13) + '...' : d.nome);
+  const dataFrete = activeDrivers.map(d => d.total_frete);
+  const dataComissao = activeDrivers.map(d => d.total_comissao);
+
+  overviewRevenueChartInstance = new Chart(ctxRevenue, {
+    type: 'bar',
+    data: {
+      labels: labels.length > 0 ? labels : ['Sem dados no período'],
+      datasets: [
+        {
+          label: 'Faturamento Total (R$)',
+          data: dataFrete.length > 0 ? dataFrete : [0],
+          backgroundColor: 'rgba(79, 70, 229, 0.85)',
+          borderColor: '#4f46e5',
+          borderWidth: 1,
+          borderRadius: 6
         },
-        scales: {
-          x: {
-            ticks: { color: '#475569', font: { size: 11, weight: '500' } },
-            grid: { color: '#f1f5f9' }
+        {
+          label: 'Comissão Motorista 75% (R$)',
+          data: dataComissao.length > 0 ? dataComissao : [0],
+          backgroundColor: 'rgba(5, 150, 105, 0.85)',
+          borderColor: '#059669',
+          borderWidth: 1,
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
+        },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          titleColor: '#ffffff',
+          bodyColor: '#e2e8f0',
+          borderColor: '#334155',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#475569', font: { size: 11, weight: '500' } },
+          grid: { color: '#f1f5f9' }
+        },
+        y: {
+          ticks: {
+            color: '#475569',
+            font: { weight: '500' },
+            callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val)
           },
-          y: {
-            ticks: {
-              color: '#475569',
-              font: { weight: '500' },
-              callback: (val) => 'R$ ' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val)
-            },
-            grid: { color: '#f1f5f9' }
+          grid: { color: '#f1f5f9' }
+        }
+      }
+    }
+  });
+
+  // 2. Gráfico Donut de Categorias com percentuais e acessibilidade para daltônicos
+  if (overviewCategoryChartInstance) {
+    overviewCategoryChartInstance.destroy();
+  }
+
+  const totalCatFrete = fp.frete + ag.frete + tc.frete;
+  const pct = (val) => totalCatFrete > 0 ? ((val / totalCatFrete) * 100).toFixed(1) + '%' : '0%';
+
+  overviewCategoryChartInstance = new Chart(ctxCategory, {
+    type: 'doughnut',
+    data: {
+      labels: [
+        `Frota Própria (${fp.count}) - ${pct(fp.frete)}`,
+        `Agregados (${ag.count}) - ${pct(ag.frete)}`,
+        `Terceirizados (${tc.count}) - ${pct(tc.frete)}`
+      ],
+      datasets: [{
+        data: [fp.frete, ag.frete, tc.frete],
+        backgroundColor: [
+          'rgba(37, 99, 235, 0.85)',
+          'rgba(217, 119, 6, 0.85)',
+          'rgba(192, 38, 211, 0.85)'
+        ],
+        borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }, padding: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          titleColor: '#ffffff',
+          bodyColor: '#e2e8f0',
+          borderColor: '#334155',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
           }
         }
       }
-    });
-
-    // 2. Overview Category Breakdown
-    if (overviewCategoryChartInstance) {
-      overviewCategoryChartInstance.destroy();
     }
-
-    const fp = categoryStats.frota_propria || { count: 0, frete: 0, comissao: 0 };
-    const ag = categoryStats.agregado || { count: 0, frete: 0, comissao: 0 };
-    const tc = categoryStats.terceirizado || { count: 0, frete: 0, comissao: 0 };
-
-    overviewCategoryChartInstance = new Chart(ctxCategory, {
-      type: 'doughnut',
-      data: {
-        labels: [
-          `Frota Própria (${fp.count})`,
-          `Agregados (${ag.count})`,
-          `Terceirizados (${tc.count})`
-        ],
-        datasets: [{
-          data: [fp.frete, ag.frete, tc.frete],
-          backgroundColor: [
-            'rgba(37, 99, 235, 0.85)',
-            'rgba(217, 119, 6, 0.85)',
-            'rgba(192, 38, 211, 0.85)'
-          ],
-          borderColor: ['#ffffff', '#ffffff', '#ffffff'],
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }, padding: 12 }
-          },
-          tooltip: {
-            backgroundColor: '#0f172a',
-            titleColor: '#ffffff',
-            bodyColor: '#e2e8f0',
-            borderColor: '#334155',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: (ctx) => ` Frete: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ctx.raw || 0)}`
-            }
-          }
-        },
-        cutout: '62%'
-      }
-    });
-  } catch (err) {
-    console.error('Erro ao renderizar gráficos na visão geral:', err);
-  }
+  });
 }
 
 // =========================================================================
@@ -7183,3 +7450,639 @@ window.filterCommandPalette = filterCommandPalette;
 
 
 
+
+// =========================================================================
+// PAINEL LATERAL (DRAWER) DE DETALHES DE DOCUMENTOS & FRETES
+// =========================================================================
+
+let currentDrawerDocKey = null;
+
+function openDocumentDrawer(cleanKey, event) {
+  if (event) {
+    const target = event.target;
+    if (target.closest('.action-buttons') || target.closest('button') || target.closest('a')) {
+      return;
+    }
+  }
+
+  const doc = allDocumentsCache.find(d => String(d.chave_acesso || '').replace(/\D/g, '') === cleanKey);
+  if (!doc) {
+    showToast('Documento não encontrado no cache.', 'warning');
+    return;
+  }
+
+  currentDrawerDocKey = cleanKey;
+  const isCTe = doc.tipo === 'CT-e';
+  const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+  const formatDateTime = (str) => {
+    if (!str) return '-';
+    try {
+      const d = new Date(str);
+      if (isNaN(d.getTime())) return str;
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return str;
+    }
+  };
+
+  // Header do Drawer
+  const badgeEl = document.getElementById('drawer-doc-type');
+  if (badgeEl) {
+    badgeEl.textContent = doc.tipo;
+    badgeEl.className = `badge-doc ${isCTe ? 'badge-cte' : 'badge-mdfe'}`;
+  }
+  const numEl = document.getElementById('drawer-doc-number');
+  if (numEl) numEl.textContent = `nº ${doc.numero}`;
+  const serieEl = document.getElementById('drawer-doc-series');
+  if (serieEl) serieEl.textContent = `Série ${doc.serie || '1'}`;
+  const keyEl = document.getElementById('drawer-access-key');
+  if (keyEl) keyEl.textContent = doc.chave_acesso || '-';
+
+  // Valores Financeiros
+  const valFreteEl = document.getElementById('drawer-val-frete');
+  if (valFreteEl) valFreteEl.textContent = formatBRL(doc.valor);
+  const valComissaoEl = document.getElementById('drawer-val-comissao');
+  if (valComissaoEl) valComissaoEl.textContent = isCTe ? formatBRL(doc.valor_comissao) : '-';
+  const valIcmsEl = document.getElementById('drawer-val-icms');
+  if (valIcmsEl) valIcmsEl.textContent = formatBRL(doc.valor_icms);
+  const valAliqEl = document.getElementById('drawer-val-aliquota');
+  if (valAliqEl) {
+    valAliqEl.textContent = doc.aliquota_icms ? `${doc.aliquota_icms}%` : (doc.cst ? `CST ${doc.cst}` : '-');
+  }
+
+  // Motorista & Veículo
+  const driverNameEl = document.getElementById('drawer-driver-name');
+  if (driverNameEl) driverNameEl.textContent = doc.motorista_nome || 'Não informado';
+  const driverCpfEl = document.getElementById('drawer-driver-cpf');
+  if (driverCpfEl) driverCpfEl.textContent = maskCPF(doc.motorista_cpf);
+  const plateEl = document.getElementById('drawer-vehicle-plate');
+  if (plateEl) plateEl.textContent = doc.veiculo_tracao_placa || doc.placa_veiculo || doc.placa || '-';
+  const fleetEl = document.getElementById('drawer-fleet-type');
+  if (fleetEl) {
+    const vinculo = (doc.motorista_tipo_vinculo || '').toLowerCase();
+    fleetEl.textContent = vinculo === 'frota_propria' ? 'Frota Própria' : vinculo === 'agregado' ? 'Agregado' : vinculo === 'terceirizado' ? 'Terceirizado' : (vinculo || '-');
+  }
+
+  // Empresas
+  const remNameEl = document.getElementById('drawer-rem-name');
+  if (remNameEl) remNameEl.textContent = doc.remetente_nome || 'Não informado';
+  const remCnpjEl = document.getElementById('drawer-rem-cnpj');
+  if (remCnpjEl) remCnpjEl.textContent = `CNPJ: ${doc.remetente_cnpj || '-'}`;
+
+  const destNameEl = document.getElementById('drawer-dest-name');
+  if (destNameEl) destNameEl.textContent = doc.destinatario_nome || 'Não informado';
+  const destCnpjEl = document.getElementById('drawer-dest-cnpj');
+  if (destCnpjEl) destCnpjEl.textContent = `CNPJ: ${doc.destinatario_cnpj || '-'}`;
+  const destAddrEl = document.getElementById('drawer-dest-addr');
+  if (destAddrEl) {
+    const addr = [doc.destinatario_endereco, doc.destinatario_bairro, doc.cidade_destino, doc.uf_destino].filter(Boolean).join(', ');
+    destAddrEl.textContent = addr ? `Endereço: ${addr}` : '';
+  }
+
+  // Rota & Cronograma
+  const origEl = document.getElementById('drawer-route-origin');
+  if (origEl) origEl.textContent = doc.origem || `${doc.cidade_origem || ''} - ${doc.uf_origem || ''}` || '-';
+  const destRouteEl = document.getElementById('drawer-route-dest');
+  if (destRouteEl) destRouteEl.textContent = doc.destino || `${doc.cidade_destino || ''} - ${doc.uf_destino || ''}` || '-';
+  const depEl = document.getElementById('drawer-time-departure');
+  if (depEl) depEl.textContent = formatDateTime(doc.data_saida || doc.data_emissao);
+  const arrEl = document.getElementById('drawer-time-arrival');
+  if (arrEl) arrEl.textContent = formatDateTime(doc.previsao_chegada);
+
+  // Alerta de cronograma invertido
+  const tsSaida = parseSafeTimestamp(doc.data_saida || doc.data_emissao);
+  const tsChegada = parseSafeTimestamp(doc.previsao_chegada);
+  const warnBox = document.getElementById('drawer-schedule-warning-box');
+  if (warnBox) {
+    warnBox.style.display = (tsSaida > 0 && tsChegada > 0 && tsChegada < tsSaida) ? 'block' : 'none';
+  }
+
+  // Carga & Volumes
+  const weightEl = document.getElementById('drawer-cargo-weight');
+  if (weightEl) weightEl.textContent = doc.peso_bruto ? `${parseFloat(doc.peso_bruto).toLocaleString('pt-BR')} kg` : '- kg';
+  const volsEl = document.getElementById('drawer-cargo-volumes');
+  if (volsEl) volsEl.textContent = doc.quantidade_volumes ? String(doc.quantidade_volumes) : '-';
+
+  // Botões de Ação
+  const btnPrev = document.getElementById('btn-drawer-preview');
+  if (btnPrev) btnPrev.textContent = isCTe ? 'Visualizar DACTE' : 'Visualizar DAMDFE';
+
+  // Exibir Drawer
+  const drawer = document.getElementById('document-details-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (drawer) drawer.classList.add('open');
+  if (backdrop) backdrop.classList.add('open');
+}
+window.openDocumentDrawer = openDocumentDrawer;
+
+function closeDocumentDrawer() {
+  const drawer = document.getElementById('document-details-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (drawer) drawer.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
+  currentDrawerDocKey = null;
+}
+window.closeDocumentDrawer = closeDocumentDrawer;
+
+function copyDrawerAccessKey() {
+  const keyEl = document.getElementById('drawer-access-key');
+  if (!keyEl || !keyEl.textContent || keyEl.textContent === '-') return;
+  navigator.clipboard.writeText(keyEl.textContent.trim()).then(() => {
+    showToast('Chave de acesso copiada para a área de transferência!', 'success');
+  }).catch(() => {
+    showToast('Falha ao copiar chave de acesso.', 'warning');
+  });
+}
+window.copyDrawerAccessKey = copyDrawerAccessKey;
+
+function handleDrawerPreview() {
+  if (currentDrawerDocKey) {
+    openDocPreview(currentDrawerDocKey);
+  }
+}
+window.handleDrawerPreview = handleDrawerPreview;
+
+function handleDrawerDownloadXml() {
+  if (currentDrawerDocKey) {
+    downloadOriginalXML(currentDrawerDocKey);
+  }
+}
+window.handleDrawerDownloadXml = handleDrawerDownloadXml;
+
+function handleDrawerDelete() {
+  if (!currentDrawerDocKey) return;
+  const doc = allDocumentsCache.find(d => String(d.chave_acesso || '').replace(/\D/g, '') === currentDrawerDocKey);
+  if (doc) {
+    requestDeleteTrip(doc.tipo, doc.id, doc.numero);
+  }
+}
+window.handleDrawerDelete = handleDrawerDelete;
+
+// =========================================================================
+// ATALHOS DE PERÍODO & GESTÃO DE CHIPS DE FILTRO ATIVOS
+// =========================================================================
+
+function applyDatePreset(preset) {
+  const startInput = document.getElementById('filter-start-date');
+  const endInput = document.getElementById('filter-end-date');
+  if (!startInput || !endInput) return;
+
+  const now = new Date();
+  const formatYMD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  let sVal = '';
+  let eVal = '';
+  let periodLabel = 'Personalizado';
+
+  if (preset === 'today') {
+    sVal = formatYMD(now);
+    eVal = formatYMD(now);
+    periodLabel = 'Hoje';
+  } else if (preset === '7days') {
+    const past7 = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+    sVal = formatYMD(past7);
+    eVal = formatYMD(now);
+    periodLabel = 'Últimos 7 dias';
+  } else if (preset === 'month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    sVal = formatYMD(firstDay);
+    eVal = formatYMD(lastDay);
+    periodLabel = 'Mês Atual';
+  } else if (preset === 'last_month') {
+    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    sVal = formatYMD(firstDayLastMonth);
+    eVal = formatYMD(lastDayLastMonth);
+    periodLabel = 'Mês Anterior';
+  }
+
+  startInput.value = sVal;
+  endInput.value = eVal;
+  currentFilters.startDate = sVal;
+  currentFilters.endDate = eVal;
+
+  document.querySelectorAll('.btn-preset-pill').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const clickedBtn = document.querySelector(`.btn-preset-pill[onclick*="${preset}"]`);
+  if (clickedBtn) clickedBtn.classList.add('active');
+
+  const headerPeriodText = document.getElementById('header-period-text');
+  if (headerPeriodText) headerPeriodText.textContent = periodLabel;
+
+  tablePagination.currentPage = 1;
+  fetchAndRenderDocuments();
+  updateUrlParams();
+}
+window.applyDatePreset = applyDatePreset;
+
+function renderActiveFilterChips() {
+  const bar = document.getElementById('active-filter-chips-bar');
+  const container = document.getElementById('active-chips-container');
+  if (!bar || !container) return;
+
+  const chips = [];
+
+  if (currentFilters.startDate || currentFilters.endDate) {
+    const formatDateBr = (dStr) => {
+      if (!dStr) return '';
+      const parts = dStr.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return dStr;
+    };
+    const s = formatDateBr(currentFilters.startDate);
+    const e = formatDateBr(currentFilters.endDate);
+    chips.push({
+      key: 'date',
+      label: `Período: ${s} até ${e}`
+    });
+  }
+
+  if (currentFilters.driverId && currentFilters.driverId !== 'all') {
+    const drv = allDriversCache.find(d => String(d.id) === String(currentFilters.driverId));
+    chips.push({
+      key: 'driver',
+      label: `Motorista: ${drv ? drv.nome : currentFilters.driverId}`
+    });
+  }
+
+  if (currentFilters.docType && currentFilters.docType !== 'all') {
+    chips.push({
+      key: 'docType',
+      label: `Tipo: ${currentFilters.docType === 'cte' ? 'CT-e' : 'MDF-e'}`
+    });
+  }
+
+  if (currentFilters.destination) {
+    chips.push({
+      key: 'destination',
+      label: `Destino: ${currentFilters.destination}`
+    });
+  }
+
+  if (currentFilters.search) {
+    chips.push({
+      key: 'search',
+      label: `Busca: "${currentFilters.search}"`
+    });
+  }
+
+  if (chips.length === 0) {
+    bar.style.display = 'none';
+    container.innerHTML = '';
+  } else {
+    bar.style.display = 'flex';
+    container.innerHTML = chips.map(c => `
+      <span class="active-chip">
+        <span>${escapeHtml(c.label)}</span>
+        <button type="button" class="chip-remove" onclick="removeActiveFilter('${c.key}')" title="Remover este filtro">×</button>
+      </span>
+    `).join('');
+  }
+}
+window.renderActiveFilterChips = renderActiveFilterChips;
+
+function removeActiveFilter(filterKey) {
+  if (filterKey === 'date') {
+    initDateDefaults();
+    document.querySelectorAll('.btn-preset-pill').forEach(b => b.classList.remove('active'));
+    const monthBtn = document.getElementById('preset-month');
+    if (monthBtn) monthBtn.classList.add('active');
+  } else if (filterKey === 'driver') {
+    currentFilters.driverId = 'all';
+    const sel = document.getElementById('filter-driver');
+    if (sel) sel.value = 'all';
+  } else if (filterKey === 'docType') {
+    currentFilters.docType = 'all';
+    const sel = document.getElementById('filter-doc-type');
+    if (sel) sel.value = 'all';
+  } else if (filterKey === 'destination') {
+    currentFilters.destination = '';
+    const inp = document.getElementById('filter-destination');
+    if (inp) inp.value = '';
+  } else if (filterKey === 'search') {
+    currentFilters.search = '';
+    const inp = document.getElementById('table-search');
+    if (inp) inp.value = '';
+  }
+
+  tablePagination.currentPage = 1;
+  fetchAndRenderDocuments();
+  updateUrlParams();
+}
+window.removeActiveFilter = removeActiveFilter;
+
+// =========================================================================
+// CONSULTA MULTICRITÉRIO COM LÓGICA E (AND) / OU (OR)
+// =========================================================================
+
+let currentMultiCriteriaLogic = 'AND';
+
+function setMultiCriteriaLogic(logic) {
+  currentMultiCriteriaLogic = logic;
+  const btnAnd = document.getElementById('btn-logic-and');
+  const btnOr = document.getElementById('btn-logic-or');
+  if (btnAnd && btnOr) {
+    if (logic === 'AND') {
+      btnAnd.classList.add('active');
+      btnOr.classList.remove('active');
+    } else {
+      btnOr.classList.add('active');
+      btnAnd.classList.remove('active');
+    }
+  }
+  applyMultiCriteriaChipsFilter();
+}
+window.setMultiCriteriaLogic = setMultiCriteriaLogic;
+
+function toggleMultiCriteriaChip(crit) {
+  if (selectedQueryIcons.has(crit)) {
+    selectedQueryIcons.delete(crit);
+  } else {
+    selectedQueryIcons.add(crit);
+  }
+
+  document.querySelectorAll('.crit-chip').forEach(chip => {
+    const c = chip.getAttribute('data-crit');
+    if (selectedQueryIcons.has(c)) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+
+  applyMultiCriteriaChipsFilter();
+}
+window.toggleMultiCriteriaChip = toggleMultiCriteriaChip;
+
+function applyMultiCriteriaChipsFilter() {
+  if (selectedQueryIcons.size === 0) {
+    renderTable(allDocumentsCache);
+    if (currentKPIsCache) renderKPIs(currentKPIsCache);
+    return;
+  }
+
+  const selectedList = Array.from(selectedQueryIcons);
+
+  const filtered = allDocumentsCache.filter(doc => {
+    const matchesCriterion = (crit) => {
+      if (crit === 'cte') return doc.tipo === 'CT-e';
+      if (crit === 'mdfe') return doc.tipo === 'MDF-e';
+      if (crit === 'frota_propria' || crit === 'propria') return (doc.motorista_tipo_vinculo || '').toLowerCase() === 'frota_propria';
+      if (crit === 'agregado') return (doc.motorista_tipo_vinculo || '').toLowerCase() === 'agregado';
+      if (crit === 'terceirizado' || crit === 'terceiro') return (doc.motorista_tipo_vinculo || '').toLowerCase() === 'terceirizado';
+      if (crit === 'interestadual' || crit === 'interstate') {
+        return doc.interestadual === 1 || (doc.uf_origem && doc.uf_destino && doc.uf_origem !== doc.uf_destino) || (doc.uf_destino && doc.uf_destino !== 'AL');
+      }
+      if (crit === 'com_icms' || crit === 'icms') {
+        return parseFloat(doc.valor_icms || 0) > 0;
+      }
+      if (crit === 'carajas') {
+        const fullStr = ((doc.tomador_nome || '') + ' ' + (doc.remetente_nome || '') + ' ' + (doc.destinatario_nome || '')).toUpperCase();
+        return fullStr.includes('CARAJAS');
+      }
+      return true;
+    };
+
+    if (currentMultiCriteriaLogic === 'OR') {
+      return selectedList.some(crit => matchesCriterion(crit));
+    } else {
+      return selectedList.every(crit => matchesCriterion(crit));
+    }
+  });
+
+  tablePagination.currentPage = 1;
+  filtered.sort(docSortDirection === 'asc' ? compareDocumentsAsc : compareDocumentsDesc);
+  renderTable(filtered);
+
+  const filteredCtes = filtered.filter(d => d.tipo === 'CT-e');
+  const filteredMdfes = filtered.filter(d => d.tipo === 'MDF-e');
+  const totalFrete = filteredCtes.reduce((acc, c) => acc + (c.valor || 0), 0);
+  const totalCarga = filteredMdfes.reduce((acc, m) => acc + (m.valor || 0), 0);
+  const totalComissao = filteredCtes.reduce((acc, c) => acc + (c.valor_comissao || c.valor * 0.75 || 0), 0);
+  const totalICMS = filteredCtes.reduce((acc, c) => acc + (c.valor_icms || 0), 0);
+  const countInter = filtered.filter(d => d.interestadual === 1 || (d.uf_origem && d.uf_destino && d.uf_origem !== d.uf_destino) || (d.uf_destino && d.uf_destino !== 'AL')).length;
+
+  renderKPIs({
+    totalFrete,
+    totalCarga,
+    totalComissao75: totalComissao,
+    totalICMS,
+    documentCount: filtered.length,
+    interstateCount: countInter
+  });
+}
+window.applyMultiCriteriaChipsFilter = applyMultiCriteriaChipsFilter;
+
+// =========================================================================
+// UI TOGGLES, TEMAS & EXPORTAÇÃO
+// =========================================================================
+
+function toggleKPIsSection() {
+  const container = document.getElementById('main-kpi-grid');
+  const toggleText = document.getElementById('kpi-toggle-text');
+  if (!container) return;
+
+  const isHidden = container.style.display === 'none';
+  if (isHidden) {
+    container.style.display = 'grid';
+    if (toggleText) toggleText.textContent = 'Ocultar Indicadores';
+    localStorage.setItem('cargabalance_kpi_visible', 'true');
+  } else {
+    container.style.display = 'none';
+    if (toggleText) toggleText.textContent = 'Mostrar Indicadores';
+    localStorage.setItem('cargabalance_kpi_visible', 'false');
+  }
+}
+window.toggleKPIsSection = toggleKPIsSection;
+
+function initAppTheme() {
+  const saved = localStorage.getItem('cargabalance_theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeIcon(theme);
+}
+window.initAppTheme = initAppTheme;
+
+function toggleAppTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const newTheme = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('cargabalance_theme', newTheme);
+  updateThemeIcon(newTheme);
+  showToast(`Modo ${newTheme === 'dark' ? 'Escuro' : 'Claro'} ativado`, 'info');
+}
+window.toggleAppTheme = toggleAppTheme;
+
+function updateThemeIcon(theme) {
+  const sunIcon = document.getElementById('theme-icon-sun');
+  const moonIcon = document.getElementById('theme-icon-moon');
+  if (sunIcon && moonIcon) {
+    if (theme === 'dark') {
+      sunIcon.style.display = 'none';
+      moonIcon.style.display = 'block';
+    } else {
+      sunIcon.style.display = 'block';
+      moonIcon.style.display = 'none';
+    }
+  }
+}
+
+function toggleUploadZone() {
+  const uploadCard = document.getElementById('upload-card-compact');
+  if (!uploadCard) return;
+  const isHidden = uploadCard.style.display === 'none' || getComputedStyle(uploadCard).display === 'none';
+  uploadCard.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    uploadCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+window.toggleUploadZone = toggleUploadZone;
+
+function toggleExportDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('export-dropdown-items');
+  const btn = document.getElementById('btn-export-dropdown');
+  if (!menu) return;
+  const isClosed = menu.style.display === 'none' || !menu.style.display;
+  menu.style.display = isClosed ? 'block' : 'none';
+  if (btn) btn.setAttribute('aria-expanded', isClosed ? 'true' : 'false');
+}
+window.toggleExportDropdown = toggleExportDropdown;
+
+function closeExportDropdown() {
+  const menu = document.getElementById('export-dropdown-items');
+  const btn = document.getElementById('btn-export-dropdown');
+  if (menu) menu.style.display = 'none';
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+window.closeExportDropdown = closeExportDropdown;
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#dropdown-export-menu')) {
+    closeExportDropdown();
+  }
+});
+
+function triggerExcelExport() {
+  const query = new URLSearchParams(currentFilters).toString();
+  showToast('Gerando exportação consolidada para Excel (.xlsx)...', 'info');
+  window.location.href = `/api/export/excel?${query}`;
+}
+window.triggerExcelExport = triggerExcelExport;
+
+function triggerPdfExport() {
+  openFinancialReportModal();
+}
+window.triggerPdfExport = triggerPdfExport;
+
+function handleFilterSubmit() {
+  currentFilters.startDate = document.getElementById('filter-start-date').value;
+  currentFilters.endDate = document.getElementById('filter-end-date').value;
+  currentFilters.driverId = document.getElementById('filter-driver').value;
+  currentFilters.docType = document.getElementById('filter-doc-type').value;
+  currentFilters.destination = document.getElementById('filter-destination').value.trim();
+  currentFilters.search = document.getElementById('table-search').value.trim();
+  tablePagination.currentPage = 1;
+  fetchAndRenderDocuments();
+  updateUrlParams();
+}
+window.handleFilterSubmit = handleFilterSubmit;
+
+function updateUrlParams() {
+  try {
+    const params = new URLSearchParams();
+    if (currentFilters.startDate) params.set('start', currentFilters.startDate);
+    if (currentFilters.endDate) params.set('end', currentFilters.endDate);
+    if (currentFilters.driverId && currentFilters.driverId !== 'all') params.set('driver', currentFilters.driverId);
+    if (currentFilters.docType && currentFilters.docType !== 'all') params.set('type', currentFilters.docType);
+    if (currentFilters.destination) params.set('dest', currentFilters.destination);
+    if (currentFilters.search) params.set('q', currentFilters.search);
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  } catch (err) {
+    // Non-critical
+  }
+}
+window.updateUrlParams = updateUrlParams;
+
+function loadFiltersFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+
+    if (params.has('start')) {
+      currentFilters.startDate = params.get('start');
+      const el = document.getElementById('filter-start-date');
+      if (el) el.value = currentFilters.startDate;
+      changed = true;
+    }
+    if (params.has('end')) {
+      currentFilters.endDate = params.get('end');
+      const el = document.getElementById('filter-end-date');
+      if (el) el.value = currentFilters.endDate;
+      changed = true;
+    }
+    if (params.has('driver')) {
+      currentFilters.driverId = params.get('driver');
+      const el = document.getElementById('filter-driver');
+      if (el) el.value = currentFilters.driverId;
+      changed = true;
+    }
+    if (params.has('type')) {
+      currentFilters.docType = params.get('type');
+      const el = document.getElementById('filter-doc-type');
+      if (el) el.value = currentFilters.docType;
+      changed = true;
+    }
+    if (params.has('dest')) {
+      currentFilters.destination = params.get('dest');
+      const el = document.getElementById('filter-destination');
+      if (el) el.value = currentFilters.destination;
+      changed = true;
+    }
+    if (params.has('q')) {
+      currentFilters.search = params.get('q');
+      const el = document.getElementById('table-search');
+      if (el) el.value = currentFilters.search;
+      changed = true;
+    }
+
+    if (changed) {
+      document.querySelectorAll('.btn-preset-pill').forEach(b => b.classList.remove('active'));
+    }
+  } catch (err) {
+    console.warn('Could not parse URL query parameters:', err);
+  }
+}
+window.loadFiltersFromUrl = loadFiltersFromUrl;
+
+// Atalhos de teclado adicionais: Ctrl+K para busca, N para nova viagem, Esc para fechar drawer/modais
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    const searchInput = document.getElementById('table-search');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    }
+  } else if (e.key === 'n' || e.key === 'N') {
+    const activeEl = document.activeElement;
+    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT' || activeEl.isContentEditable);
+    if (!isEditing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      openManualTripModal();
+    }
+  } else if (e.key === 'Escape') {
+    closeDocumentDrawer();
+    closeExportDropdown();
+    const deleteModal = document.getElementById('modal-confirm-delete');
+    if (deleteModal && deleteModal.classList.contains('active')) {
+      closeModal('modal-confirm-delete');
+    }
+  }
+});

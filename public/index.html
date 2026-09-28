@@ -118,30 +118,10 @@
         </button>
       </nav>
 
-      <!-- Ações Rápidas -->
-      <div class="sidebar-group-label">AÇÕES RÁPIDAS</div>
+      <!-- Ferramentas Especializadas -->
+      <div class="sidebar-group-label">FERRAMENTAS</div>
       <div class="sidebar-actions">
-        <!-- 1. Inserir Viagem Manual -->
-        <button id="btn-add-manual-trip" class="sidebar-action-btn primary" onclick="openManualTripModal()">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>Inserir Viagem</span>
-        </button>
-
-        <!-- 2. Cadastrar Motorista -->
-        <button id="btn-sidebar-add-driver" class="sidebar-action-btn secondary" onclick="openDriverModal()">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="8.5" cy="7" r="4"/>
-            <line x1="20" y1="8" x2="20" y2="14"/>
-            <line x1="23" y1="11" x2="17" y2="11"/>
-          </svg>
-          <span>Novo Motorista</span>
-        </button>
-
-        <!-- 3. Repositório de Fretes & Destinos (CARAJAS) -->
+        <!-- Repositório de Fretes & Destinos (CARAJAS) -->
         <button id="btn-sidebar-freight-repo" class="sidebar-action-btn amber" onclick="openFreightRepoModal()" title="Repositório de Fretes & Destinos (CARAJAS / Regras Fiscais)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -151,7 +131,7 @@
           <span>Repositório de Frete</span>
         </button>
 
-        <!-- 4. Escanear Planilha Excel de Motoristas & Frotas -->
+        <!-- Escanear Planilha Excel de Motoristas & Frotas -->
         <button id="btn-sidebar-scan-excel" class="sidebar-action-btn emerald" onclick="openDriverExcelScannerModal()" title="Escanear Planilha Excel para Cadastro de Condutores & Frotas">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -162,30 +142,6 @@
           </svg>
           <span>Escanear Excel Frotas</span>
         </button>
-
-        <!-- Relatório Financeiro e Fiscal em PDF -->
-        <button id="btn-export-pdf" class="sidebar-action-btn primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas ao Setor Financeiro (PDF)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-          </svg>
-          <span>Relatório PDF</span>
-        </button>
-
-        <!-- Relatório Financeiro e Fiscal em Excel -->
-        <button id="btn-export-excel" class="sidebar-action-btn success" title="Exportar Planilha Completa de Prestação de Contas (.xlsx)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line x1="3" y1="9" x2="21" y2="9"/>
-            <line x1="3" y1="15" x2="21" y2="15"/>
-            <line x1="9" y1="3" x2="9" y2="21"/>
-            <line x1="15" y1="3" x2="15" y2="21"/>
-          </svg>
-          <span>Relatório Excel</span>
-        </button>
       </div>
 
       <!-- Rodapé da Barra Lateral -->
@@ -194,132 +150,355 @@
           <span class="status-indicator-dot"></span>
           <span class="status-text">SEFAZ &bull; PM2 Ativo</span>
         </div>
-        <div class="sidebar-version-text">v2.4 &bull; Tela Cheia</div>
+        <div class="sidebar-version-text">v2.5 &bull; Executive</div>
       </div>
     </aside>
 
     <!-- Área de Conteúdo Principal (100% Tela Útil) -->
     <div class="main-viewport">
 
+      <!-- CABEÇALHO EXECUTIVO B2B (Global) -->
+      <header class="app-page-header">
+        <div class="header-left">
+          <nav class="breadcrumb-trail" aria-label="Navegação estrutural">
+            <span class="breadcrumb-root">CARGA BALANCE</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="header-breadcrumb-title">Auditoria de Frete</span>
+          </nav>
+          <div class="header-title-row">
+            <h1 class="page-title" id="page-main-title">Painel Geral & Auditoria de Fretes</h1>
+            <span class="badge-period" id="header-period-badge" title="Período ativo nos filtros">
+              <svg class="ui-icon ui-icon-xs" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="header-period-text">Mês Atual</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- Alternar Tema Claro / Escuro -->
+          <button type="button" id="btn-theme-toggle" class="btn-header-icon" onclick="toggleAppTheme()" title="Alternar Modo Claro / Escuro" aria-label="Alternar tema de cores">
+            <svg id="theme-icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+
+          <!-- Importar XML Trigger -->
+          <button type="button" id="btn-toggle-upload" class="btn btn-secondary btn-header" onclick="toggleUploadZone()" title="Importar arquivos XML da SEFAZ (CT-e / MDF-e)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Importar XML</span>
+          </button>
+
+          <!-- Exportar Menu Dropdown -->
+          <div class="dropdown-container" id="dropdown-export-menu">
+            <button type="button" class="btn btn-secondary btn-header dropdown-toggle" id="btn-export-dropdown" onclick="toggleExportDropdown(event)" aria-expanded="false" title="Exportar relatórios">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Exportar</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dropdown-menu" id="export-dropdown-items" style="display: none;">
+              <button type="button" class="dropdown-item" onclick="openFinancialReportModal(); closeExportDropdown();">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <div class="dropdown-item-text">
+                  <strong>Relatório Financeiro (PDF)</strong>
+                  <span>Prestação de contas e comissões</span>
+                </div>
+              </button>
+              <button type="button" class="dropdown-item" onclick="triggerExcelExport(); closeExportDropdown();">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                <div class="dropdown-item-text">
+                  <strong>Planilha Completa (Excel .xlsx)</strong>
+                  <span>Todas as abas fiscais consolidadas</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Botão Primário: Nova Viagem -->
+          <button type="button" class="btn btn-primary btn-header" onclick="openManualTripModal()" title="Registrar nova viagem manual (CT-e ou MDF-e)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Nova Viagem</span>
+          </button>
+        </div>
+      </header>
+
     <!-- TAB 1: PAINEL GERAL & SALDO -->
     <main id="tab-overview" class="tab-content active">
-      <!-- Upload Dropzone -->
-      <section class="upload-card">
-        <div id="dropzone" class="dropzone-area">
-          <div class="dropzone-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-          </div>
-          <div class="dropzone-text">
-            <h3>Ingestão de Arquivos XML em Lote (CT-e e MDF-e)</h3>
-            <p>Arraste e solte seus arquivos XML da SEFAZ aqui ou clique para selecionar</p>
+
+      <!-- 1. Área de Ingestão XML Compacta e Colapsável (~80px) -->
+      <section class="upload-card-compact" id="upload-card-compact">
+        <div id="dropzone" class="dropzone-compact-inner" title="Clique ou arraste arquivos XML de CT-e e MDF-e para auditoria">
+          <div class="dropzone-compact-left">
+            <div class="dropzone-compact-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div class="dropzone-compact-text">
+              <h3>Ingestão Rápida de Arquivos XML da SEFAZ (CT-e e MDF-e)</h3>
+              <p>Arraste múltiplos arquivos aqui ou clique para selecionar do computador</p>
+            </div>
           </div>
           <input type="file" id="file-input" multiple accept=".xml,text/xml,application/xml" style="display: none;">
-          <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('file-input').click()">
-            Selecionar Arquivos XML
-          </button>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('file-input').click()">
+              Selecionar XMLs
+            </button>
+            <button type="button" class="btn-header-icon" onclick="toggleUploadZone()" title="Ocultar área de upload" style="width: 32px; height: 32px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
       </section>
 
-      <!-- KPI Metrics Grid -->
-      <!-- KPI Metrics Grid (Etiquetas Funcionais e Clicáveis) -->
-      <section class="kpi-grid">
-        <!-- 1. Total Faturamento / Frete -->
-        <div class="kpi-card kpi-cte kpi-clickable" id="card-kpi-frete" onclick="toggleKPIDetail('frete')" title="Clique para ver números e gráficos detalhados de Faturamento & Fretes">
-          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-frete" onclick="event.stopPropagation(); toggleMultiKPISelection('frete')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
-          <div class="kpi-header">
-            <span class="kpi-label">Faturamento Total (Fretes)</span>
-            <div class="kpi-icon-badge">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="1" x2="12" y2="23"/>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-              </svg>
+      <!-- Banner de Resumo Pós-Upload Inline -->
+      <div id="upload-summary-inline-banner" class="upload-summary-banner" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <svg class="ui-icon ui-icon-sm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div>
+            <strong style="font-size: 0.85rem; color: var(--text-primary);">Resultado da Importação de XMLs</strong>
+            <div id="upload-summary-chips" class="upload-summary-chips" style="margin-top: 2px;"></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('upload-summary-inline-banner').style.display = 'none'" style="font-size: 0.75rem;">
+          Fechar
+        </button>
+      </div>
+
+      <!-- 2. Barra de Filtros Compacta e Fixa (Sticky Single Bar) - Prioridade 1 -->
+      <section class="filter-bar-sticky" id="filter-bar-sticky">
+        <form id="filter-form" class="filter-form" onsubmit="event.preventDefault(); handleFilterSubmit();">
+          <div class="filter-bar-main">
+            <!-- Atalhos de Período -->
+            <div class="filter-presets-group" aria-label="Atalhos rápidos de período">
+              <button type="button" class="btn-preset-pill" onclick="applyDatePreset('today')" title="Filtrar viagens de hoje">Hoje</button>
+              <button type="button" class="btn-preset-pill" onclick="applyDatePreset('7days')" title="Filtrar últimos 7 dias">7 dias</button>
+              <button type="button" class="btn-preset-pill active" id="preset-month" onclick="applyDatePreset('month')" title="Filtrar mês atual">Mês Atual</button>
+              <button type="button" class="btn-preset-pill" onclick="applyDatePreset('last_month')" title="Filtrar mês anterior">Mês Anterior</button>
+            </div>
+
+            <!-- Inputs em Linha Compacta -->
+            <div class="filter-inputs-row">
+              <div class="filter-field filter-date-field">
+                <input type="date" id="filter-start-date" class="filter-control-compact" title="Data Inicial">
+              </div>
+              <span class="filter-date-separator">até</span>
+              <div class="filter-field filter-date-field">
+                <input type="date" id="filter-end-date" class="filter-control-compact" title="Data Final">
+              </div>
+
+              <!-- Motorista com busca/select -->
+              <div class="filter-field filter-driver-field">
+                <select id="filter-driver" class="filter-control-compact" title="Filtrar por Motorista">
+                  <option value="all">Todos os Motoristas</option>
+                </select>
+              </div>
+
+              <!-- Tipo de Documento -->
+              <div class="filter-field filter-doctype-field">
+                <select id="filter-doc-type" class="filter-control-compact" title="Tipo de Documento Fiscal">
+                  <option value="all">Todos (CT-e e MDF-e)</option>
+                  <option value="cte">Apenas CT-e</option>
+                  <option value="mdfe">Apenas MDF-e</option>
+                </select>
+              </div>
+
+              <!-- Destino -->
+              <div class="filter-field filter-destination-field">
+                <input type="text" id="filter-destination" class="filter-control-compact" placeholder="Destino (UF / Cidade)..." list="destinations-datalist" title="Filtrar por Cidade ou UF de destino">
+                <datalist id="destinations-datalist"></datalist>
+              </div>
+
+              <!-- Busca Textual Geral com Debounce -->
+              <div class="filter-field filter-search-field">
+                <input type="search" id="table-search" class="filter-control-compact" placeholder="Buscar por CT-e, chave, motorista, rota..." title="Pressione Ctrl+K ou digite para pesquisar">
+              </div>
+
+              <!-- Ações do Filtro -->
+              <div class="filter-actions-inline">
+                <button type="submit" id="btn-submit-filters" class="btn btn-primary btn-sm btn-filter-apply" title="Aplicar filtros">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                  <span>Filtrar</span>
+                </button>
+                <button type="button" id="btn-clear-filters" class="btn btn-secondary btn-sm" onclick="clearAllFilters()" title="Limpar todos os filtros">
+                  <span>Limpar</span>
+                </button>
+              </div>
             </div>
           </div>
-          <div id="kpi-total-frete" class="kpi-value">R$ 0,00</div>
-          <div class="kpi-footer">
-            <span id="kpi-breakdown-cte" class="badge-trend">CT-e: R$ 0,00</span>
-            <span id="kpi-breakdown-mdfe" style="color: var(--accent-mdfe); font-weight: 600;">Carga MDF-e: R$ 0,00</span>
+
+          <!-- Chips de Filtros Ativos (Removíveis com '×') -->
+          <div class="active-filter-chips-bar" id="active-filter-chips-bar" style="display: none;">
+            <span class="active-chips-label">Filtros ativos:</span>
+            <div class="active-chips-container" id="active-chips-container"></div>
+            <button type="button" class="btn-clear-all-chips" onclick="clearAllFilters()">Limpar tudo</button>
           </div>
-          <div class="kpi-action-hint">
-            <span>Ver números & gráficos</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+          <!-- Consulta Multicritério com Lógica E (AND) / OU (OR) -->
+          <div class="multicriteria-chips-bar" id="multi-icon-query-bar">
+            <div class="multicriteria-chips-header">
+              <span class="multicriteria-label">Consulta por Critério:</span>
+              <div class="multicriteria-logic-toggle" title="Alternar entre combinar todas as condições (E) ou qualquer condição (OU)">
+                <span>Lógica de combinação:</span>
+                <button type="button" class="btn-logic-pill active" id="btn-logic-and" onclick="setMultiCriteriaLogic('AND')">E (AND)</button>
+                <button type="button" class="btn-logic-pill" id="btn-logic-or" onclick="setMultiCriteriaLogic('OR')">OU (OR)</button>
+              </div>
+            </div>
+            <div class="multicriteria-chips-list">
+              <button type="button" class="crit-chip" data-crit="cte" onclick="toggleMultiCriteriaChip('cte')" title="Filtrar Conhecimentos de Transporte (CT-e)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>CT-e</span>
+                <span class="crit-chip-count" id="chip-count-cte">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="mdfe" onclick="toggleMultiCriteriaChip('mdfe')" title="Filtrar Manifestos de Carga (MDF-e)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <span>MDF-e</span>
+                <span class="crit-chip-count" id="chip-count-mdfe">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="frota_propria" onclick="toggleMultiCriteriaChip('frota_propria')" title="Filtrar Frota Própria">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+                <span>Frota Própria</span>
+                <span class="crit-chip-count" id="chip-count-frota">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="agregado" onclick="toggleMultiCriteriaChip('agregado')" title="Filtrar Motoristas Agregados">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Agregados</span>
+                <span class="crit-chip-count" id="chip-count-agregado">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="terceirizado" onclick="toggleMultiCriteriaChip('terceirizado')" title="Filtrar Motoristas Terceirizados">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span>Terceirizados</span>
+                <span class="crit-chip-count" id="chip-count-terceirizado">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="interestadual" onclick="toggleMultiCriteriaChip('interestadual')" title="Filtrar Operações Interestaduais (Fora de AL)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                <span>Interestaduais</span>
+                <span class="crit-chip-count" id="chip-count-interestadual">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="com_icms" onclick="toggleMultiCriteriaChip('com_icms')" title="Filtrar Operações com ICMS Destacado">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/></svg>
+                <span>Com ICMS</span>
+                <span class="crit-chip-count" id="chip-count-icms">0</span>
+              </button>
+              <button type="button" class="crit-chip" data-crit="carajas" onclick="toggleMultiCriteriaChip('carajas')" title="Filtrar Operações CARAJAS">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg>
+                <span>Carajás</span>
+                <span class="crit-chip-count" id="chip-count-carajas">0</span>
+              </button>
+            </div>
           </div>
+        </form>
+      </section>
+
+      <!-- 3. Indicadores Financeiros (KPIs) - Alto Contraste WCAG AA -->
+      <section class="kpi-section-container">
+        <div class="kpi-section-header">
+          <span class="kpi-section-title">Indicadores Consolidados do Período</span>
+          <button type="button" id="btn-toggle-kpis" class="kpi-toggle-btn" onclick="toggleKPIsSection()" title="Alternar visibilidade dos cards de indicadores">
+            <svg class="ui-icon ui-icon-xs" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+            <span id="kpi-toggle-text">Ocultar Indicadores</span>
+          </button>
         </div>
 
-        <!-- 2. Comissões dos Motoristas (75%) -->
-        <div class="kpi-card kpi-commission kpi-clickable" id="card-kpi-comissao" data-kpi="comissao" onclick="toggleKPIDetail('comissao')" title="Clique para ver números e gráficos detalhados de Comissões dos Motoristas (75%)">
-          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-comissao" onclick="event.stopPropagation(); toggleMultiKPISelection('comissao')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
-          <div class="kpi-header">
-            <span class="kpi-label">Comissão Motoristas (75%)</span>
-            <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
+        <section class="kpi-grid" id="main-kpi-grid">
+          <!-- 1. Faturamento Total -->
+          <div class="kpi-card kpi-cte kpi-clickable" id="card-kpi-frete" onclick="toggleKPIDetail('frete')" title="Clique para ver detalhes de Faturamento e Fretes">
+            <div class="kpi-header">
+              <span class="kpi-label">
+                Faturamento Total (Fretes)
+                <span class="kpi-tooltip-trigger" title="Soma do valor total da prestação (vTPrest) de todos os CT-es e cargas de MDF-e autorizados no período.">?</span>
+              </span>
+              <div class="kpi-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
+            </div>
+            <div id="kpi-total-frete" class="kpi-value">R$ 0,00</div>
+            <div class="kpi-footer">
+              <span id="kpi-breakdown-cte" class="badge-trend">CT-e: R$ 0,00</span>
+              <span id="kpi-breakdown-mdfe" style="color: var(--accent-mdfe); font-weight: 600;">Carga MDF-e: R$ 0,00</span>
+            </div>
+            <div class="kpi-action-hint">
+              <span class="kpi-action-link">Ver detalhes ➔</span>
             </div>
           </div>
-          <div id="kpi-total-comissao" class="kpi-value" style="color: #34d399;">R$ 0,00</div>
-          <div class="kpi-footer">
-            <span>Saldo acumulado a pagar aos condutores (75% do frete)</span>
-          </div>
-          <div class="kpi-action-hint">
-            <span>Ver números & gráficos</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </div>
-        </div>
 
-        <!-- 3. ICMS e Tributos -->
-        <div class="kpi-card kpi-amber kpi-clickable" id="card-kpi-icms" onclick="toggleKPIDetail('icms')" title="Clique para ver números e gráficos detalhados de ICMS Destacado & Tributos">
-          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-icms" onclick="event.stopPropagation(); toggleMultiKPISelection('icms')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
-          <div class="kpi-header">
-            <span class="kpi-label">Total ICMS Destacado</span>
-            <div class="kpi-icon-badge">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
-              </svg>
+          <!-- 2. Comissão dos Motoristas (75%) -->
+          <div class="kpi-card kpi-commission kpi-clickable" id="card-kpi-comissao" data-kpi="comissao" onclick="toggleKPIDetail('comissao')" title="Clique para ver detalhes de Comissões dos Motoristas">
+            <div class="kpi-header">
+              <span class="kpi-label">
+                Comissão Motoristas
+                <span class="kpi-commission-badge" id="kpi-commission-rate-badge" title="Taxa padrão de comissão dos motoristas">75%</span>
+                <span class="kpi-tooltip-trigger" title="75% calculados sobre o valor líquido dos fretes prestados pelos motoristas conforme regra cadastrada.">?</span>
+              </span>
+              <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--kpi-green-text);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+              </div>
+            </div>
+            <div id="kpi-total-comissao" class="kpi-value">R$ 0,00</div>
+            <div class="kpi-footer">
+              <span>Saldo a pagar aos condutores</span>
+            </div>
+            <div class="kpi-action-hint">
+              <span class="kpi-action-link">Ver detalhes ➔</span>
             </div>
           </div>
-          <div id="kpi-total-icms" class="kpi-value" style="color: #fbbf24;">R$ 0,00</div>
-          <div class="kpi-footer">
-            <span>Imposto sobre prestação de transporte</span>
-          </div>
-          <div class="kpi-action-hint">
-            <span>Ver números & gráficos</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </div>
-        </div>
 
-        <!-- 4. Viagens & Interestaduais -->
-        <div class="kpi-card kpi-mdfe kpi-clickable" id="card-kpi-documentos" onclick="toggleKPIDetail('documentos')" title="Clique para ver números e gráficos detalhados de Viagens & Documentos (CT-e e MDF-e)">
-          <button type="button" class="kpi-multi-toggle" id="kpi-toggle-documentos" onclick="event.stopPropagation(); toggleMultiKPISelection('documentos')" title="Marcar para consulta combinada de 2 ou mais ícones">+ Consulta</button>
-          <div class="kpi-header">
-            <span class="kpi-label">Viagens & Documentos</span>
-            <div class="kpi-icon-badge">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
+          <!-- 3. ICMS Destacado -->
+          <div class="kpi-card kpi-amber kpi-clickable" id="card-kpi-icms" onclick="toggleKPIDetail('icms')" title="Clique para ver detalhes de ICMS Destacado & Tributos">
+            <div class="kpi-header">
+              <span class="kpi-label">
+                Total ICMS Destacado
+                <span class="kpi-tooltip-trigger" title="Soma do imposto sobre transporte (vICMS) destacado nos conhecimentos autorizados.">?</span>
+              </span>
+              <div class="kpi-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+              </div>
+            </div>
+            <div id="kpi-total-icms" class="kpi-value">R$ 0,00</div>
+            <div class="kpi-footer">
+              <span>Imposto sobre prestação de transporte</span>
+            </div>
+            <div class="kpi-action-hint">
+              <span class="kpi-action-link">Ver detalhes ➔</span>
             </div>
           </div>
-          <div id="kpi-doc-count" class="kpi-value">0</div>
-          <div class="kpi-footer">
-            <span id="kpi-count-interstate" class="badge-interstate">0 Interestaduais (Fora de AL)</span>
+
+          <!-- 4. Viagens & Documentos -->
+          <div class="kpi-card kpi-mdfe kpi-clickable" id="card-kpi-documentos" onclick="toggleKPIDetail('documentos')" title="Clique para ver detalhes de Viagens & Documentos">
+            <div class="kpi-header">
+              <span class="kpi-label">
+                Viagens & Documentos
+                <span class="kpi-tooltip-trigger" title="Contagem total de documentos fiscais eletrônicos processados e conferidos.">?</span>
+              </span>
+              <div class="kpi-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+            </div>
+            <div id="kpi-doc-count" class="kpi-value">0</div>
+            <div class="kpi-footer">
+              <span id="kpi-count-interstate" class="badge-interstate">0 Interestaduais</span>
+            </div>
+            <div class="kpi-action-hint">
+              <span class="kpi-action-link">Ver detalhes ➔</span>
+            </div>
           </div>
-          <div class="kpi-action-hint">
-            <span>Ver números & gráficos</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </div>
-        </div>
+        </section>
       </section>
 
       <!-- Painel Interativo de Resultados em Números e Gráficos Detalhados -->
       <section id="kpi-detail-panel" class="kpi-detail-panel" style="display: none;">
-        <!-- Header with Title, Mode Pill Switcher, Action Filter and Close Button -->
         <div class="kpi-detail-header">
           <div class="kpi-detail-title-group">
             <div id="kpi-detail-badge-icon" class="kpi-detail-badge-icon">
@@ -333,45 +512,22 @@
           </div>
 
           <div class="kpi-detail-controls">
-            <!-- Selector pills to change active view directly inside panel -->
             <div class="kpi-pill-group">
-              <button type="button" class="kpi-pill-btn active" id="pill-kpi-frete" onclick="selectKPIDetail('frete')">
-                <svg class="ui-icon ui-icon-sm ui-icon-freight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Fretes
-              </button>
-              <button type="button" class="kpi-pill-btn" id="pill-kpi-comissao" onclick="selectKPIDetail('comissao')">
-                <svg class="ui-icon ui-icon-sm ui-icon-commission" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> Comissões (75%)
-              </button>
-              <button type="button" class="kpi-pill-btn" id="pill-kpi-icms" onclick="selectKPIDetail('icms')">
-                <svg class="ui-icon ui-icon-sm ui-icon-tax" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> ICMS
-              </button>
-              <button type="button" class="kpi-pill-btn" id="pill-kpi-documentos" onclick="selectKPIDetail('documentos')">
-                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documentos
-              </button>
+              <button type="button" class="kpi-pill-btn active" id="pill-kpi-frete" onclick="selectKPIDetail('frete')">Fretes</button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-comissao" onclick="selectKPIDetail('comissao')">Comissões (75%)</button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-icms" onclick="selectKPIDetail('icms')">ICMS</button>
+              <button type="button" class="kpi-pill-btn" id="pill-kpi-documentos" onclick="selectKPIDetail('documentos')">Documentos</button>
             </div>
 
-            <!-- Direct Quick Filter Button for the table -->
-            <button type="button" id="btn-kpi-filter-table" class="btn btn-secondary btn-sm" onclick="filterTableByCurrentKPI()" title="Filtrar tabela com base nesta etiqueta">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-              <span id="btn-kpi-filter-text">Filtrar Tabela</span>
-            </button>
-
-            <!-- Close / Collapse Button -->
             <button type="button" class="btn btn-secondary btn-sm" onclick="closeKPIDetailPanel()" title="Recolher painel de gráficos" style="display: inline-flex; align-items: center; gap: 4px;">
-              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Ocultar
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Ocultar
             </button>
           </div>
         </div>
 
-        <!-- 1. Grid de Números Detalhados (Estatísticas Avançadas) -->
-        <div id="kpi-detail-stats-grid" class="kpi-detail-stats-grid">
-          <!-- Dynamically populated cards with specific figures -->
-        </div>
+        <div id="kpi-detail-stats-grid" class="kpi-detail-stats-grid"></div>
 
-        <!-- 2. Grid de Gráficos Detalhados (Canvas Chart.js) -->
         <div class="kpi-detail-charts-grid">
-          <!-- Chart Card A -->
           <div class="kpi-detail-chart-card">
             <div class="kpi-detail-chart-header">
               <div>
@@ -384,7 +540,6 @@
             </div>
           </div>
 
-          <!-- Chart Card B -->
           <div class="kpi-detail-chart-card">
             <div class="kpi-detail-chart-header">
               <div>
@@ -398,153 +553,23 @@
           </div>
         </div>
 
-        <!-- 3. Mini Tabela / Destaques da Etiqueta Selecionada -->
         <div class="kpi-detail-table-card">
           <div class="kpi-detail-table-header">
-            <h4 id="kpi-table-title" style="font-size: 0.9rem; font-weight: 700;">Documentos e Registros em Destaque</h4>
+            <h4 id="kpi-table-title" style="font-size: 0.9rem; font-weight: 700;">Documentos em Destaque</h4>
             <span id="kpi-table-subtitle" style="font-size: 0.775rem; color: var(--text-secondary);">Auditados em tempo real</span>
           </div>
           <div class="table-wrapper" style="max-height: 220px; overflow-y: auto;">
             <table class="data-table" style="font-size: 0.8rem;">
               <thead>
-                <tr id="kpi-detail-table-head">
-                  <!-- Dynamically rendered headers -->
-                </tr>
+                <tr id="kpi-detail-table-head"></tr>
               </thead>
-              <tbody id="kpi-detail-table-body">
-                <!-- Dynamically rendered rows -->
-              </tbody>
+              <tbody id="kpi-detail-table-body"></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- Filter Bar Component -->
-      <section class="filter-card">
-        <form id="filter-form" class="filter-form">
-          <div class="form-group">
-            <label for="filter-start-date">Data Inicial</label>
-            <input type="date" id="filter-start-date" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label for="filter-end-date">Data Final</label>
-            <input type="date" id="filter-end-date" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label for="filter-driver">Motorista</label>
-            <select id="filter-driver" class="form-control">
-              <option value="all">Todos os Motoristas</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filter-doc-type">Tipo de Documento</label>
-            <select id="filter-doc-type" class="form-control">
-              <option value="all">Todos (CT-e e MDF-e)</option>
-              <option value="cte">Apenas CT-e</option>
-              <option value="mdfe">Apenas MDF-e</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="filter-destination">Destino (UF / Cidade)</label>
-            <input type="text" id="filter-destination" class="form-control" placeholder="Ex: CE, Juazeiro, PE...">
-          </div>
-
-          <div class="filter-buttons">
-            <button type="submit" class="btn btn-primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-              </svg>
-              Filtrar
-            </button>
-            <button type="button" id="btn-clear-filters" class="btn btn-secondary">
-              Limpar
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <!-- Barra de Consulta Multicritério por Múltiplos Ícones (Seleção de 2 ou mais) -->
-      <section class="multi-icon-query-bar" id="multi-icon-query-bar">
-        <div class="multi-icon-query-header">
-          <div class="multi-icon-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-            <span>Consulta Multicritério por Ícones (Selecione 2 ou mais para filtrar):</span>
-          </div>
-          <span style="font-size: 0.725rem; color: var(--text-muted);">
-            Clique em múltiplos ícones para combinar condições de busca
-          </span>
-        </div>
-
-        <div class="multi-icon-chips-container">
-          <button type="button" class="multi-icon-chip" data-icon="cte" onclick="toggleQueryIcon('cte')" title="Filtrar Conhecimentos de Transporte (CT-e)">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-            <span class="chip-text">CT-e (Fretes)</span>
-            <span class="chip-count" id="chip-count-cte">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="mdfe" onclick="toggleQueryIcon('mdfe')" title="Filtrar Manifestos de Documentos Fiscais (MDF-e)">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
-            <span class="chip-text">MDF-e (Manifestos)</span>
-            <span class="chip-count" id="chip-count-mdfe">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="frota_propria" onclick="toggleQueryIcon('frota_propria')" title="Filtrar Viagens da Frota Própria">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></span>
-            <span class="chip-text">Frota Própria</span>
-            <span class="chip-count" id="chip-count-frota">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="agregado" onclick="toggleQueryIcon('agregado')" title="Filtrar Viagens de Motoristas Agregados">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-            <span class="chip-text">Agregados</span>
-            <span class="chip-count" id="chip-count-agregado">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="terceirizado" onclick="toggleQueryIcon('terceirizado')" title="Filtrar Viagens de Condutores Terceirizados">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-            <span class="chip-text">Terceirizados</span>
-            <span class="chip-count" id="chip-count-terceirizado">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="interestadual" onclick="toggleQueryIcon('interestadual')" title="Filtrar Operações Interestaduais (Fora de AL)">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></span>
-            <span class="chip-text">Interestaduais</span>
-            <span class="chip-count" id="chip-count-interestadual">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="com_icms" onclick="toggleQueryIcon('com_icms')" title="Filtrar Operações com ICMS Destacado">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/></svg></span>
-            <span class="chip-text">Com ICMS</span>
-            <span class="chip-count" id="chip-count-icms">0</span>
-          </button>
-
-          <button type="button" class="multi-icon-chip" data-icon="carajas" onclick="toggleQueryIcon('carajas')" title="Filtrar Operações CARAJAS MATERIAL DE CONSTRUCAO">
-            <span class="chip-icon"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg></span>
-            <span class="chip-text">Carajás</span>
-            <span class="chip-count" id="chip-count-carajas">0</span>
-          </button>
-        </div>
-
-        <div id="multi-icon-active-feedback" class="multi-icon-active-feedback" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><strong>Consulta Ativa:</strong></span>
-            <span id="multi-icon-feedback-text">0 ícones selecionados</span>
-          </div>
-          <button type="button" class="btn-clear-chips" onclick="clearSelectedQueryIcons()" style="display: inline-flex; align-items: center; gap: 4px;">
-            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Limpar Ícones
-          </button>
-        </div>
-      </section>
-
-      <!-- Results Table -->
+      <!-- 4. Tabela "Documentos & Fretes" (A Estrela do Sistema - Primeira Dobra) -->
       <section class="table-card">
         <div class="table-header-bar">
           <div class="table-title">
@@ -552,85 +577,66 @@
             <span id="results-count" class="results-badge">0 registros</span>
           </div>
 
-          <!-- Barra de Registro de Cadastro & Ações Rápidas -->
-          <div class="registration-action-bar" aria-label="Barra de Registro e Cadastro">
-            <button type="button" class="btn-action-pill primary" onclick="openManualTripModal()" title="Inserir Viagem Manual (CT-e ou MDF-e)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>+ Nova Viagem</span>
+          <!-- Ações Rápidas da Tabela -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="triggerExcelExport()" title="Exportar dados filtrados para Excel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Exportar</span>
             </button>
-            <button type="button" class="btn-action-pill emerald" onclick="openDriverModal()" title="Cadastrar Novo Motorista">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <line x1="20" y1="8" x2="20" y2="14"></line>
-                <line x1="23" y1="11" x2="17" y2="11"></line>
-              </svg>
-              <span>+ Novo Motorista</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openManualTripModal()" title="Registrar nova viagem manual">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Nova Viagem</span>
             </button>
-            <button type="button" id="overview-btn-export-pdf" class="btn-action-pill primary" onclick="openFinancialReportModal()" title="Gerar Relatório de Prestação de Contas (PDF)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
-              <span>Relatório PDF</span>
-            </button>
-            <button type="button" id="overview-btn-export-excel" class="btn-action-pill success" title="Exportar Planilha Completa de Prestação de Contas (.xlsx)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="3" x2="9" y2="21"></line>
-              </svg>
-              <span>Relatório Excel</span>
-            </button>
-          </div>
-
-          <!-- Campo de Pesquisa Compacto -->
-          <div class="search-control-group search-compact">
-            <select id="search-category" class="search-type-select" title="Filtrar por Motorista, CT-e, MDF-e ou Rota">
-              <option value="all">Todos os Tipos</option>
-              <option value="driver">Motorista</option>
-              <option value="cte">CT-e</option>
-              <option value="mdfe">MDF-e</option>
-              <option value="route">Rota</option>
-            </select>
-            <input type="search" id="table-search" class="search-input-inner" placeholder="Pesquisar..." title="Digite para pesquisar em tempo real">
           </div>
         </div>
 
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table" id="main-documents-table">
             <thead>
               <tr>
-                <th>Tipo</th>
-                <th style="text-align: center;">Ações</th>
-                <th>Número</th>
-                <th>Série</th>
-                <th style="cursor: pointer; user-select: none;" onclick="toggleChronogramSort('overview')" title="Clique para inverter a ordenação das viagens (Mais recente / Mais antigo)">
-                  Cronograma (Saída / Prev. Chegada) <span id="sort-indicator-overview" style="display: inline-block; padding: 1px 6px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; color: #38bdf8; font-size: 0.675rem; font-weight: 700; margin-left: 4px;">▼ Recente</span>
+                <th style="width: 75px;">Tipo</th>
+                <th style="width: 110px;">Número / Série</th>
+                <th style="cursor: pointer; user-select: none;" onclick="toggleChronogramSort('overview')" title="Clique para inverter a ordenação por data">
+                  Cronograma (Saída / Chegada) <span id="sort-indicator-overview" style="display: inline-block; padding: 1px 5px; background: rgba(56, 189, 248, 0.15); border-radius: 4px; color: #0284c7; font-size: 0.675rem; font-weight: 700; margin-left: 4px;">▼ Recente</span>
                 </th>
-                <th>Motorista</th>
-                <th>CPF</th>
-                <th>Empresas (Remetente ➔ Recebedor)</th>
-                <th>Rota & Estados Percurso</th>
-                <th style="text-align: center;">Interestadual?</th>
-                <th style="text-align: right;">Frete / Carga (R$)</th>
-                <th style="text-align: right;">ICMS (R$)</th>
-                <th style="text-align: right; color: #34d399;">Comissão (75%)</th>
+                <th>Motorista & CPF</th>
+                <th>Empresas (Remetente ➔ Destinatário)</th>
+                <th>Rota & Percurso</th>
+                <th style="text-align: right; width: 130px;">Frete (R$)</th>
+                <th style="text-align: right; width: 130px;">Comissão (75%)</th>
+                <th style="text-align: center; width: 90px;">Ações</th>
               </tr>
             </thead>
             <tbody id="documents-table-body">
               <tr>
-                <td colspan="13" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                <td colspan="9" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
                   Carregando dados...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Barra de Paginação da Tabela -->
+        <div class="table-pagination-bar" id="table-pagination-bar">
+          <div class="pagination-info" id="pagination-info">
+            Mostrando 0 registros
+          </div>
+
+          <div class="items-per-page-selector">
+            <span>Linhas por página:</span>
+            <select id="items-per-page-select" onchange="changeItemsPerPage(this.value)">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+
+          <div class="pagination-controls" id="pagination-controls">
+            <button type="button" class="page-btn" id="btn-page-prev" onclick="goToPreviousPage()" disabled title="Página anterior">◀</button>
+            <span id="pagination-page-numbers" style="display: inline-flex; gap: 0.25rem;"></span>
+            <button type="button" class="page-btn" id="btn-page-next" onclick="goToNextPage()" disabled title="Próxima página">▶</button>
+          </div>
         </div>
       </section>
 
@@ -2343,6 +2349,191 @@
           <span><kbd>Ctrl</kbd> + <kbd>X</kbd> abrir</span>
         </div>
         <div class="cmd-palette-brand">CARGA BALANCE &bull; COMANDOS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER LATERAL: Detalhes Completos do Documento Fiscal (CT-e / MDF-e) -->
+  <div id="drawer-backdrop" class="drawer-backdrop" onclick="closeDocumentDrawer()"></div>
+  <aside id="document-details-drawer" class="doc-details-drawer" aria-label="Painel lateral de detalhes do documento">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <span id="drawer-doc-type-badge" class="badge-doc badge-cte">CT-e</span>
+        <h3 id="drawer-doc-title" class="drawer-title">Documento nº ---</h3>
+        <span class="badge-doc badge-cte" style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.12); color: var(--kpi-green-text);">Autorizado SEFAZ</span>
+      </div>
+      <button type="button" class="drawer-close-btn" onclick="closeDocumentDrawer()" title="Fechar painel (Esc)" aria-label="Fechar painel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="drawer-body" id="drawer-body-content">
+      <!-- Chave de Acesso com 1-Click Copy -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          <span>Chave de Acesso SEFAZ (44 dígitos)</span>
+        </div>
+        <div class="drawer-key-box">
+          <span id="drawer-access-key" style="word-break: break-all;">--------------------------------------------</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-drawer-key" onclick="copyDrawerAccessKey()" title="Copiar chave de acesso" style="flex-shrink: 0; padding: 2px 8px; font-size: 0.72rem;">
+            Copiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo Financeiro & Comissões (75%) -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Auditoria Financeira & Tributária</span>
+        </div>
+        <div class="drawer-grid-2">
+          <div class="drawer-field">
+            <span class="drawer-field-label">Valor do Frete / Carga</span>
+            <span class="drawer-field-value tabular-num" id="drawer-val-frete" style="color: var(--kpi-indigo-text); font-size: 1.05rem;">R$ 0,00</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Comissão do Condutor (75%)</span>
+            <span class="drawer-field-value tabular-num" id="drawer-val-comissao" style="color: var(--kpi-green-text); font-size: 1.05rem;">R$ 0,00</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">ICMS Destacado</span>
+            <span class="drawer-field-value tabular-num" id="drawer-val-icms" style="color: var(--kpi-amber-text);">R$ 0,00</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Alíquota ICMS / CST</span>
+            <span class="drawer-field-value tabular-num" id="drawer-val-aliquota">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transporte & Motorista -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <span>Motorista & Veículo</span>
+        </div>
+        <div class="drawer-grid-2">
+          <div class="drawer-field">
+            <span class="drawer-field-label">Nome do Condutor</span>
+            <span class="drawer-field-value" id="drawer-driver-name">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">CPF</span>
+            <span class="drawer-field-value tabular-num" id="drawer-driver-cpf">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Placa do Veículo</span>
+            <span class="drawer-field-value tabular-num" id="drawer-vehicle-plate">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Categoria de Vínculo</span>
+            <span class="drawer-field-value" id="drawer-fleet-type">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empresas Envolvidas -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+          <span>Empresas Envolvidas</span>
+        </div>
+        <div class="drawer-field" style="margin-bottom: 0.65rem;">
+          <span class="drawer-field-label">Remetente (Origem)</span>
+          <span class="drawer-field-value" id="drawer-rem-name" style="font-weight: 700;">-</span>
+          <span class="drawer-field-label" id="drawer-rem-cnpj" style="font-family: var(--font-mono); font-size: 0.72rem; margin-top: 1px;">CNPJ: -</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-label">Destinatário (Entrega Final)</span>
+          <span class="drawer-field-value" id="drawer-dest-name" style="font-weight: 700; color: #0284c7;">-</span>
+          <span class="drawer-field-label" id="drawer-dest-cnpj" style="font-family: var(--font-mono); font-size: 0.72rem; margin-top: 1px;">CNPJ: -</span>
+          <span class="drawer-field-label" id="drawer-dest-addr" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Endereço: -</span>
+        </div>
+      </div>
+
+      <!-- Rota & Cronograma -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+          <span>Rota & Cronograma</span>
+        </div>
+        <div class="drawer-grid-2">
+          <div class="drawer-field">
+            <span class="drawer-field-label">Origem</span>
+            <span class="drawer-field-value" id="drawer-route-origin">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Destino</span>
+            <span class="drawer-field-value" id="drawer-route-dest">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Saída</span>
+            <span class="drawer-field-value tabular-num" id="drawer-time-departure">-</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Previsão Chegada</span>
+            <span class="drawer-field-value tabular-num" id="drawer-time-arrival">-</span>
+          </div>
+        </div>
+        <div id="drawer-schedule-warning-box" style="display: none; margin-top: 0.65rem; padding: 0.4rem 0.65rem; border-radius: 4px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.75rem; color: var(--kpi-amber-text);">
+          ⚠️ <strong>Alerta:</strong> A data e hora de chegada informadas são anteriores ao horário de saída.
+        </div>
+      </div>
+
+      <!-- Cargas & Volumes -->
+      <div class="drawer-section">
+        <div class="drawer-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          <span>Carga & Volumes</span>
+        </div>
+        <div class="drawer-grid-2">
+          <div class="drawer-field">
+            <span class="drawer-field-label">Peso Bruto</span>
+            <span class="drawer-field-value tabular-num" id="drawer-cargo-weight">- kg</span>
+          </div>
+          <div class="drawer-field">
+            <span class="drawer-field-label">Quantidade Volumes</span>
+            <span class="drawer-field-value tabular-num" id="drawer-cargo-volumes">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Footer Actions -->
+    <div class="drawer-footer">
+      <div style="display: flex; gap: 0.45rem;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-drawer-preview" onclick="handleDrawerPreview()" title="Visualizar documento auxiliar (DACTE/DAMDFE)">
+          Visualizar DACTE
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-drawer-xml" onclick="handleDrawerDownloadXml()" title="Baixar arquivo XML SEFAZ">
+          Baixar XML
+        </button>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" id="btn-drawer-delete" onclick="handleDrawerDelete()" style="color: var(--accent-rose); border-color: rgba(239, 68, 68, 0.3);" title="Excluir documento">
+        Excluir
+      </button>
+    </div>
+  </aside>
+
+  <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (Sem usar window.confirm nativo) -->
+  <div id="modal-confirm-delete" class="modal-backdrop">
+    <div class="modal-container modal-confirm-container">
+      <div class="modal-confirm-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </div>
+      <h3 class="modal-confirm-title" id="confirm-delete-title">Confirmar Exclusão</h3>
+      <p class="modal-confirm-desc" id="confirm-delete-desc">
+        Deseja realmente excluir este documento fiscal? Todos os cálculos de comissão e faturamento relacionados serão recalculados. Esta ação não poderá ser desfeita.
+      </p>
+      <div class="modal-confirm-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-confirm-delete')">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-execute-delete" onclick="executeConfirmedDelete()" style="background: var(--accent-rose); color: #fff;">
+          Sim, Excluir Documento
+        </button>
       </div>
     </div>
   </div>
